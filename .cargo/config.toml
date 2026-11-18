@@ -1,0 +1,7 @@
+# Local builds pick up the optional kition-fonts checkout next to this repo. When the directory is
+# missing the build warns and carries on with system fonts.
+[env]
+KITION_FONTS_DIR = { value = "../kition-fonts", relative = true }
+
+[alias]
+xtask = "run -q -p xtask --"

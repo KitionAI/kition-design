@@ -1,0 +1,38 @@
+format: 1
+id: design.agent.recover/text-overflow
+feature: design.agent.recover
+intent: >-
+  The agent runs the kit's check, finds text that runs past the bottom of its box, and gives it
+  room without narrowing it or changing the words.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/check-text-overflow.kdesign
+  license: Apache-2.0
+  note: A copy of the conformance fixture for design.text-overflow.
+input: [input/note.kdesign]
+steps:
+  - task:
+      prompt: >-
+        Run the kit's check on note.kdesign and fix what it reports. Keep the text box 160 px wide
+        and keep its words.
+      max_turns: 20
+  - query: { path: note.kdesign, args: { follow: nodes, fields: [key, name, kind, frame, layout] }, as: after }
+  - check: { path: note.kdesign, as: diagnostics }
+expected:
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { absent: [design.text-overflow, design.text-ellipsis], max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      total: 3
+      objects.2.fields.key: 3
+      objects.2.fields.frame.width: 160
+      objects.2.fields.name: { contains: Kition Design lays this sentence out }
+solution:
+  - tool: design_run
+    args: { path: note.kdesign, steps: [{ command: node.set, params: { id: 3, props: { textAutoResize: height } } }] }
+since: "2026-11-17"
+timeout_s: 600

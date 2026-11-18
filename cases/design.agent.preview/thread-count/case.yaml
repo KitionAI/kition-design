@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.preview/thread-count
+feature: design.agent.preview
+intent: >-
+  A preview is drawn on the calling thread: the same bytes in thread pools of 1, 3 and 8 threads (banded drawing differed).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: render, filter: the_same_bytes_on_one_thread_and_on_many }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-3-implicit-place
+feature: design.agent.ids
+intent: A fully implicit placement after a tool-setting prefix is replayed on the planned prefix, so a parent others moved away from the default point is refused as relocated and nothing is written (kition-sdk 1935d52 missed this refusal).
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 1 pinned SDK limitation, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "c8_3::waiting_for_sdk_tool_place" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

@@ -1,0 +1,22 @@
+format: 1
+id: design.platform.display-modes/show-hide-ui
+feature: design.platform.display-modes
+intent: >-
+  View > Show/Hide UI (also in the canvas menu and the Actions palette) enters kit-editor's Focus
+  through the frame's display (`useFrameDisplay().toggleFocus`), not by a keydown made up for the
+  frame's Cmd+\; with nothing selected, Escape leaves Focus again.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/menus.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/menus.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 300
+requires: [chromium]

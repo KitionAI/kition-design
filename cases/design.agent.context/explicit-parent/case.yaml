@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/explicit-parent
+feature: design.agent.context
+intent: >-
+  An agent's node.create with a parent on another page, and its edit by id there, leave the current page, the selection, the view and the tool as they were.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: context, filter: an_agents_create_on_another_page_leaves_the_current_page }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,14 @@
+format: 1
+id: regressions/issue-c8-design-3-vector
+feature: design.agent.ids
+intent: Vector conversion holds boolean operands and cleanup holds every edited layer; an outside point addition refuses the session while an unrelated edit applies.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 2, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "c8_3::vector_session" }
+  - cargo-test: { package: kition-design-kit, test: c8_3_vectors }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/page-inspect
+feature: design.agent.context
+intent: >-
+  page.inspect lists any page's layers (or one layer's subtree) by id or index, topmost first with index and z, without going to that page.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: context, filter: page_inspect_lists_any_page_without_going_there }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

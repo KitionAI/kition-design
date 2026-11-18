@@ -1,0 +1,53 @@
+format: 1
+id: design.agent.conversation/card-component
+feature: design.agent.conversation
+intent: >-
+  Over two messages the agent makes a component and then uses it: Frame 1 becomes a component
+  named Card, then an instance of Card goes on the page to its right. The design kit declares no
+  drafts, so this is the multi-turn case.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.kdesign
+  license: Apache-2.0
+  note: A copy of the conformance fixture the design engine writes.
+input: [input/screen.kdesign]
+steps:
+  - task:
+      turns:
+        - In screen.kdesign, turn Frame 1 into a component named "Card".
+        - Now put an instance of Card on the page to the right of it, at x 480, y 0.
+      max_turns: 20
+  - query: { path: screen.kdesign, args: { follow: nodes, fields: [key, name, kind, frame, layout] }, as: after }
+  - check: { path: screen.kdesign, as: diagnostics }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      objects.1.fields.key: 2
+      objects.1.fields.name: Card
+      objects.1.fields.kind.type: component
+      objects:
+        any: { fields.kind.type: instance, fields.kind.component: 2, fields.frame.transform.4: 480, fields.frame.transform.5: 0 }
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      objects.2.fields.name: Rectangle
+      objects.3.fields.name: Ellipse
+      objects.4.fields.frame.width: 320
+      objects.1.fields.frame.width: 400
+solution:
+  - tool: design_run
+    args:
+      path: screen.kdesign
+      steps:
+        - { command: node.set, params: { id: 2, props: { name: Card } } }
+        - { command: component.create, params: { ids: [2] } }
+  - tool: design_run
+    args: { path: screen.kdesign, steps: [{ command: instance.create, params: { component: 2, parent: 1, x: 480, y: 0 } }] }
+since: "2026-11-17"
+timeout_s: 600

@@ -1,0 +1,17 @@
+format: 1
+id: design.page.vectors-guides/save-reopen
+feature: design.page.vectors-guides
+intent: >-
+  A curved vector path, a frame guide and a second page with a shape on it survive saving and reopening the .kdesign file with the same content (bytes and path).
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/src/roundtrip_tests.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-design-engine", filter: "roundtrip_tests::vectors_pages_and_guides_survive_save_and_reopen" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

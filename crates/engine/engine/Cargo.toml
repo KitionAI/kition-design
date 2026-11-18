@@ -1,0 +1,40 @@
+[package]
+name = "kition-design-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design engine: sessions, undo history, the command registry every surface (UI, CLI, control channel, MCP) dispatches through, pointer tools, components and the Figma menu catalog"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-geom = { workspace = true }
+kition-design-color = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-design-collab = { workspace = true }
+kition-design-layout = { workspace = true }
+kition-design-text = { workspace = true }
+kition-design-pathops = { workspace = true }
+kition-design-render = { workspace = true }
+kition-design-format = { workspace = true }
+kition-design-svg = { workspace = true }
+kition-design-pdf = { workspace = true }
+kition-design-vectordrawable = { workspace = true }
+kition-design-docpath = { workspace = true }
+kition-design-plugin = { workspace = true }
+kition-design-kdm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+base64 = { workspace = true }
+regex = { workspace = true }
+deunicode = { workspace = true }
+same-file = { workspace = true }
+web-time = "1.1.0"
+
+[dev-dependencies]
+zip = { workspace = true }
+wat = { workspace = true }
+image = { workspace = true }

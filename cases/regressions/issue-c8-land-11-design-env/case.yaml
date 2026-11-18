@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-land-11-design-env
+feature: design.agent.ids
+intent: Schema descriptions give the environment human labels, scalar bounds and sampling exclusions for identities and discriminator fields.
+layer: gate
+dimension: ai
+source:
+  kind: synthetic
+  from: C8-land-11-design
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: land11_env
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

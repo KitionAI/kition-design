@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-review2-propagation
+feature: design.agent.ids
+intent: Propagating writes (style, variable, component copy, auto layout, constraints) refuse a colleague change of their sources, apply after an edit of a propagation target or an unrelated edit, and name every propagated layer in the receipt.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design review 2 item 4, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "review2::propagated_writes" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

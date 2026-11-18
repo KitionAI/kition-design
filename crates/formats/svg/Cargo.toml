@@ -1,0 +1,21 @@
+[package]
+name = "kition-design-svg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design SVG export (shapes, gradients, images, strokes, effects as filters, text as outlines) and import (via usvg)"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-geom = { workspace = true }
+kition-design-color = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-design-render = { workspace = true }
+kition-design-text = { workspace = true }
+kition-design-pathops = { workspace = true }
+usvg = { workspace = true }
+base64 = { workspace = true }
+flate2 = { workspace = true }
+thiserror = { workspace = true }

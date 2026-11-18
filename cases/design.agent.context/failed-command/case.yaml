@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/failed-command
+feature: design.agent.context
+intent: >-
+  An agent's command that fails leaves the editor state and the revision as they were.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: context, filter: an_agents_failing_command_leaves_the_editor }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

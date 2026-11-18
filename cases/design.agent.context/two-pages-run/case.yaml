@@ -1,0 +1,19 @@
+format: 1
+id: design.agent.context/two-pages-run
+feature: design.agent.context
+intent: >-
+  One run acts on two pages (target, at.part, on, an explicit parent), and the saved file still opens on the person's page; the next call starts there.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: premise, filter: a_run_acts_on_two_pages_and_the_saved_file_keeps_the_persons_page }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

@@ -1,0 +1,17 @@
+format: 1
+id: design.variable.bound/save-reopen
+feature: design.variable.bound
+intent: >-
+  A number variable in a new collection, bound to a rectangle's corner radius, drives the radius and stays bound after saving and reopening the .kdesign file (same content, bytes and path).
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/src/roundtrip_tests.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-design-engine", filter: "roundtrip_tests::variables_survive_save_and_reopen" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

@@ -1,0 +1,14 @@
+format: 1
+id: regressions/issue-c8-design-review2-families
+feature: design.agent.ids
+intent: Data fill, variable import, dev marks and resolution, code links, table edits, votes and shape builder refuse a colleague change of what they read while an unrelated change applies; vector edit mode, repeated duplicate and paste declare the objects their session state points at.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design review 2 item 3, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "review2::audited_families" }
+  - cargo-test: { package: kition-design-kit, test: review2_sessions }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

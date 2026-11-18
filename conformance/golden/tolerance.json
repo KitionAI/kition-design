@@ -1,0 +1,5 @@
+{
+  "maxChannelDelta": 2,
+  "maxDifferentPixels": 600,
+  "note": "The engine's own software renderer draws the preview; anti-aliased edges may differ by a step between platforms and SIMD paths, on at most 0.5% of the 400 x 300 picture's pixels."
+}

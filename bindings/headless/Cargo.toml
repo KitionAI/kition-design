@@ -1,0 +1,27 @@
+[package]
+name = "kition-design"
+description = "The Design kit for Kition's agent: the Kition SDK document served headless over the Kit Protocol."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-kit = { workspace = true }
+kition-headless = { workspace = true }
+
+[dev-dependencies]
+kition-design-format.workspace = true
+kition-kit-server = { workspace = true }
+kition-kit = { workspace = true }
+base64 = { workspace = true }
+image = { workspace = true }
+serde_json = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-kits = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tempfile = "3"

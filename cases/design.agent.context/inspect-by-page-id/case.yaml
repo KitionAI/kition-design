@@ -1,0 +1,19 @@
+format: 1
+id: design.agent.context/inspect-by-page-id
+feature: design.agent.context
+intent: >-
+  design_inspect lists and previews a page that is not the current one by its id, and a layer with its page, without moving the person.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: premise, filter: inspect_lists_and_previews_any_page_by_id_without_going_there }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

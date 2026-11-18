@@ -1,0 +1,24 @@
+[package]
+name = "kition-design-pdf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design PDF export (krilla): vector shapes, gradients, embedded images, aligned strokes as outlines, clips, masks, blend modes, real selectable text, effects as rasters, print options (bleed, marks, page boxes, CMYK)"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-geom = { workspace = true }
+kition-design-color = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-design-text = { workspace = true }
+kition-design-render = { workspace = true }
+kition-design-pathops = { workspace = true }
+krilla = { workspace = true }
+tiny-skia = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+flate2 = "1"

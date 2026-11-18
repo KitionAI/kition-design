@@ -1,0 +1,40 @@
+[package]
+name = "kition-design-kit"
+description = "The Design engine for Kition's in-page editor: open, render, edit, and save Kition Design designs (.kdesign) from JavaScript (WebAssembly), on the Kition SDK."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-design-kdm = { workspace = true }
+kition-design-color = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-design-engine = { workspace = true }
+kition-design-format = { workspace = true }
+kition-design-geom = { workspace = true }
+kition-design-layout = { workspace = true }
+kition-design-pathops = { workspace = true }
+kition-design-render = { workspace = true }
+kition-design-text = { workspace = true }
+base64 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+# The Kition platform convergence suite (L6), on the same kition-sdk revision.
+kition-convergence = { workspace = true }
+image = { workspace = true }
+usvg = { workspace = true }
+zip = { workspace = true }
+# Thread pools of other sizes, to show the agent's preview does not depend on them.
+rayon = "1"

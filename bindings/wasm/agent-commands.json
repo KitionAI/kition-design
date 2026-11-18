@@ -1,0 +1,6168 @@
+{
+ "align.bottom": {
+  "description": "Aligns the selected or given layers to their bottom edge."
+ },
+ "align.hcenter": {
+  "description": "Aligns the selected or given layers on their horizontal centres."
+ },
+ "align.left": {
+  "description": "Aligns the selected or given layers to their left edge (or a single layer to its parent)."
+ },
+ "align.right": {
+  "description": "Aligns the selected or given layers to their right edge."
+ },
+ "align.top": {
+  "description": "Aligns the selected or given layers to their top edge."
+ },
+ "align.vcenter": {
+  "description": "Aligns the selected or given layers on their vertical centres."
+ },
+ "annotation.add": {
+  "description": "Adds a developer annotation to a layer with a note, pinned properties and a category.",
+  "params": {
+   "category": {
+    "type": "string"
+   }
+  }
+ },
+ "annotation.addCategory": {
+  "description": "Adds an annotation category with a name and colour; answers its id."
+ },
+ "annotation.categories": {
+  "description": "Answers the annotation categories with their colours and use counts.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "categories": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "count": {
+        "type": "number"
+       },
+       "id": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "annotation.edit": {
+  "description": "Edits a layer's annotation at index: its note, pinned properties or category.",
+  "params": {
+   "category": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   }
+  }
+ },
+ "annotation.editCategory": {
+  "description": "Renames or recolours an annotation category."
+ },
+ "annotation.list": {
+  "description": "Answers the annotations on layers or a page, optionally of one category.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "annotations": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "category": {
+    "type": "string"
+   }
+  }
+ },
+ "annotation.remove": {
+  "description": "Removes one or every annotation from a layer."
+ },
+ "annotation.removeCategory": {
+  "description": "Deletes an annotation category; its annotations stay uncategorised."
+ },
+ "arrange.back": {
+  "description": "Sends the selected or given layers to the back of their parent."
+ },
+ "arrange.backward": {
+  "description": "Sends the selected or given layers one step backward."
+ },
+ "arrange.forward": {
+  "description": "Brings the selected or given layers one step forward."
+ },
+ "arrange.front": {
+  "description": "Brings the selected or given layers to the front of their parent."
+ },
+ "arrange.packH": {
+  "description": "Packs the selected layers side by side horizontally with no gaps."
+ },
+ "arrange.packV": {
+  "description": "Packs the selected layers one above another vertically with no gaps."
+ },
+ "arrange.reorder": {
+  "description": "Moves one selected layer into another's visual slot (or swaps them) without changing the hierarchy.",
+  "params": {
+   "fromGesture": {
+    "type": "boolean"
+   },
+   "source": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "swap": {
+    "type": "boolean"
+   },
+   "target": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "arrange.roundToPixels": {
+  "description": "Rounds the position and size of the selected or given layers to whole pixels."
+ },
+ "arrange.spacing": {
+  "description": "Sets the horizontal and/or vertical spacing between the selected or given layers.",
+  "params": {
+   "fromGesture": {
+    "type": "boolean"
+   },
+   "horizontal": {
+    "type": "number"
+   },
+   "vertical": {
+    "type": "number"
+   }
+  }
+ },
+ "arrange.tidy": {
+  "description": "Tidies the selected layers into an evenly spaced grid, or by a fixed spacing."
+ },
+ "board.connector": {
+  "description": "Connects two layers or page points with a straight, elbow or curved connector with caps.",
+  "params": {
+   "endCap": {
+    "type": "string"
+   },
+   "from": {
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   },
+   "fromSide": {
+    "enum": [
+     "auto",
+     "top",
+     "right",
+     "bottom",
+     "left"
+    ],
+    "type": "string"
+   },
+   "startCap": {
+    "type": "string"
+   },
+   "to": {
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   }
+  }
+ },
+ "board.ink": {
+  "description": "Draws a marker or highlighter stroke from SVG path data or points on a board.",
+  "params": {
+   "highlighter": {
+    "type": "boolean"
+   },
+   "path": {
+    "type": "string"
+   },
+   "select": {
+    "type": "boolean"
+   }
+  }
+ },
+ "board.label": {
+  "description": "Sets (or removes) a connector's label text."
+ },
+ "board.nextSticky": {
+  "description": "Adds a sticky of the same colour beside another (right, below, left or above).",
+  "params": {
+   "edit": {
+    "type": "boolean"
+   }
+  }
+ },
+ "board.reattach": {
+  "description": "Moves one end of a connector to another layer or a free page point.",
+  "params": {
+   "target": {
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   }
+  }
+ },
+ "board.setColor": {
+  "description": "Sets the board colour of stickies, shapes, connectors and ink."
+ },
+ "board.setStyle": {
+  "description": "Sets board styles: shape kind and font size of shapes, connector style and caps.",
+  "params": {
+   "endCap": {
+    "type": "string"
+   },
+   "fontSize": {
+    "type": "number"
+   },
+   "shape": {
+    "type": "string"
+   },
+   "startCap": {
+    "type": "string"
+   }
+  }
+ },
+ "board.shape": {
+  "description": "Adds a shape with text (rectangle, ellipse, diamond, speech bubble and more) on a board.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "board.stamp": {
+  "description": "Places a stamp badge (thumbs up, heart, +1, star, question, check) on a board."
+ },
+ "board.sticky": {
+  "description": "Adds a sticky note with text and colour on a board; answers its id.",
+  "params": {
+   "author": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "boolean"
+     }
+    ]
+   },
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "board.table": {
+  "description": "Adds a table of rows and columns (optionally filled from cells) on a board.",
+  "params": {
+   "cells": {
+    "items": {
+     "type": "array"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "board.tableEdit": {
+  "description": "Adds or removes a row or column of a board table."
+ },
+ "board.template": {
+  "description": "Places a board template's sections, stickies, shapes and connectors; answers the ids."
+ },
+ "board.templates": {
+  "description": "Answers the board templates with their names, descriptions and sizes.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "description": {
+      "type": "string"
+     },
+     "height": {
+      "type": "number"
+     },
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "width": {
+      "type": "number"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "board.timer": {
+  "description": "Starts, pauses, resumes, extends or stops the board's countdown timer; answers its state.",
+  "params": {
+   "minutes": {
+    "type": "number"
+   }
+  }
+ },
+ "board.timerState": {
+  "description": "Answers the board timer's state and time left.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ends": {
+     "type": "json"
+    },
+    "left": {
+     "type": "json"
+    },
+    "state": {
+     "type": "json"
+    },
+    "text": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "board.vote": {
+  "description": "Runs a voting session: starts it, casts or retracts a vote, ends or clears it.",
+  "params": {
+   "on": {
+    "enum": [
+     "all",
+     "stickies",
+     "selection"
+    ],
+    "type": "string"
+   },
+   "voter": {
+    "type": "string"
+   },
+   "votes": {
+    "type": "integer"
+   }
+  }
+ },
+ "board.voteResults": {
+  "description": "Answers the voting session's state, your votes and, once ended, the ranked results.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "by": {
+     "type": "json"
+    },
+    "left": {
+     "type": "json"
+    },
+    "mine": {
+     "type": "json"
+    },
+    "on": {
+     "type": "json"
+    },
+    "results": {
+     "type": "json"
+    },
+    "state": {
+     "type": "json"
+    },
+    "voters": {
+     "type": "json"
+    },
+    "votesPerPerson": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "voter": {
+    "type": "string"
+   }
+  }
+ },
+ "bool.exclude": {
+  "description": "Sets exclude as the boolean operation of the selected operands or group, or wraps layers in an exclude boolean group."
+ },
+ "bool.flatten": {
+  "description": "Flattens boolean groups into plain vector layers of their result."
+ },
+ "bool.intersect": {
+  "description": "Sets intersect as the boolean operation of the selected operands or group, or wraps layers in an intersect boolean group."
+ },
+ "bool.subtract": {
+  "description": "Sets subtract as the boolean operation of the selected operands or group, or wraps layers in a subtract boolean group."
+ },
+ "bool.union": {
+  "description": "Sets union as the boolean operation of the selected operands or group, or wraps layers in a union boolean group."
+ },
+ "branch.archive": {
+  "description": "Sets a branch aside without merging and closes its tab."
+ },
+ "branch.create": {
+  "description": "Creates a branch: a separate copy of the file to work on, opened in a new tab; answers its id, name and tab index."
+ },
+ "branch.list": {
+  "description": "Answers the file's branches, oldest first, with their names, times and states.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "branch.merge": {
+  "description": "Merges the branch into the main file as one undo step, with conflict resolutions, then archives it.",
+  "params": {
+   "resolutions": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "branch.updateFromMain": {
+  "description": "Brings the main file's changes since the branch was made into the branch, with conflict resolutions.",
+  "params": {
+   "resolutions": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "codeConnect.export": {
+  "description": "Answers (or writes) every component's code connections as a connect JSON file.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "links": {
+     "type": "number"
+    },
+    "text": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "codeConnect.import": {
+  "description": "Imports code connections from connect JSON, linking each entry to components of that name.",
+  "params": {
+   "json": {
+    "oneOf": [
+     {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "codeConnect.remove": {
+  "description": "Removes a component's code connection for a language (or all).",
+  "params": {
+   "language": {
+    "enum": [
+     "react",
+     "leptos",
+     "vue",
+     "swiftui",
+     "compose",
+     "arkui"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "codeConnect.set": {
+  "description": "Connects a component to code in a language: import path, name and call template.",
+  "params": {
+   "importPath": {
+    "type": "string"
+   },
+   "template": {
+    "type": "string"
+   }
+  }
+ },
+ "command.batch": {
+  "description": "Runs a list of commands as one undo step (later steps can refer to earlier results with as); use it for multi-step edits."
+ },
+ "comment.add": {
+  "description": "Adds a comment thread at a page point, optionally pinned to a layer; answers its id.",
+  "params": {
+   "anchor": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "boolean"
+     }
+    ]
+   },
+   "author": {
+    "type": "string"
+   }
+  }
+ },
+ "comment.delete": {
+  "description": "Deletes a comment thread or one reply.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "reply": {
+    "type": "integer"
+   }
+  }
+ },
+ "comment.edit": {
+  "description": "Edits the first message or a reply of a comment thread.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "reply": {
+    "type": "integer"
+   }
+  }
+ },
+ "comment.link": {
+  "description": "Answers a link to a comment thread.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "comment.list": {
+  "description": "Answers comment threads on a page or every page, filtered, sorted and searched.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "comments": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "filter": {
+    "enum": [
+     "all",
+     "open",
+     "resolved",
+     "mine",
+     "unread"
+    ],
+    "type": "string"
+   },
+   "query": {
+    "type": "string"
+   },
+   "resolved": {
+    "type": "boolean"
+   },
+   "sort": {
+    "enum": [
+     "date",
+     "page"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "comment.markRead": {
+  "description": "Marks a comment thread (or every thread) read or unread.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "changed": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "link": {
+    "type": "string"
+   },
+   "read": {
+    "type": "boolean"
+   }
+  }
+ },
+ "comment.move": {
+  "description": "Moves a comment pin to a page point, pinned to a layer or the page.",
+  "params": {
+   "anchor": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "boolean"
+     }
+    ]
+   }
+  }
+ },
+ "comment.next": {
+  "description": "Opens the next or previous comment thread in the filtered list.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "dir": {
+    "enum": [
+     1,
+     -1
+    ],
+    "type": "integer"
+   },
+   "filter": {
+    "enum": [
+     "all",
+     "open",
+     "resolved",
+     "mine",
+     "unread"
+    ],
+    "type": "string"
+   },
+   "query": {
+    "type": "string"
+   },
+   "sort": {
+    "enum": [
+     "date",
+     "page"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "comment.open": {
+  "description": "Opens a comment thread and zooms or centres the view on it.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "view": {
+    "enum": [
+     "fit",
+     "center",
+     "keep"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "comment.people": {
+  "description": "Answers the people taking part in the file's comments.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "people": {
+     "type": "array"
+    },
+    "you": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "comment.react": {
+  "description": "Adds, removes or toggles an emoji reaction on a comment or reply.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "emoji": {
+    "type": "string"
+   },
+   "on": {
+    "type": "boolean"
+   },
+   "reply": {
+    "type": "integer"
+   }
+  }
+ },
+ "comment.reply": {
+  "description": "Replies to a comment thread.",
+  "params": {
+   "author": {
+    "type": "string"
+   }
+  }
+ },
+ "comment.resolve": {
+  "description": "Resolves (or reopens) a comment thread.",
+  "params": {
+   "resolved": {
+    "type": "boolean"
+   }
+  }
+ },
+ "comment.zoom": {
+  "description": "Zooms the view to fit comment threads on the current page.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "component.addProperty": {
+  "description": "Adds a boolean, text, instance-swap, variant or slot property to a component or set, optionally binding a layer.",
+  "params": {
+   "default": {
+    "type": "json"
+   },
+   "preferred": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "type": {
+    "enum": [
+     "boolean",
+     "text",
+     "instanceSwap",
+     "variant",
+     "slot"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "component.addVariant": {
+  "description": "Adds a variant to a component set by duplicating one, named by a property value.",
+  "params": {
+   "property": {
+    "type": "string"
+   },
+   "value": {
+    "type": "string"
+   }
+  }
+ },
+ "component.bindProperty": {
+  "description": "Binds a layer's visibility, text, swapped component or slot to a component property (or unbinds it).",
+  "params": {
+   "property": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   }
+  }
+ },
+ "component.combineVariants": {
+  "description": "Combines main components into a component set of variants."
+ },
+ "component.create": {
+  "description": "Makes the selected frame or group a component, or wraps several layers in one."
+ },
+ "component.createMultiple": {
+  "description": "Makes each selected layer its own component."
+ },
+ "component.deleteProperty": {
+  "description": "Deletes a component property from a component or set."
+ },
+ "component.detach": {
+  "description": "Detaches the selected instances from their main component, turning them into frames."
+ },
+ "component.editProperty": {
+  "description": "Edits a component property: its name, default value, variant values or preferred components.",
+  "params": {
+   "default": {
+    "type": "json"
+   },
+   "newValue": {
+    "type": "string"
+   },
+   "preferred": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "value": {
+    "type": "string"
+   }
+  }
+ },
+ "component.exposeInstance": {
+  "description": "Exposes a nested instance's properties on its main component's instances (or stops).",
+  "params": {
+   "exposed": {
+    "type": "boolean"
+   }
+  }
+ },
+ "component.goToMain": {
+  "description": "Selects and shows the main component of an instance.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "component.hideWhenPublishing": {
+  "description": "Keeps components (or sets) out of the library this file publishes, or toggles that.",
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "component.list": {
+  "description": "Answers the file's components with their type, page, instance count, Assets panel folder and library.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "component.makeSlot": {
+  "description": "Makes a frame inside a main component a slot that instances can fill with any content."
+ },
+ "component.playground": {
+  "description": "Answers what a component looks like and its code for given property values, without changing the design.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "code": {
+     "type": "json"
+    },
+    "component": {
+     "type": "json"
+    },
+    "height": {
+     "type": "json"
+    },
+    "language": {
+     "type": "json"
+    },
+    "path": {
+     "type": "json"
+    },
+    "properties": {
+     "type": "array"
+    },
+    "width": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "component.properties": {
+  "description": "Answers the properties of a component, set or instance with their types and values.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "properties": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "component.pushChanges": {
+  "description": "Pushes an instance's overrides into its main component, updating every instance."
+ },
+ "component.removeSlot": {
+  "description": "Turns a slot frame back into an ordinary frame; instances lose their own content in it."
+ },
+ "component.resetInstance": {
+  "description": "Resets every override of the selected instances back to their main component."
+ },
+ "component.resetOverride": {
+  "description": "Resets one group of overrides (fills, text, size and more) or all overrides of an instance.",
+  "params": {
+   "group": {
+    "type": "string"
+   }
+  }
+ },
+ "component.restoreMain": {
+  "description": "Restores a deleted main component from one of its instances, in that instance's place."
+ },
+ "data.fill": {
+  "description": "Repeats a frame once per data row, filling named text layers, fills and visibility from each row.",
+  "params": {
+   "dir": {
+    "enum": [
+     "right",
+     "down"
+    ],
+    "type": "string"
+   },
+   "format": {
+    "additionalProperties": true,
+    "type": "object"
+   },
+   "formats": {
+    "additionalProperties": true,
+    "type": "object"
+   },
+   "gap": {
+    "type": "number"
+   }
+  }
+ },
+ "dev.compare": {
+  "description": "Answers what changed in a ready-for-dev frame or section since it was marked (or since a saved version).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "added": {
+     "type": "json"
+    },
+    "changed": {
+     "type": "number"
+    },
+    "changes": {
+     "type": "array"
+    },
+    "id": {
+     "type": "json"
+    },
+    "modified": {
+     "type": "json"
+    },
+    "name": {
+     "type": "json"
+    },
+    "removed": {
+     "type": "number"
+    },
+    "snapshot": {
+     "type": "json"
+    },
+    "truncated": {
+     "type": "json"
+    },
+    "version": {
+     "additionalProperties": true,
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "show": {
+    "type": "boolean"
+   },
+   "version": {
+    "type": "string"
+   }
+  }
+ },
+ "dev.focus": {
+  "description": "Shows only one top-level frame or section on the canvas (or the next or previous ready-for-dev one); answers which.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "count": {
+     "type": "number"
+    },
+    "id": {
+     "type": "number"
+    },
+    "index": {
+     "type": "json"
+    },
+    "name": {
+     "type": "string"
+    },
+    "page": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "id": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "dev.resolveChange": {
+  "description": "Marks changed ready-for-dev frames and sections as resolved, back to Ready for dev, with a reason.",
+  "params": {
+   "reason": {
+    "type": "string"
+   }
+  }
+ },
+ "dev.unfocus": {
+  "description": "Leaves focus view so the whole page shows again.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "focused": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "devMode.addMeasurement": {
+  "description": "Keeps a measurement on the canvas between two layers or across one side of a layer.",
+  "params": {
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "to": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "devMode.measurements": {
+  "description": "Answers the kept measurements on a page, with their lines and labels.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "devMode.removeMeasurement": {
+  "description": "Removes one or every kept measurement starting from a layer.",
+  "params": {
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "devResource.add": {
+  "description": "Adds a developer link (URL and name) to a layer; answers its index."
+ },
+ "devResource.edit": {
+  "description": "Edits a layer's own developer link at index."
+ },
+ "devResource.list": {
+  "description": "Answers a layer's developer links, its own first, then those inherited from its main component.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "devResource.remove": {
+  "description": "Removes one or every developer link of a layer's own."
+ },
+ "distribute.horizontal": {
+  "description": "Spaces the selected or given layers evenly horizontally, or by a fixed spacing."
+ },
+ "distribute.vertical": {
+  "description": "Spaces the selected or given layers evenly vertically, or by a fixed spacing."
+ },
+ "edit.copy": {
+  "description": "Copies the selected or given layers to the clipboard without changing the design.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "copied": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.copyProperties": {
+  "description": "Copies a layer's fills, strokes, effects and text style so edit.pasteProperties can apply them.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "blend": {
+     "type": "string"
+    },
+    "cornerRadius": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    },
+    "cornerSmoothing": {
+     "type": "number"
+    },
+    "effects": {
+     "type": "array"
+    },
+    "fills": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "blend": {
+        "type": "string"
+       },
+       "color": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "opacity": {
+        "type": "number"
+       },
+       "type": {
+        "type": "string"
+       },
+       "visible": {
+        "type": "boolean"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "opacity": {
+     "type": "number"
+    },
+    "strokeAlign": {
+     "type": "string"
+    },
+    "strokeWeight": {
+     "type": "number"
+    },
+    "strokes": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.cut": {
+  "description": "Removes the selected or given layers and puts them on the clipboard."
+ },
+ "edit.delete": {
+  "description": "Deletes the selected or given layers."
+ },
+ "edit.duplicate": {
+  "description": "Duplicates the selected or given layers, offset by dx, dy (or repeating the last duplicate's offset); answers the copies."
+ },
+ "edit.findReplace": {
+  "description": "Finds text in text layers (or layer names) and replaces it, selecting the matches by default; answers the count.",
+  "params": {
+   "find": {
+    "type": "string"
+   },
+   "layerNames": {
+    "type": "boolean"
+   },
+   "replace": {
+    "type": "string"
+   },
+   "select": {
+    "type": "boolean"
+   }
+  }
+ },
+ "edit.paste": {
+  "description": "Pastes the clipboard into a parent (default the current page or frame) at x, y; a copied main component pastes as an instance.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "edit.pasteDesignLayers": {
+  "description": "Pastes layers copied from another design app (clipboard HTML or design data) into a parent at x, y.",
+  "params": {
+   "data": {
+    "type": "string"
+   },
+   "html": {
+    "type": "string"
+   },
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "edit.pasteOver": {
+  "description": "Pastes the clipboard on top of the selection, at the same position."
+ },
+ "edit.pasteProperties": {
+  "description": "Applies the copied properties (fills, strokes, effects, text style) to the selected or given layers."
+ },
+ "edit.pasteReplace": {
+  "description": "Replaces the selected or given layers with the clipboard's content, in their places."
+ },
+ "edit.pickColor": {
+  "description": "Picks the colour under the eyedropper and optionally applies it to the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "apply": {
+    "type": "boolean"
+   }
+  }
+ },
+ "edit.redo": {
+  "description": "Redoes the last undone step in a scope (the person's or the agent's; default the caller's)."
+ },
+ "edit.repeat": {
+  "description": "Repeats the last command on the current selection."
+ },
+ "edit.setDefaultProperties": {
+  "description": "Makes a layer's properties the defaults for new layers of its kind.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.undo": {
+  "description": "Undoes the last step in a scope (the person's or the agent's; default the caller's), leaving the other scope's later steps in place."
+ },
+ "effect.add": {
+  "description": "Adds an effect (drop shadow, inner shadow, layer or background blur, noise, texture, glass) to the selected or given layers."
+ },
+ "effect.copy": {
+  "description": "Copies one effect of a layer (default the top one) so effect.paste can apply it.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "effect.move": {
+  "description": "Moves an effect from one index to another in the effect list of the selected or given layers.",
+  "params": {
+   "from": {
+    "type": "integer"
+   },
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "effect.paste": {
+  "description": "Pastes the copied effect onto the selected or given layers, replacing the effect at index or adding one."
+ },
+ "effect.remove": {
+  "description": "Removes the effect at index from the selected or given layers."
+ },
+ "effect.set": {
+  "description": "Changes the effect at index on the selected or given layers."
+ },
+ "export.add": {
+  "description": "Adds an export setting (size, suffix, format, PDF bleed) to the selected or given layers, used by file.exportLayers."
+ },
+ "export.remove": {
+  "description": "Removes the export setting at index from the selected or given layers."
+ },
+ "export.update": {
+  "description": "Edits the export setting at index on the selected or given layers: size, suffix, format and PDF options.",
+  "params": {
+   "bleed": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "bleedMarks": {
+    "type": "boolean"
+   },
+   "cmyk": {
+    "type": "boolean"
+   },
+   "cropMarks": {
+    "type": "boolean"
+   },
+   "format": {
+    "enum": [
+     "png",
+     "jpg",
+     "svg",
+     "pdf",
+     "webp",
+     "xml"
+    ],
+    "type": "string"
+   },
+   "vdCompat": {
+    "type": "boolean"
+   }
+  }
+ },
+ "file.colorProfile": {
+  "description": "Sets the file's colour profile (sRGB or Display P3), converting colour values or reinterpreting them; without a profile answers the current one.",
+  "params": {
+   "convert": {
+    "type": "boolean"
+   }
+  }
+ },
+ "file.export": {
+  "description": "Exports layers (default the selection, else the page) as PNG, JPEG, SVG, PDF, WebP, Android Vector Drawable or the whole .fig, at a scale with print options; answers the data.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "data": {
+     "type": "string"
+    },
+    "format": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "bleed": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "bleedMarks": {
+    "type": "boolean"
+   },
+   "cmyk": {
+    "type": "boolean"
+   },
+   "cropMarks": {
+    "type": "boolean"
+   },
+   "format": {
+    "enum": [
+     "png",
+     "jpg",
+     "svg",
+     "pdf",
+     "webp",
+     "xml",
+     "fig"
+    ],
+    "type": "string"
+   },
+   "scale": {
+    "type": "number"
+   },
+   "svgIdAttribute": {
+    "type": "boolean"
+   },
+   "vdCompat": {
+    "type": "boolean"
+   }
+  }
+ },
+ "file.exportFramesPdf": {
+  "description": "Exports every top-level frame of a page, in reading order, as one PDF with optional bleed, marks and CMYK.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "data": {
+     "type": "string"
+    },
+    "format": {
+     "type": "string"
+    },
+    "pages": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "bleed": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "bleedMarks": {
+    "type": "boolean"
+   },
+   "cmyk": {
+    "type": "boolean"
+   },
+   "cropMarks": {
+    "type": "boolean"
+   }
+  }
+ },
+ "file.exportLayers": {
+  "description": "Exports the selected layers (or every layer with export settings) by their export settings, or their assets, as files or a zip.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "assets": {
+    "type": "boolean"
+   },
+   "bleed": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "bleedMarks": {
+    "type": "boolean"
+   },
+   "cmyk": {
+    "type": "boolean"
+   },
+   "cropMarks": {
+    "type": "boolean"
+   },
+   "dir": {
+    "type": "string"
+   },
+   "vdCompat": {
+    "type": "boolean"
+   },
+   "zip": {
+    "type": "boolean"
+   }
+  }
+ },
+ "file.exportSvg": {
+  "description": "Exports the selected or given layers as SVG markup or to a file.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "data": {
+     "type": "string"
+    },
+    "format": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.import": {
+  "description": "Imports a file (SVG, image, .fig, .sketch or REST JSON) into the design at x, y; SVG becomes an editable frame of shapes and text.",
+  "params": {
+   "center": {
+    "type": "boolean"
+   },
+   "data": {
+    "type": "string"
+   },
+   "path": {
+    "type": "string"
+   },
+   "variables": {
+    "oneOf": [
+     {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "file.placeImage": {
+  "description": "Places an image from a path or base64 data as a new image layer at x, y.",
+  "params": {
+   "data": {
+    "type": "string"
+   },
+   "mode": {
+    "enum": [
+     "fill",
+     "fit",
+     "crop",
+     "tile"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "file.rename": {
+  "description": "Renames the document file."
+ },
+ "file.render": {
+  "description": "",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bounds": {
+     "additionalProperties": true,
+     "properties": {
+      "height": {
+       "type": "number"
+      },
+      "width": {
+       "type": "number"
+      },
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "height": {
+     "type": "number"
+    },
+    "mimeType": {
+     "type": "string"
+    },
+    "page": {
+     "type": "number"
+    },
+    "png": {
+     "type": "string"
+    },
+    "scale": {
+     "type": "number"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.saveVersion": {
+  "description": "Snapshots the document into the file's version history with an optional name and description; answers the version.",
+  "params": {
+   "description": {
+    "type": "string"
+   }
+  }
+ },
+ "file.versionHistory": {
+  "description": "Opens the version history panel and answers the versions, as version.list does.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "result": {
+     "type": "array"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "fill.add": {
+  "description": "Adds a fill paint (default light grey, white for frames) on top of the selected or given layers' fills.",
+  "params": {
+   "paint": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   }
+  }
+ },
+ "fill.copy": {
+  "description": "Copies one fill of a layer (default the top one) so fill.paste can apply it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "blend": {
+     "type": "string"
+    },
+    "color": {
+     "additionalProperties": true,
+     "properties": {
+      "a": {
+       "type": "number"
+      },
+      "b": {
+       "type": "number"
+      },
+      "g": {
+       "type": "number"
+      },
+      "r": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "opacity": {
+     "type": "number"
+    },
+    "type": {
+     "type": "string"
+    },
+    "visible": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "fill.move": {
+  "description": "Moves a fill from one index to another in the fill list of the selected or given layers (bottom first).",
+  "params": {
+   "from": {
+    "type": "integer"
+   },
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "fill.paste": {
+  "description": "Pastes the copied fill onto the selected or given layers, replacing the fill at index or adding one."
+ },
+ "fill.pattern": {
+  "description": "Fills the selected or given layers with a pattern of a source layer, with tiling, scale, spacing and alignment.",
+  "params": {
+   "source": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "fill.remove": {
+  "description": "Removes the fill at index from the selected or given layers."
+ },
+ "fill.set": {
+  "description": "Sets the fill at index (default the top one) of the selected or given layers to a paint or colour, with opacity, visibility and blend.",
+  "params": {
+   "blend": {
+    "type": "string"
+   }
+  }
+ },
+ "frame.create": {
+  "description": "Creates a frame from a device preset or a size, in a parent, with a name and properties; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "frame.presets": {
+  "description": "Answers the device and paper frame presets with their sizes, for frame.create.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "height": {
+      "type": "number"
+     },
+     "name": {
+      "type": "string"
+     },
+     "width": {
+      "type": "number"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "frame.swapOrientation": {
+  "description": "Swaps the width and height of the selected or given frames (portrait and landscape)."
+ },
+ "grid.add": {
+  "description": "Adds a layout grid (grid, columns or rows) to the selected or given frames."
+ },
+ "grid.move": {
+  "description": "Moves a layout grid from one index to another in the selected or given frames.",
+  "params": {
+   "from": {
+    "type": "integer"
+   },
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "grid.remove": {
+  "description": "Removes the layout grid at index from the selected or given frames."
+ },
+ "guide.add": {
+  "description": "Adds a vertical or horizontal ruler guide at an offset on a frame or the page; answers its index.",
+  "params": {
+   "vertical": {
+    "type": "boolean"
+   }
+  }
+ },
+ "guide.clear": {
+  "description": "Removes all ruler guides from a frame or the page."
+ },
+ "guide.move": {
+  "description": "Moves a ruler guide to a new offset."
+ },
+ "guide.remove": {
+  "description": "Removes a ruler guide (default the selected one)."
+ },
+ "guide.select": {
+  "description": "Selects a ruler guide so it can be deleted or nudged, deselecting layers.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "image.adjust": {
+  "description": "Adjusts the image paints of the selected or given layers with a preset or filters (exposure, contrast, saturation, temperature and more).",
+  "params": {
+   "filters": {
+    "additionalProperties": true,
+    "type": "object"
+   },
+   "target": {
+    "enum": [
+     "fill",
+     "stroke"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "image.deletePreset": {
+  "description": "Deletes a saved image adjustment preset from the file."
+ },
+ "image.place": {
+  "description": "Places an image from base64 or a path as a new image layer, or adds it as a fill on an existing layer.",
+  "params": {
+   "data": {
+    "type": "string"
+   },
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "target": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "image.presets": {
+  "description": "Answers the built-in and saved image adjustment presets with their filters.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "builtIn": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "filters": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "id": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "saved": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "image.savePreset": {
+  "description": "Saves an image adjustment preset in the file from filters or the first selected image paint's adjustments.",
+  "params": {
+   "filters": {
+    "additionalProperties": true,
+    "type": "object"
+   },
+   "target": {
+    "enum": [
+     "fill",
+     "stroke"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "inspect.assets": {
+  "description": "Answers the layers in and under the selection to hand over as files: those with export settings, icons and images.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "assets": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "inspect.code": {
+  "description": "Answers code for a layer in CSS, HTML, React, Vue, Tailwind, SwiftUI, Compose and more, with unit options.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "code": {
+     "type": "string"
+    },
+    "connected": {
+     "type": "boolean"
+    },
+    "language": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "mobile": {
+    "type": "boolean"
+   },
+   "rootFontSize": {
+    "type": "number"
+   },
+   "unit": {
+    "enum": [
+     "px",
+     "rem"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "inspect.componentCode": {
+  "description": "Answers a component's code in a language with its properties as parameters.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "component": {
+     "type": "json"
+    },
+    "connected": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "definition": {
+     "type": "json"
+    },
+    "name": {
+     "type": "json"
+    },
+    "properties": {
+     "type": "array"
+    },
+    "set": {
+     "type": "json"
+    },
+    "usage": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "inspect.properties": {
+  "description": "Answers a layer's inspect properties (layout, auto layout, typography, fills, strokes, effects) as sections of rows.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "sections": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "rows": {
+        "type": "array"
+       },
+       "title": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "colorFormat": {
+    "enum": [
+     "hex",
+     "rgb",
+     "css",
+     "hsl",
+     "hsb"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "inspect.readyForDev": {
+  "description": "Answers the frames and sections marked ready for dev (or changed or completed) on a page or every page.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "items": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "status": {
+    "enum": [
+     "readyForDev",
+     "changed",
+     "completed",
+     "any"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "instance.create": {
+  "description": "Creates an instance of a component (or a set's default variant) at x, y in a parent; answers its id.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "instance.exposed": {
+  "description": "Answers the nested instances whose properties an instance exposes.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "instances": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "instance.place": {
+  "description": "Places an instance of a component centred at a page point, inside the frame under it.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "instance.resetSlot": {
+  "description": "Resets an instance's slot back to its main component's default content.",
+  "params": {
+   "slot": {
+    "type": "string"
+   }
+  }
+ },
+ "instance.setProperties": {
+  "description": "Sets component property values on the selected or given instances (variant properties switch variants)."
+ },
+ "instance.slotInsert": {
+  "description": "Inserts an instance of a component into a slot of an instance, optionally clearing the slot first.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "replace": {
+    "type": "boolean"
+   },
+   "slot": {
+    "type": "string"
+   }
+  }
+ },
+ "instance.swap": {
+  "description": "Swaps the selected or given instances to another component.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "instance.swapAt": {
+  "description": "Swaps the instance at a page point to another component, as dropping from the Assets panel with Alt does.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "layers.collapseAll": {
+  "description": "Collapses every row in the layers panel; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "layout.add": {
+  "description": "Adds auto layout (horizontal, vertical or grid) to the selected or given frames, or wraps other layers in an auto-layout frame."
+ },
+ "layout.remove": {
+  "description": "Removes auto layout from the selected or given frames, keeping their children where they are."
+ },
+ "layout.setTrack": {
+  "description": "Sets the sizing (fixed, hug or fill) of one column or row track of a grid auto layout.",
+  "params": {
+   "value": {
+    "type": "number"
+   }
+  }
+ },
+ "layout.suggest": {
+  "description": "Adds the auto layout that best fits the current arrangement of the selected layers."
+ },
+ "library.acceptUpdates": {
+  "description": "Pulls in updated library components, styles and variables; instances keep their overrides."
+ },
+ "library.add": {
+  "description": "Enables a library from a published .kdesign file or a share link so its components, styles and variables can be used."
+ },
+ "library.aliasVariable": {
+  "description": "Copies a library variable in and makes a local variable an alias of it in a mode.",
+  "params": {
+   "alias": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.applyStyle": {
+  "description": "Copies a published library style in (linked, read-only) and applies it to the selected or given layers.",
+  "params": {
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.bindVariable": {
+  "description": "Copies a published library variable in and binds it to a field of the selected or given layers.",
+  "params": {
+   "field": {
+    "type": "string"
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.extendCollection": {
+  "description": "Creates a local collection that extends a library collection, following its variables with local overrides.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.import": {
+  "description": "Copies a library component into the file as a read-only main to instantiate with instance.create.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.importVariable": {
+  "description": "Copies a published library variable in as a linked read-only copy for binding or aliasing.",
+  "params": {
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.list": {
+  "description": "Answers the enabled libraries with versions and updates, and this file's published library, optionally with their assets.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "libraries": {
+     "type": "array"
+    },
+    "published": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "assets": {
+    "type": "boolean"
+   }
+  }
+ },
+ "library.place": {
+  "description": "Places an instance of a published library component at a page point (default the view's centre).",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.publish": {
+  "description": "Publishes the file's components, sets, styles and variable collections as a library (all or exactly the given ones).",
+  "params": {
+   "description": {
+    "type": "string"
+   }
+  }
+ },
+ "library.remove": {
+  "description": "Disables a library; copies still in use stay."
+ },
+ "library.setVariableMode": {
+  "description": "Copies a library collection in and sets one of its modes on frames or the page.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.swap": {
+  "description": "Re-points every instance, style and variable copied from one library to the same-named ones in another.",
+  "params": {
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "to": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.swapAt": {
+  "description": "Copies a library component in and swaps the instance at a page point to it.",
+  "params": {
+   "component": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "library": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "library.updates": {
+  "description": "Answers the library components, styles and variables that have newer published versions.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "count": {
+     "type": "number"
+    },
+    "errors": {
+     "type": "array"
+    },
+    "libraries": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "measure.distances": {
+  "description": "Answers the distance lines from the selection to another layer (default its parent), as Alt-hover shows.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "lines": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "to": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "measure.padding": {
+  "description": "Answers the padding and gap lines of an auto layout frame, as Shift+Alt-hover shows.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "frame": {
+     "type": "json"
+    },
+    "lines": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "node.create": {
+  "description": "Creates a layer of a type (rectangle, ellipse, polygon, star, line, arrow, vector, text, frame, section, component, slice) at x, y in a parent with properties; answers its id.",
+  "params": {
+   "characters": {
+    "type": "string"
+   },
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "select": {
+    "type": "boolean"
+   },
+   "type": {
+    "enum": [
+     "rectangle",
+     "ellipse",
+     "polygon",
+     "star",
+     "line",
+     "arrow",
+     "vector",
+     "text",
+     "frame",
+     "section",
+     "component",
+     "slice"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "node.get": {
+  "description": "Answers one layer's properties by id: its type, geometry, paints, effects, layout and children.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "node.reorder": {
+  "description": "Moves a layer to an index among its siblings."
+ },
+ "node.reparent": {
+  "description": "Moves layers into another parent at an index among its children.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "node.set": {
+  "description": "Sets properties of a layer: name, visibility, lock, opacity, blend, position, size, rotation, fills, strokes, effects, corner radius, constraints, auto layout and text fields."
+ },
+ "object.batchRename": {
+  "description": "Renames several layers at once by find and replace (optionally regex) or a pattern with numbering codes.",
+  "params": {
+   "find": {
+    "type": "string"
+   },
+   "regex": {
+    "type": "boolean"
+   },
+   "replace": {
+    "type": "string"
+   }
+  }
+ },
+ "object.convertToFrame": {
+  "description": "Converts the selected or given groups or sections into frames of the same box in place."
+ },
+ "object.convertToGroup": {
+  "description": "Converts the selected or given frames into groups in place, dropping frame-only properties like auto layout and fills."
+ },
+ "object.convertToSection": {
+  "description": "Converts the selected or given top-level frames into sections in place, keeping their fill and layers."
+ },
+ "object.flipH": {
+  "description": "Flips the selected or given layers (or selected vector points) horizontally."
+ },
+ "object.flipV": {
+  "description": "Flips the selected or given layers (or selected vector points) vertically."
+ },
+ "object.frameSelection": {
+  "description": "Wraps the selected or given layers in a new frame, optionally named."
+ },
+ "object.group": {
+  "description": "Groups the selected or given layers, optionally naming the group."
+ },
+ "object.hideOthers": {
+  "description": "Hides every layer on the page except the selected ones."
+ },
+ "object.mask": {
+  "description": "Uses the bottom selected layer as a mask for the layers above it in a group."
+ },
+ "object.moveToPage": {
+  "description": "Moves the selected or given layers to another page."
+ },
+ "object.opacityKeys": {
+  "description": "Sets the selection's opacity from typed digits, as the number keys do (1 is 10%, 0 is 100%, two digits a percentage).",
+  "params": {
+   "digits": {
+    "type": "string"
+   }
+  }
+ },
+ "object.rasterize": {
+  "description": "Replaces the selected or given layers with an image of them at a scale (default 2)."
+ },
+ "object.releaseMask": {
+  "description": "Releases a mask so the layers above it are no longer clipped."
+ },
+ "object.removeFill": {
+  "description": "Removes every fill from the selected or given layers."
+ },
+ "object.removeFrame": {
+  "description": "Removes the selected frames, keeping their children in place."
+ },
+ "object.removeStroke": {
+  "description": "Removes every stroke from the selected or given layers."
+ },
+ "object.rename": {
+  "description": "Renames the selected or given layers (without a name, starts inline renaming in the layers panel)."
+ },
+ "object.resizeToFit": {
+  "description": "Resizes frames, sections and components to fit their contents without moving the contents."
+ },
+ "object.rotate180": {
+  "description": "Rotates the selected or given layers (or selected vector points) by 180 degrees."
+ },
+ "object.rotateLeft": {
+  "description": "Rotates the selected or given layers (or selected vector points) 90 degrees counter-clockwise."
+ },
+ "object.rotateRight": {
+  "description": "Rotates the selected or given layers (or selected vector points) 90 degrees clockwise."
+ },
+ "object.setThumbnail": {
+  "description": "Sets a frame as the file's thumbnail."
+ },
+ "object.swapFillStroke": {
+  "description": "Swaps the fills and strokes of the selected or given layers."
+ },
+ "object.toggleLock": {
+  "description": "Locks, unlocks or toggles the lock of the selected or given layers."
+ },
+ "object.toggleVisible": {
+  "description": "Shows, hides or toggles the visibility of the selected or given layers."
+ },
+ "object.ungroup": {
+  "description": "Ungroups the selected or given groups, keeping their children in place."
+ },
+ "object.wrapInSection": {
+  "description": "Wraps the selected or given top-level layers in a new section with some room around them."
+ },
+ "page.add": {
+  "description": "Adds a page (a name starting with a hyphen adds a divider)."
+ },
+ "page.delete": {
+  "description": "Deletes a page (default the current one) with its layers."
+ },
+ "page.duplicate": {
+  "description": "Duplicates a page (default the current one) with its layers."
+ },
+ "page.list": {
+  "description": "Answers the file's pages with their ids, names and which is current.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "children": {
+      "type": "number"
+     },
+     "current": {
+      "type": "boolean"
+     },
+     "divider": {
+      "type": "boolean"
+     },
+     "id": {
+      "type": "number"
+     },
+     "name": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "page.move": {
+  "description": "Moves a page to an index in the page list."
+ },
+ "page.rename": {
+  "description": "Renames a page (default the current one)."
+ },
+ "page.select": {
+  "description": "Switches to a page by id or index.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "page.setBackground": {
+  "description": "Sets a page's canvas background colour."
+ },
+ "paint.documentColors": {
+  "description": "Answers the solid colours used on a page, most used first.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "colors": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "count": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "limit": {
+    "type": "integer"
+   }
+  }
+ },
+ "pref.highlightHover": {
+  "description": "Sets whether layers highlight on hover.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "pref.keepTool": {
+  "description": "Sets whether a drawing tool stays selected after use.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "pref.nudge": {
+  "description": "Sets the small and big nudge amounts used by transform.nudge.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "big": {
+     "type": "number"
+    },
+    "small": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "big": {
+    "type": "number"
+   },
+   "small": {
+    "type": "number"
+   }
+  }
+ },
+ "pref.numberKeysOpacity": {
+  "description": "Sets whether number keys set the selection's opacity.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "pref.renameDuplicates": {
+  "description": "Sets whether duplicated layers get numbered names.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "pref.showDimensions": {
+  "description": "Sets whether the canvas shows dimensions on selected objects.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "proto.action.add": {
+  "description": "Adds an action to a prototype interaction, at a path inside conditionals."
+ },
+ "proto.action.move": {
+  "description": "Moves a prototype action to another index in the same list.",
+  "params": {
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "proto.action.remove": {
+  "description": "Removes the prototype action at a path (an interaction keeps at least one)."
+ },
+ "proto.action.set": {
+  "description": "Replaces the prototype action at a path in an interaction."
+ },
+ "proto.closePreview": {
+  "description": "Closes the floating prototype preview.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "proto.conditional.addBlock": {
+  "description": "Adds an else-if (with a condition) or else block to a conditional prototype action.",
+  "params": {
+   "expression": {
+    "type": "string"
+   }
+  }
+ },
+ "proto.conditional.removeBlock": {
+  "description": "Removes a block of a conditional prototype action.",
+  "params": {
+   "block": {
+    "type": "integer"
+   }
+  }
+ },
+ "proto.conditional.setCondition": {
+  "description": "Edits the condition of a block of a conditional prototype action.",
+  "params": {
+   "block": {
+    "type": "integer"
+   },
+   "expression": {
+    "type": "string"
+   }
+  }
+ },
+ "proto.evaluate": {
+  "description": "Evaluates a prototype expression (variables, modes, arithmetic) on a layer and answers its value.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "text": {
+     "type": "json"
+    },
+    "type": {
+     "type": "json"
+    },
+    "value": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "expression": {
+    "type": "string"
+   }
+  }
+ },
+ "proto.flow.add": {
+  "description": "Adds a prototype flow starting at a top-level frame (default the selection)."
+ },
+ "proto.flow.remove": {
+  "description": "Removes a prototype flow starting point."
+ },
+ "proto.flow.rename": {
+  "description": "Renames a prototype flow and sets its description.",
+  "params": {
+   "description": {
+    "type": "string"
+   }
+  }
+ },
+ "proto.interaction.add": {
+  "description": "Adds a prototype interaction to a layer: a trigger (click, hover, drag, key, delay and more), actions and a transition.",
+  "params": {
+   "durationMs": {
+    "type": "number"
+   }
+  }
+ },
+ "proto.interaction.clear": {
+  "description": "Removes every prototype interaction from the selected or given layers."
+ },
+ "proto.interaction.remove": {
+  "description": "Removes the prototype interaction at index from a layer."
+ },
+ "proto.interaction.set": {
+  "description": "Replaces or patches the prototype interaction at index: trigger, actions, transition, duration, easing and delay."
+ },
+ "proto.linkNotice": {
+  "description": "Sets whether a presented prototype warns before opening a website link.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "shown": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "show": {
+    "type": "boolean"
+   }
+  }
+ },
+ "proto.present": {
+  "description": "Opens the prototype presenter from a frame (default the selected frame or first flow).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "start": {
+     "type": "number"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "proto.presentOptions": {
+  "description": "Sets how the presenter sizes the prototype and whether it shows the device frame, hotspot hints and inspect.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "proto.preview": {
+  "description": "Opens a floating live prototype preview over the canvas from a frame.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "start": {
+     "type": "number"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "proto.settings": {
+  "description": "Sets the prototype's device, background, rotation, device colour and custom size.",
+  "params": {
+   "background": {
+    "type": "string"
+   },
+   "device": {
+    "type": "string"
+   },
+   "rotation": {
+    "oneOf": [
+     {
+      "enum": [
+       "portrait",
+       "landscape"
+      ],
+      "type": "string"
+     },
+     {
+      "enum": [
+       0,
+       90
+      ],
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "section.toggleContents": {
+  "description": "Hides or shows the contents of the selected or given sections (a hidden section shows only its name and outline)."
+ },
+ "select.add": {
+  "description": "Adds the layers ids to the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.all": {
+  "description": "Selects every layer on the current page (or in the current frame).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.area": {
+  "description": "Selects the layers inside a marquee rectangle (adding or including nested layers as asked); answers the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "selection": {
+     "type": "json"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "add": {
+    "type": "boolean"
+   },
+   "deep": {
+    "type": "boolean"
+   }
+  }
+ },
+ "select.byName": {
+  "description": "Selects the layers whose names match a query on the current page or every page.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "query": {
+    "type": "string"
+   }
+  }
+ },
+ "select.children": {
+  "description": "Selects the children of the selected layers.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.inverse": {
+  "description": "Selects the layers that aren't selected and deselects the others.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.layersAt": {
+  "description": "Answers every layer under a page point, front-most first, with its id, name, type and depth.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "layers": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.matching": {
+  "description": "Selects the layers that match the selected one in kind and properties.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.next": {
+  "description": "Selects the next sibling of the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.none": {
+  "description": "Clears the selection, deselecting every layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.parent": {
+  "description": "Selects the parent of the selected layers.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.previous": {
+  "description": "Selects the previous sibling of the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.remove": {
+  "description": "Removes the layers ids from the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameEffect": {
+  "description": "Selects every layer with the same effects as the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameFill": {
+  "description": "Selects every layer with the same fill as the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameFont": {
+  "description": "Selects every text layer using the same font as the selected one.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameInstance": {
+  "description": "Selects every instance of the same component as the selected instance.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameProperties": {
+  "description": "Selects every layer with the same properties as the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameStroke": {
+  "description": "Selects every layer with the same stroke as the selected layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.sameText": {
+  "description": "Selects every text layer with the same text properties as the selected one.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.set": {
+  "description": "Replaces the selection with the layers ids.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.applyColorStyle": {
+  "description": "Applies a colour style to the given fill or stroke slots (from selection.colors).",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "selection.bindColorVariable": {
+  "description": "Binds a colour variable to the given solid fill or stroke slots (from selection.colors).",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "selection.colors": {
+  "description": "Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "colors": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "paint": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "style": {
+        "type": "json"
+       },
+       "targets": {
+        "type": "array"
+       },
+       "variable": {
+        "type": "json"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.detachColor": {
+  "description": "Unlinks the colour style or variable of the given paint slots, keeping their colour values.",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "selection.selectColor": {
+  "description": "Selects the layers that own the given paint slots; answers their ids.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ids": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "selection.setPaint": {
+  "description": "Replaces the paint in given fill or stroke slots (from selection.colors) with a new paint.",
+  "params": {
+   "paint": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   }
+  }
+ },
+ "shape.arrow": {
+  "description": "Draws an arrow of a length from x, y in a parent, with optional properties; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "shape.ellipse": {
+  "description": "Draws an ellipse in the box x, y, width, height in a parent, with optional properties; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "shape.line": {
+  "description": "Draws a line of a length from x, y (optionally rotated) in a parent; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "shape.polygon": {
+  "description": "Draws a polygon in a box with a point count in a parent; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "shape.rectangle": {
+  "description": "Draws a rectangle at x, y with width and height in a parent, with optional properties; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "shape.star": {
+  "description": "Draws a star in a box with a point count and inner radius in a parent; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "shapeBuilder.merge": {
+  "description": "Merges shape builder regions (by index or page points) into one new shape styled like the top-most paint over them."
+ },
+ "shapeBuilder.mode": {
+  "description": "Sets what a shape builder click does: merge or remove.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "shapeBuilder.regions": {
+  "description": "Answers the regions the shape builder sees among the selected or given layers, with their paths, sources and covering paints.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "regions": {
+     "type": "array"
+    },
+    "sources": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "shapeBuilder.remove": {
+  "description": "Removes shape builder regions (by index or page points) from the shapes and strokes covering them."
+ },
+ "stroke.add": {
+  "description": "Adds a stroke paint (default black) to the selected or given layers.",
+  "params": {
+   "paint": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   }
+  }
+ },
+ "stroke.brush": {
+  "description": "Applies a stretched or scattered brush preset to the selected strokes, with spacing and jitter, or clears it.",
+  "params": {
+   "rotationJitter": {
+    "type": "number"
+   },
+   "scatter": {
+    "type": "number"
+   },
+   "seed": {
+    "type": "integer"
+   },
+   "sizeJitter": {
+    "type": "number"
+   }
+  }
+ },
+ "stroke.copy": {
+  "description": "Copies one stroke of a layer with its weight, alignment, caps, joins and dashes so stroke.paste can apply it.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "stroke.move": {
+  "description": "Moves a stroke from one index to another in the stroke list of the selected or given layers.",
+  "params": {
+   "from": {
+    "type": "integer"
+   },
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "stroke.paste": {
+  "description": "Pastes the copied stroke with its settings onto the selected or given layers, replacing or adding one."
+ },
+ "stroke.remove": {
+  "description": "Removes the stroke at index from the selected or given layers."
+ },
+ "stroke.set": {
+  "description": "Sets the stroke at index of the selected or given layers to a paint or colour, with opacity, visibility and blend.",
+  "params": {
+   "blend": {
+    "type": "string"
+   }
+  }
+ },
+ "stroke.widthProfile": {
+  "description": "Sets a variable width profile (a preset or points of scale along the path) on the selected strokes.",
+  "params": {
+   "preset": {
+    "enum": [
+     "uniform",
+     "wedge",
+     "taper",
+     "eye",
+     "rounded",
+     "pinch"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "style.apply": {
+  "description": "Applies a style by id or name to the selected or given layers (fill or stroke for paint styles, a range for text styles).",
+  "params": {
+   "target": {
+    "enum": [
+     "fill",
+     "stroke"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "style.bind": {
+  "description": "Binds a variable to a field of a style's value (or unbinds it).",
+  "params": {
+   "field": {
+    "type": "string"
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "style.create": {
+  "description": "Creates a paint, text, effect or grid style from a layer (default the first selected) or a value; answers its id.",
+  "params": {
+   "description": {
+    "type": "string"
+   },
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "type": {
+    "enum": [
+     "paint",
+     "text",
+     "effect",
+     "grid"
+    ],
+    "type": "string"
+   },
+   "value": {
+    "type": "json"
+   }
+  }
+ },
+ "style.delete": {
+  "description": "Deletes a style; layers using it keep their values."
+ },
+ "style.detach": {
+  "description": "Detaches a style from the selected or given layers' fills, strokes, effects, grids or text, keeping their values.",
+  "params": {
+   "which": {
+    "enum": [
+     "fill",
+     "stroke",
+     "effect",
+     "grid",
+     "text"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "style.duplicate": {
+  "description": "Duplicates a style right below it; answers the new id."
+ },
+ "style.list": {
+  "description": "Answers the file's styles, optionally of one type, with their ids, names and values.",
+  "output": {
+   "type": "array"
+  },
+  "params": {
+   "type": {
+    "enum": [
+     "paint",
+     "text",
+     "effect",
+     "grid"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "style.move": {
+  "description": "Moves styles before another style or into a folder.",
+  "params": {
+   "before": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "folder": {
+    "type": "string"
+   }
+  }
+ },
+ "style.renameFolder": {
+  "description": "Renames a style folder, renaming the styles in it.",
+  "params": {
+   "folder": {
+    "type": "string"
+   }
+  }
+ },
+ "style.update": {
+  "description": "Edits a style's name, description or value, or redefines it from a layer.",
+  "params": {
+   "description": {
+    "type": "string"
+   },
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "value": {
+    "type": "json"
+   }
+  }
+ },
+ "text.alignCenter": {
+  "description": "Centres the text of the selected or given text layers."
+ },
+ "text.alignJustify": {
+  "description": "Justifies the text of the selected or given text layers."
+ },
+ "text.alignLeft": {
+  "description": "Aligns the text of the selected or given text layers to the left."
+ },
+ "text.alignRight": {
+  "description": "Aligns the text of the selected or given text layers to the right."
+ },
+ "text.bold": {
+  "description": "Toggles bold on the selected or given text layers (or the selected text range)."
+ },
+ "text.bulletList": {
+  "description": "Turns the selected or given text's paragraphs into a bulleted list (or back to plain text)."
+ },
+ "text.case": {
+  "description": "Sets the letter case display (original, upper, lower, title, small caps) of the selected or given text."
+ },
+ "text.caseLower": {
+  "description": "Displays the selected or given text in lowercase."
+ },
+ "text.caseOriginal": {
+  "description": "Sets the selected or given text back to its original case (no case transform)."
+ },
+ "text.caseSmallCaps": {
+  "description": "Displays the selected or given text in small caps."
+ },
+ "text.caseTitle": {
+  "description": "Displays the selected or given text in title case."
+ },
+ "text.caseUpper": {
+  "description": "Displays the selected or given text in uppercase."
+ },
+ "text.create": {
+  "description": "Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "text.decoration": {
+  "description": "Sets the text decoration (none, underline, strikethrough) of the selected or given text."
+ },
+ "text.edit.begin": {
+  "description": "Starts editing a text layer with the caret at a character index (default all selected).",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "caret": {
+    "type": "integer"
+   }
+  }
+ },
+ "text.edit.caret": {
+  "description": "Moves the caret of the text being edited to a character index, optionally extending the selection.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "extend": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.edit.end": {
+  "description": "Stops editing text and commits what was typed, leaving the text layer selected.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "text.edit.insert": {
+  "description": "Types text at the caret of the text being edited, replacing the selected range."
+ },
+ "text.edit.key": {
+  "description": "Presses an editing key (backspace, arrows, home, end, enter, tab and more) in the text being edited.",
+  "params": {
+   "alt": {
+    "type": "boolean"
+   },
+   "cmd": {
+    "type": "boolean"
+   },
+   "shift": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.edit.preedit": {
+  "description": "Shows IME composition text at the caret (empty cancels); text.edit.insert commits it.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "cursor": {
+    "type": "integer"
+   }
+  }
+ },
+ "text.edit.selectLine": {
+  "description": "Selects the line at a character index in the text being edited.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "text.edit.selectWord": {
+  "description": "Selects the word at a character index in the text being edited.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "text.edit.selection": {
+  "description": "Answers the caret and selected range of the text being edited.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "text.endPreview": {
+  "description": "Ends a text preview, putting the document back as it was.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ended": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "text.fit": {
+  "description": "Shrinks the font of text layers so their text fits the box, within a minimum size and line limit.",
+  "params": {
+   "maxLines": {
+    "type": "integer"
+   },
+   "minSize": {
+    "type": "number"
+   },
+   "orphans": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.fonts": {
+  "description": "Answers the available font families, or one family's styles with their OpenType features and variation axes.",
+  "output": {
+   "items": {
+    "type": "string"
+   },
+   "type": "array"
+  },
+  "params": {
+   "axes": {
+    "type": "boolean"
+   },
+   "features": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.italic": {
+  "description": "Toggles italic on the selected or given text layers (or the selected text range)."
+ },
+ "text.lineHeightDown": {
+  "description": "Decreases the line height of the selected or given text layers by one step."
+ },
+ "text.lineHeightUp": {
+  "description": "Increases the line height of the selected or given text layers by one step."
+ },
+ "text.link": {
+  "description": "Makes the selected or given text (or text range) a hyperlink to url."
+ },
+ "text.listIndent": {
+  "description": "Nests the selected list items one level deeper while editing text."
+ },
+ "text.listOutdent": {
+  "description": "Moves the selected list items one level out while editing text."
+ },
+ "text.listStyle": {
+  "description": "Sets the list style (none, bulleted, numbered) of the selected or given text's paragraphs."
+ },
+ "text.maxLines": {
+  "description": "Limits the selected or given text to a number of lines, truncating the rest (0 for no limit).",
+  "params": {
+   "lines": {
+    "type": "integer"
+   }
+  }
+ },
+ "text.missingFonts": {
+  "description": "Answers the font families the document uses that aren't installed, with the layers that use them.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "families": {
+     "type": "array"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "text.numberList": {
+  "description": "Turns the selected or given text's paragraphs into a numbered list (or back to plain text)."
+ },
+ "text.onPath": {
+  "description": "Puts a text layer on a vector or shape path, starting at a fraction along it, optionally flipped.",
+  "params": {
+   "flip": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.paragraphIndent": {
+  "description": "Sets the paragraph indent in pixels of the selected or given text.",
+  "params": {
+   "indent": {
+    "type": "number"
+   }
+  }
+ },
+ "text.paragraphSpacing": {
+  "description": "Sets the spacing between paragraphs in pixels of the selected or given text."
+ },
+ "text.pathOptions": {
+  "description": "Sets where text on a path starts and whether it is flipped.",
+  "params": {
+   "flip": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.preview": {
+  "description": "Previews what a text style or font command would do on the canvas without an undo step; text.endPreview restores.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "command": {
+    "enum": [
+     "style.apply",
+     "library.applyStyle",
+     "text.setVariations",
+     "text.style"
+    ],
+    "type": "string"
+   },
+   "params": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "text.refit": {
+  "description": "Measures auto-sizing text boxes again in their current fonts (for example after a missing font arrived); answers the layers refitted."
+ },
+ "text.removeFromPath": {
+  "description": "Takes text off its path, back to a line of auto-width text."
+ },
+ "text.set": {
+  "description": "Replaces the characters of a text layer (default the selected one).",
+  "params": {
+   "characters": {
+    "type": "string"
+   }
+  }
+ },
+ "text.setFeatures": {
+  "description": "Turns OpenType features on or off (or back to the font default) on the selected or given text.",
+  "params": {
+   "replace": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.setVariations": {
+  "description": "Sets variable-font axis values (or back to the style default) on the selected or given text.",
+  "params": {
+   "replace": {
+    "type": "boolean"
+   }
+  }
+ },
+ "text.sizeDown": {
+  "description": "Decreases the font size of the selected or given text layers by one step."
+ },
+ "text.sizeUp": {
+  "description": "Increases the font size of the selected or given text layers by one step."
+ },
+ "text.strikethrough": {
+  "description": "Toggles strikethrough on the selected or given text layers (or the selected text range)."
+ },
+ "text.style": {
+  "description": "Styles a character range of a text layer: font family, style, weight, size, line height, letter spacing, decoration, case, link and fills.",
+  "params": {
+   "fontFamily": {
+    "type": "string"
+   },
+   "fontSize": {
+    "type": "number"
+   },
+   "fontStyle": {
+    "type": "string"
+   },
+   "fontWeight": {
+    "type": "number"
+   },
+   "hyperlink": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "letterSpacing": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   },
+   "lineHeight": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "additionalProperties": true,
+      "type": "object"
+     }
+    ]
+   },
+   "textCase": {
+    "enum": [
+     "original",
+     "upper",
+     "lower",
+     "title",
+     "smallCaps"
+    ],
+    "type": "string"
+   },
+   "textDecoration": {
+    "enum": [
+     "none",
+     "underline",
+     "strikethrough"
+    ],
+    "type": "string"
+   },
+   "textFills": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "text.trackingDown": {
+  "description": "Decreases the letter spacing of the selected or given text layers by one step."
+ },
+ "text.trackingUp": {
+  "description": "Increases the letter spacing of the selected or given text layers by one step."
+ },
+ "text.underline": {
+  "description": "Toggles underline on the selected or given text layers (or the selected text range)."
+ },
+ "text.weightDown": {
+  "description": "Moves the selected or given text to the next lighter font weight available."
+ },
+ "text.weightUp": {
+  "description": "Moves the selected or given text to the next heavier font weight available."
+ },
+ "tool.arrow": {
+  "description": "Chooses the Arrow tool in the editor; use shape.arrow to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.comment": {
+  "description": "Chooses the Comment tool in the editor; use comment.add to add a comment directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.connector": {
+  "description": "Chooses the connector tool; use board.connector to connect directly.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "tool.ellipse": {
+  "description": "Chooses the Ellipse tool in the editor; use shape.ellipse to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.eraser": {
+  "description": "Chooses the board eraser that removes marker and highlighter strokes.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "tool.frame": {
+  "description": "Chooses the Frame tool in the editor; use frame.create to make a frame directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.hand": {
+  "description": "Chooses the Hand tool in the editor; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.highlighter": {
+  "description": "Chooses the highlighter tool; use board.ink with highlighter to draw directly.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "tool.line": {
+  "description": "Chooses the Line tool in the editor; use shape.line to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.marker": {
+  "description": "Chooses the marker tool; use board.ink to draw directly.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "tool.move": {
+  "description": "Chooses the Move tool in the editor; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.pen": {
+  "description": "Chooses the Pen tool in the editor; use vector.create to make a path directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.pencil": {
+  "description": "Chooses the Pencil tool in the editor; use vector.create to make a path directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.pencilBrush": {
+  "description": "Sets (or answers) the brush new Pencil strokes get: a preset with spacing and jitter.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "brush": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "rotationJitter": {
+    "type": "number"
+   },
+   "scatter": {
+    "type": "number"
+   },
+   "seed": {
+    "type": "integer"
+   },
+   "sizeJitter": {
+    "type": "number"
+   }
+  }
+ },
+ "tool.place": {
+  "description": "Places what a click with a shape or frame tool makes at x, y (default the middle of the view), selected.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "tool": {
+    "type": "string"
+   }
+  }
+ },
+ "tool.polygon": {
+  "description": "Chooses the Polygon tool in the editor; use shape.polygon to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.rectangle": {
+  "description": "Chooses the Rectangle tool in the editor; use shape.rectangle to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.scale": {
+  "description": "Chooses the Scale tool in the editor; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.scaleAnchor": {
+  "description": "Sets (or answers) the point that stays put when the Scale tool scales.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "anchor": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.section": {
+  "description": "Chooses the Section tool in the editor; use node.create to make a section directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.set": {
+  "description": "Chooses an editor tool by name; the design is unchanged. Prefer the shape and node commands to create layers directly.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "tool": {
+    "type": "string"
+   }
+  }
+ },
+ "tool.shape": {
+  "description": "Chooses the board shape tool; use board.shape to add one directly.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "shape": {
+    "type": "string"
+   }
+  }
+ },
+ "tool.shapeBuilder": {
+  "description": "Chooses the Shape builder tool in the editor; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.slice": {
+  "description": "Chooses the Slice tool in the editor; use node.create to make a slice directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.stamp": {
+  "description": "Chooses the stamp tool; use board.stamp to place one directly.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "stamp": {
+    "type": "string"
+   }
+  }
+ },
+ "tool.star": {
+  "description": "Chooses the Star tool in the editor; use shape.star to draw one directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.sticky": {
+  "description": "Chooses the sticky note tool; use board.sticky to add one directly.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "tool.text": {
+  "description": "Chooses the Text tool in the editor; use text.create to add text directly.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "tool.textOnPath": {
+  "description": "Chooses the text-on-path tool: a click on a path puts new text on it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "tool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "transform.move": {
+  "description": "Moves the selected or given layers by dx, dy page units."
+ },
+ "transform.moveTo": {
+  "description": "Moves the selected or given layers so their top-left is at page coordinates x, y."
+ },
+ "transform.nudge": {
+  "description": "Nudges the selection by dx, dy times the nudge amount (auto-layout children move one place in the flow instead).",
+  "params": {
+   "big": {
+    "type": "boolean"
+   }
+  }
+ },
+ "transform.nudgeSize": {
+  "description": "Grows or shrinks the selection by dw, dh times the nudge amount, top-left fixed.",
+  "params": {
+   "big": {
+    "type": "boolean"
+   },
+   "dh": {
+    "type": "number"
+   },
+   "dw": {
+    "type": "number"
+   }
+  }
+ },
+ "transform.resize": {
+  "description": "Resizes the selected or given layers to a width and/or height, keeping an anchor point fixed."
+ },
+ "transform.rotate": {
+  "description": "Rotates the selected or given layers by degrees about a pivot (default the rotation origin or centre).",
+  "params": {
+   "degrees": {
+    "type": "number"
+   }
+  }
+ },
+ "transform.rotationOrigin": {
+  "description": "Shows, hides or toggles the draggable rotation origin of the selection; not saved.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "editing": {
+     "type": "boolean"
+    },
+    "moved": {
+     "type": "boolean"
+    },
+    "x": {
+     "type": "number"
+    },
+    "y": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "transform.scale": {
+  "description": "Scales the selected or given layers by a factor about a pivot, scaling strokes, effects and text too (as the Scale tool does).",
+  "params": {
+   "factor": {
+    "type": "number"
+   }
+  }
+ },
+ "transform.setRotationOrigin": {
+  "description": "Sets the point the selection rotates about (or resets it to the centre) while the selection lasts.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "y": {
+    "type": "number"
+   }
+  }
+ },
+ "variable.addMode": {
+  "description": "Adds a mode to a variable collection, optionally duplicating another mode's values.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "from": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.bind": {
+  "description": "Binds a variable to a field of the selected or given layers (a paint colour, effect value, layout size, text property) or unbinds it.",
+  "params": {
+   "field": {
+    "type": "string"
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.create": {
+  "description": "Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "description": {
+    "type": "string"
+   },
+   "type": {
+    "enum": [
+     "color",
+     "number",
+     "string",
+     "boolean"
+    ],
+    "type": "string"
+   },
+   "value": {
+    "type": "json"
+   }
+  }
+ },
+ "variable.createCollection": {
+  "description": "Creates a variable collection with mode names; answers its id."
+ },
+ "variable.delete": {
+  "description": "Deletes a variable; bound layers keep their values.",
+  "params": {
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.deleteCollection": {
+  "description": "Deletes a variable collection with its variables; bound layers keep their values.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.duplicate": {
+  "description": "Duplicates a variable; answers the new id.",
+  "params": {
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.export": {
+  "description": "Exports variable collections as the local variables JSON (for variable.import) or as CSS custom properties.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "text": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "format": {
+    "enum": [
+     "json",
+     "css"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "variable.import": {
+  "description": "Imports variable collections and variables from local variables JSON (an object, text or a path).",
+  "params": {
+   "variables": {
+    "oneOf": [
+     {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.list": {
+  "description": "Answers the file's variable collections, modes and variables with their values.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "collections": {
+     "type": "array"
+    },
+    "variables": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "variable.moveMode": {
+  "description": "Moves a mode to an index in its collection (index 0 is the default mode).",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "to": {
+    "type": "integer"
+   }
+  }
+ },
+ "variable.removeMode": {
+  "description": "Deletes a mode from a variable collection (a collection keeps at least one).",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.renameCollection": {
+  "description": "Renames a variable collection.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.renameMode": {
+  "description": "Renames a mode of a variable collection.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.resetOverride": {
+  "description": "Resets an extended collection's overridden variable so it follows the inherited value again.",
+  "params": {
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.set": {
+  "description": "Sets a variable's value (or an alias to another variable) in a mode.",
+  "params": {
+   "mode": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "variable.setMode": {
+  "description": "Sets which mode of a collection frames or the page use (null for the inherited mode).",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "mode": {
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   }
+  }
+ },
+ "variable.update": {
+  "description": "Edits a variable's name, description, scopes and whether it is hidden from publishing.",
+  "params": {
+   "description": {
+    "type": "string"
+   },
+   "hiddenFromPublishing": {
+    "type": "boolean"
+   },
+   "scopes": {
+    "oneOf": [
+     {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "vector.create": {
+  "description": "Creates a vector layer from SVG path data or points, open or closed, scaled to a box, in a parent; answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "path": {
+    "type": "string"
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
+ },
+ "vector.deleteHeal": {
+  "description": "Deletes the selected vector points and heals the path across the gap.",
+  "params": {
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.addVertex": {
+  "description": "Adds a point on a segment at parameter t.",
+  "params": {
+   "segment": {
+    "type": "integer"
+   },
+   "t": {
+    "type": "number"
+   }
+  }
+ },
+ "vector.edit.begin": {
+  "description": "Enters vector edit mode on layers (default the selection), converting shapes to vectors.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "vector.edit.bend": {
+  "description": "Bends a segment so its curve passes through a page point at parameter t.",
+  "params": {
+   "segment": {
+    "type": "integer"
+   },
+   "t": {
+    "type": "number"
+   }
+  }
+ },
+ "vector.edit.bounds": {
+  "description": "Answers the bounds of the selected points in the parent's coordinates and on the page.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "corners": {
+     "type": "json"
+    },
+    "height": {
+     "type": "json"
+    },
+    "points": {
+     "type": "json"
+    },
+    "width": {
+     "type": "json"
+    },
+    "x": {
+     "type": "json"
+    },
+    "y": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "vector.edit.connect": {
+  "description": "Connects two points with a straight segment.",
+  "params": {
+   "a": {
+    "type": "integer"
+   },
+   "b": {
+    "type": "integer"
+   }
+  }
+ },
+ "vector.edit.cornerRadius": {
+  "description": "Sets the corner radius of points.",
+  "params": {
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.cut": {
+  "description": "Cuts paths at a segment point or vertex, or along a line between two page points.",
+  "params": {
+   "segment": {
+    "type": "integer"
+   },
+   "t": {
+    "type": "number"
+   }
+  }
+ },
+ "vector.edit.delete": {
+  "description": "Deletes points and segments (default the selection) of the edited vectors.",
+  "params": {
+   "segments": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   },
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.end": {
+  "description": "Leaves vector edit mode.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "vector.edit.erase": {
+  "description": "Erases the parts of paths a brush of radius passes over along page points."
+ },
+ "vector.edit.lasso": {
+  "description": "Selects the points inside a lasso of page points.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "add": {
+    "type": "boolean"
+   }
+  }
+ },
+ "vector.edit.mirroring": {
+  "description": "Sets handle mirroring (none, angle, angle and length) of points.",
+  "params": {
+   "mode": {
+    "enum": [
+     "none",
+     "angle",
+     "angleAndLength"
+    ],
+    "type": "string"
+   },
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.moveHandles": {
+  "description": "Moves the selected (or given) handles by dx, dy page units.",
+  "params": {
+   "independent": {
+    "type": "boolean"
+   }
+  }
+ },
+ "vector.edit.moveVertices": {
+  "description": "Moves points of the edited vectors by dx, dy local units (default the selected points).",
+  "params": {
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.nudge": {
+  "description": "Nudges the selected points by dx, dy page units."
+ },
+ "vector.edit.paint": {
+  "description": "Fills or unfills the closed areas under page points, as the paint bucket does."
+ },
+ "vector.edit.pen": {
+  "description": "Adds a pen point at a page point (with a handle drag), continuing from the pen's open end."
+ },
+ "vector.edit.penEnd": {
+  "description": "Ends the current pen path.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "vector.edit.position": {
+  "description": "Moves the selected points so their top-left is at x, y in the parent's coordinates."
+ },
+ "vector.edit.resize": {
+  "description": "Scales the selected points' box to a width and height, about its centre or top-left.",
+  "params": {
+   "center": {
+    "type": "boolean"
+   }
+  }
+ },
+ "vector.edit.rotate": {
+  "description": "Rotates the selected points by an angle about a page pivot (default their box centre)."
+ },
+ "vector.edit.select": {
+  "description": "Selects points, segments, handles or regions in vector edit mode.",
+  "output": {
+   "type": "json"
+  },
+  "params": {
+   "add": {
+    "type": "boolean"
+   }
+  }
+ },
+ "vector.edit.selectAll": {
+  "description": "Selects every point of the edited vector layers.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "vector.edit.setHandle": {
+  "description": "Places one handle of a segment at local x, y, optionally breaking its mirroring.",
+  "params": {
+   "independent": {
+    "type": "boolean"
+   },
+   "segment": {
+    "type": "integer"
+   }
+  }
+ },
+ "vector.edit.smooth": {
+  "description": "Makes points smooth (or sharp corners).",
+  "params": {
+   "smooth": {
+    "type": "boolean"
+   },
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.state": {
+  "description": "Answers the vector edit overlay and the edited layer's vector network: points, segments, handles and regions.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "vector.edit.strokeCap": {
+  "description": "Sets the stroke cap (round, square, arrows and more) where the stroke ends at points.",
+  "params": {
+   "cap": {
+    "oneOf": [
+     {
+      "enum": [
+       "none",
+       "round",
+       "square",
+       "lineArrow",
+       "triangleArrow",
+       "reversedTriangle",
+       "circleFilled",
+       "diamondFilled"
+      ],
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.strokeJoin": {
+  "description": "Sets how the stroke turns (miter, bevel, round) at points.",
+  "params": {
+   "join": {
+    "oneOf": [
+     {
+      "enum": [
+       "miter",
+       "bevel",
+       "round"
+      ],
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.tool": {
+  "description": "Chooses the tool used in vector edit mode (move, pen, bend, paint, lasso, cut, eraser, width).",
+  "output": {
+   "type": "json"
+  }
+ },
+ "vector.edit.transform": {
+  "description": "Transforms points (default the selected ones) by a page-space affine matrix.",
+  "params": {
+   "vertices": {
+    "items": {
+     "type": "integer"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "vector.edit.widthPoint": {
+  "description": "Adds, moves, resizes or removes a variable-width point on the edited path's stroke.",
+  "params": {
+   "t": {
+    "type": "number"
+   },
+   "width": {
+    "type": "number"
+   }
+  }
+ },
+ "vector.fillRule": {
+  "description": "Sets the fill rule (non-zero or even-odd) of a vector layer or one of its filled regions.",
+  "params": {
+   "region": {
+    "type": "integer"
+   }
+  }
+ },
+ "vector.flatten": {
+  "description": "Flattens the selected or given layers into a single vector layer."
+ },
+ "vector.join": {
+  "description": "Joins the selected vector layers' open paths (or the selected points in vector edit mode)."
+ },
+ "vector.offset": {
+  "description": "Offsets the paths of the selected or given vector layers outward (or inward for negative offset)."
+ },
+ "vector.outlineStroke": {
+  "description": "Converts the strokes of the selected or given layers into filled outlines."
+ },
+ "vector.reverse": {
+  "description": "Reverses the path direction of the selected or given vector layers."
+ },
+ "vector.reverseLoop": {
+  "description": "Reverses the direction of one loop of a vector's filled region, which changes how the area fills.",
+  "params": {
+   "loop": {
+    "type": "integer"
+   },
+   "region": {
+    "type": "integer"
+   }
+  }
+ },
+ "vector.simplify": {
+  "description": "Reduces the points of the selected or given vector layers within a tolerance.",
+  "params": {
+   "tolerance": {
+    "type": "number"
+   }
+  }
+ },
+ "vector.smoothJoin": {
+  "description": "Joins the selected open paths or points with a smooth curve."
+ },
+ "version.autosave": {
+  "description": "Saves an automatic checkpoint when there are changes since the last version."
+ },
+ "version.delete": {
+  "description": "Deletes a version from the file's history."
+ },
+ "version.exitPreview": {
+  "description": "Ends a version preview and shows the current document again.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ended": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "version.list": {
+  "description": "Answers the file's version history, oldest first, with names, descriptions and times.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "version.preview": {
+  "description": "Shows a saved version on the canvas read-only in place of the document; version.exitPreview goes back.",
+  "output": {
+   "type": "json"
+  }
+ },
+ "version.rename": {
+  "description": "Renames a version (an autosave with a title becomes a named version).",
+  "params": {
+   "description": {
+    "type": "string"
+   }
+  }
+ },
+ "version.restore": {
+  "description": "Replaces the design with a saved version in one undo step, keeping the current state in the history first."
+ },
+ "view.comments": {
+  "description": "Shows, hides or toggles comment pins; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.devMode": {
+  "description": "Switches the editor into or out of Dev Mode; the design is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.frameOutlines": {
+  "description": "Shows, hides or toggles frame outlines; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.layoutGrids": {
+  "description": "Shows, hides or toggles frames' layout grids; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.maskOutlines": {
+  "description": "Shows, hides or toggles mask outlines; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.nextFrame": {
+  "description": "Zooms the view to the next top-level frame.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "frame": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.nextPage": {
+  "description": "Switches to the next page of the file.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "page": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.outlines": {
+  "description": "Turns outline mode on, off or toggles it; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.outlinesHiddenLayers": {
+  "description": "Sets whether outline mode also outlines hidden layers.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.outlinesObjectBounds": {
+  "description": "Sets whether outline mode also draws each layer's bounding box.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.outlinesSelection": {
+  "description": "Turns outline mode for the selected layers only on, off or toggles it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.pixelGrid": {
+  "description": "Shows, hides or toggles the pixel grid; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.pixelPreview": {
+  "description": "Turns pixel preview on, off or toggles it, at 1× or 2× rendered pixels.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    },
+    "scale": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.prevFrame": {
+  "description": "Zooms the view to the previous top-level frame.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "frame": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.prevPage": {
+  "description": "Switches to the previous page of the file.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "page": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.proofSrgb": {
+  "description": "Turns sRGB soft-proofing of a Display P3 file on, off or toggles it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.rulers": {
+  "description": "Shows, hides or toggles the rulers; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.slices": {
+  "description": "Shows, hides or toggles slices; view state only.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.snapGeometry": {
+  "description": "Turns snapping to geometry on, off or toggles it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.snapObjects": {
+  "description": "Turns snapping to objects on, off or toggles it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "view.snapPixel": {
+  "description": "Turns snapping to the pixel grid on, off or toggles it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "on": {
+    "type": "boolean"
+   }
+  }
+ },
+ "widget.click": {
+  "description": "Clicks a target of a widget so its plugin redraws it.",
+  "params": {
+   "fuel": {
+    "type": "integer"
+   },
+   "target": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "widget.insert": {
+  "description": "Inserts a widget drawn by a widget plugin at x, y; answers its state and output.",
+  "params": {
+   "fuel": {
+    "type": "integer"
+   },
+   "plugin": {
+    "type": "string"
+   }
+  }
+ },
+ "widget.list": {
+  "description": "Answers the widgets in the file with their plugin, state, targets, fields and menu.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "widgets": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "widget.menu": {
+  "description": "Picks an item (toggle or colour) from a widget's property menu.",
+  "params": {
+   "fuel": {
+    "type": "integer"
+   },
+   "value": {
+    "type": "json"
+   }
+  }
+ },
+ "widget.setText": {
+  "description": "Types a value into an editable field of a widget.",
+  "params": {
+   "field": {
+    "type": "string"
+   },
+   "fuel": {
+    "type": "integer"
+   },
+   "value": {
+    "type": "string"
+   }
+  }
+ }
+}

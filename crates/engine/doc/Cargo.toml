@@ -1,0 +1,16 @@
+[package]
+name = "kition-design-doc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design document model: pages, the node tree, properties, components, styles, variables, prototype data"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-geom = { workspace = true }
+kition-design-color = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

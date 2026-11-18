@@ -1,0 +1,19 @@
+format: 1
+id: design.agent.ids/receipts
+feature: design.agent.ids
+intent: >-
+  Through the agent tools and the kition-design executable, receipts name layers by the ids inspect lists, with before and after: a text change, a fill change, a reparent and a reorder (moves named by parent ids), a component edit (its layer and each instance's mirrored layer), and a frame's deletion with every layer in it.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: premise, filter: receipts_name_layers_by_the_ids_inspect_lists_with_before_and_after }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

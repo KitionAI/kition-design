@@ -1,0 +1,15 @@
+format: 1
+id: regressions/issue-c8-expectations-review-design
+feature: design.agent.ids
+intent: Hold publication names, preset capacity, instance modes, grouping eligibility and board file kind across independent file rewrites; retain the removed-column text edit and no-op text controls.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-expectations-review-design, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: declarations_independent }
+  - cargo-test: { package: kition-design, test: outside, filter: 'expectations_review::' }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+timeout_s: 60
+since: "2026-11-17"

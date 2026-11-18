@@ -1,0 +1,18 @@
+[package]
+name = "kition-design-kdm"
+description = "Bridges the Design engine's Document to a kit.design KDM replica (kition-sdk session)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-design-doc = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }

@@ -1,0 +1,14 @@
+format: 1
+id: regressions/issue-c8-design-3-addresses
+feature: design.agent.ids
+intent: Enumerate eight address forms against twelve colleague changes on the target and preceding/following siblings, retaining exact pinned-SDK deviations separately from the semantic expectations.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 4, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: waiting_for_sdk_address_matrix }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+timeout_s: 60
+since: "2026-11-17"

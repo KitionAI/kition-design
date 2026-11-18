@@ -1,0 +1,16 @@
+format: 1
+id: regressions/issue-c8-design-read
+feature: design.agent.ids
+intent: Compare every runnable write path with an independent handler reading and exercise related and unrelated independent file rewrites for the dependency classes it found.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-read, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: declarations_independent }
+  - cargo-test: { package: kition-design-kit, test: read_defects }
+  - cargo-test: { package: kition-design, test: outside, filter: 'read::' }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+timeout_s: 60
+since: "2026-11-17"

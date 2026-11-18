@@ -1,0 +1,21 @@
+[package]
+name = "kition-design-vectordrawable"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design Android Vector Drawable export (shapes, strokes, gradients, clips and vector masks as a <vector> XML drawable)"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-geom = { workspace = true }
+kition-design-color = { workspace = true }
+kition-design-doc = { workspace = true }
+kition-design-text = { workspace = true }
+kition-design-render = { workspace = true }
+kition-design-pathops = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+roxmltree = "0.21"

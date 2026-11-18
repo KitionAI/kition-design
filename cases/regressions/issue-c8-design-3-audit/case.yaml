@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-3-audit
+feature: design.agent.ids
+intent: Dev-resource edits hold their indexed link and validity inputs without refusing unrelated opacity; document-wide font refit holds the text it measures.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 5, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: audited_dev_resource }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

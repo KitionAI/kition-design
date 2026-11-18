@@ -1,0 +1,19 @@
+format: 1
+id: design.agent.ids/guard-conflicts
+feature: design.agent.ids
+intent: >-
+  With basis, another agent's edit, reparent or deletion of my target refuses my write as changed, relocated or deleted, and nothing changes.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: premise, filter: another_agents_edit_reparent_or_deletion_of_my_target_refuses_my_write }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

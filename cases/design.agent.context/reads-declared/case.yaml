@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/reads-declared
+feature: design.agent.context
+intent: >-
+  Every command declares the editor state its code reads (selection, through the ids fallback too; current page; edit modes and tool) and the parameter on fills (ids or id where the code reads it as layer ids), as a scan of the engine's code finds them.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: acts, filter: every_command_declares_the_editor_state_its_code_reads_and_its_target }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

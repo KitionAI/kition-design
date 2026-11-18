@@ -1,0 +1,228 @@
+/* The menus package (2.7): long dark menus, the dialog window, the Actions palette, the keyboard
+   shortcuts dialog and the dialogs' rows. Tokens only (`--design-*`). */
+
+/* Long dark menus (View, Object) scroll instead of running off the window (upstream overflows). */
+.design-menu[data-tone='dark'] { max-height: calc(100vh - 16px); overflow-y: auto; scrollbar-width: none; }
+.design-menu[data-tone='dark']::-webkit-scrollbar { display: none; }
+
+/* ------------------------------------------------------------------------------------------ */
+/* Dialog window (2.7 §0.2) */
+
+.design-dialog {
+  position: fixed;
+  z-index: 900;
+  box-sizing: border-box;
+  border: 1px solid var(--design-border);
+  border-radius: var(--design-radius-window, 13px);
+  background: var(--design-panel);
+  box-shadow: 0 8px 24px var(--design-shadow);
+  color: var(--design-text);
+  font: var(--design-regular) 11px/1.2 var(--design-font);
+  overflow: hidden;
+}
+
+.design-dialog-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--design-border);
+  background: var(--design-title-band);
+  font: var(--design-semibold) 13px/1 var(--design-font);
+}
+
+.design-dialog-close {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text);
+}
+
+.design-dialog-close:hover { background: var(--design-hover); }
+
+.design-dialog-body {
+  box-sizing: content-box;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Upstream's plain egui window (Find and replace): margin 12, a slimmer title band. */
+.design-dialog[data-plain='true'] .design-dialog-title { height: 36px; justify-content: flex-start; padding-left: 12px; font: var(--design-regular) 12px/1 var(--design-font); }
+.design-dialog[data-plain='true'] .design-dialog-close { right: 6px; }
+.design-dialog[data-plain='true'] .design-dialog-body { padding: 12px; }
+
+.design-dialog-buttons { display: flex; gap: 8px; margin-top: 6px; }
+.design-dialog-caption { color: var(--design-text); font: var(--design-regular) 11px/1.35 var(--design-font); }
+.design-dialog-caption[data-tone='secondary'] { color: var(--design-text-secondary); }
+.design-dialog-caption[data-tone='tertiary'] { color: var(--design-text-tertiary); }
+.design-dialog-caption[data-tone='danger'] { color: var(--design-danger); }
+.design-dialog-caption[data-tone='success'] { color: var(--design-success); }
+.design-dialog-strong { font: var(--design-semibold) 12px/1.3 var(--design-font); }
+.design-dialog-row { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.design-dialog-row > label { flex: none; color: var(--design-text); }
+.design-dialog-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.design-dialog-divider { height: 1px; margin: 10px 0; background: var(--design-border); }
+
+/* Export rows: 30 tall, hover `hover` r5, label regular 12 at +10. */
+.design-export-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-regular) 12px/1 var(--design-font);
+  text-align: left;
+}
+
+.design-export-row:hover { background: var(--design-hover); }
+
+/* egui's plain button (Rename layers' codes): frameless, a fill on hover. */
+.design-plain-button { height: 24px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: var(--design-text); font: var(--design-regular) 11px/1 var(--design-font); }
+.design-plain-button:hover { background: var(--design-hover); }
+
+/* egui's frameless DragValue (Preferences' nudge amounts): the number alone until hovered. */
+.design-drag-value .design-field:not(:hover):not(:focus-within) { background: transparent; box-shadow: none; }
+
+/* Selectable labels (Preferences' theme, egui `selectable_label`). */
+.design-select-label { padding: 4px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--design-text); font: inherit; }
+.design-select-label[aria-pressed='true'] { background: var(--design-selected-row); color: var(--design-accent-text); }
+.design-select-label:hover:not([aria-pressed='true']) { background: var(--design-hover); }
+
+/* ------------------------------------------------------------------------------------------ */
+/* Actions palette (2.7 §2) */
+
+.design-palette {
+  position: fixed;
+  z-index: 800;
+  box-sizing: border-box;
+  height: 467px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--design-border);
+  border-radius: 13px;
+  background: var(--design-panel);
+  box-shadow: 0 8px 32px var(--design-shadow);
+  color: var(--design-text);
+}
+
+/* Measured on upstream (relative to the panel's top T): the hint's centre at T+22, the tabs at
+   T+51..T+73, the list from T+84; a section is 10 px of space and a 22 px label line (its text at
+   +8), rows are 34 tall 6 apart (egui's item spacing). */
+.design-palette-search {
+  flex: none;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-regular) 14px/1.2 var(--design-font);
+}
+
+/* egui draws the hint in the body style (11 px), not the field's 14. */
+.design-palette-search::placeholder { color: var(--design-text-tertiary); font-size: 11px; }
+.design-palette-tabs { flex: none; display: flex; gap: 4px; margin-top: 16px; }
+
+.design-palette-tab {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--design-text-secondary);
+  font: var(--design-regular) 12px/1 var(--design-font);
+}
+
+.design-palette-tab[aria-selected='true'] { background: var(--design-hover); color: var(--design-text); }
+.design-palette-list { flex: 1; min-height: 0; max-height: 360px; margin-top: 10px; overflow-y: auto; }
+.design-palette-section { height: 32px; box-sizing: border-box; padding: 18px 10px 0; color: var(--design-text-secondary); font: var(--design-regular) 12.5px/14px var(--design-font); }
+
+.design-palette-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  margin-bottom: 6px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  cursor: default;
+}
+
+.design-palette-row[data-active='true']::before { content: ''; position: absolute; inset: 1px 4px; border-radius: 6px; background: var(--design-hover); }
+.design-palette-row > * { position: relative; }
+.design-palette-label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: var(--design-regular) 13px/1 var(--design-font); }
+.design-palette-hint { flex: none; margin-left: 12px; color: var(--design-text-secondary); font: var(--design-regular) 11px/1 var(--design-font); }
+.design-palette-empty { padding: 18px 10px; color: var(--design-text-secondary); font: var(--design-regular) 12px/1 var(--design-font); }
+
+/* ------------------------------------------------------------------------------------------ */
+/* Keyboard shortcuts dialog (2.7 §3.3) */
+
+.design-shortcuts-head { display: flex; align-items: center; gap: 2px; }
+.design-tabstrip { display: flex; gap: 2px; flex: 1; min-width: 0; overflow: hidden; }
+
+.design-tabstrip > button {
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text-secondary);
+  font: var(--design-semibold) 11px/1 var(--design-font);
+}
+
+.design-tabstrip > button:hover,
+.design-tabstrip > button[aria-selected='true'] { background: var(--design-hover); }
+.design-tabstrip > button[aria-selected='true'] { color: var(--design-text); }
+.design-shortcuts-body { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 24px; margin-top: 10px; overflow-y: auto; align-content: start; }
+.design-shortcuts-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.design-shortcut-row {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.design-shortcut-row:hover { background: var(--design-hover); }
+.design-shortcut-label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: var(--design-regular) 12px/1 var(--design-font); }
+
+.design-keycap {
+  flex: none;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--design-border);
+  border-radius: 4px;
+  background: var(--design-field);
+  color: var(--design-text);
+  font: var(--design-regular) 11px/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+.design-keycap-or { flex: none; margin: 0 4px; color: var(--design-text-tertiary); font: var(--design-regular) 10px/1 var(--design-font); }
+.design-shortcuts-empty { color: var(--design-text-secondary); font: var(--design-regular) 12px/1 var(--design-font); }
+
+/* Shortcut glyphs: Inter draws ⇧ small; the menus' key column uses the system font like keycaps. */
+.design-menu .design-menu-keys { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }

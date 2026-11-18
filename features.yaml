@@ -1,0 +1,458 @@
+format: 1
+kit: design
+updated: "2026-11-17"
+gate_budget_s: 600
+protected: []
+features:
+  - id: design.agent.observe
+    title: An agent reads the layers and edits the right one by its numeric id
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [design.agent.observe/widest-layer, regressions/issue-2, regressions/issue-3]
+    since: "2026-11-17"
+  - id: design.agent.act
+    title: An agent sets up auto layout on a frame
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [design.agent.act/auto-layout, regressions/issue-deterministic-save]
+    since: "2026-11-17"
+  - id: design.agent.recover
+    title: An agent fixes what the check reports
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [design.agent.recover/text-overflow, regressions/issue-unknown-params]
+    since: "2026-11-17"
+  - id: design.agent.conversation
+    title: An agent makes a component and uses it over a conversation
+    dimension: [ai]
+    priority: P1
+    status: has
+    requirements: [AX13]
+    cases: [design.agent.conversation/card-component]
+    since: "2026-11-17"
+  - id: design.agent.context
+    title: No agent call depends on or leaves behind the current page, the selection, the view or the modes
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [page.go, page.inspect, page.select, select.set]
+    paths: [bindings/wasm/src/context.rs, bindings/wasm/src/acts.rs, bindings/wasm/src/agent.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/context.rs, crates/engine/engine/src/kdm.rs, bindings/headless/src/main.rs]
+    requirements: [AX13]
+    cases: [design.agent.context/check-context, design.agent.context/create-then-act, design.agent.context/editor-state-hidden, design.agent.context/explicit-parent, design.agent.context/failed-command, design.agent.context/failed-run, design.agent.context/hooks-no-edit, design.agent.context/inspect-by-page-id, design.agent.context/navigation, design.agent.context/on-drives-selection, design.agent.context/page-inspect, design.agent.context/published-commands, design.agent.context/reads-declared, design.agent.context/refused-contexts, design.agent.context/two-pages-one-run, design.agent.context/two-pages-run, regressions/issue-c8-land-11-design-context, regressions/issue-c8-design-pin-reread]
+    since: "2026-11-17"
+  - id: design.agent.preview
+    title: The agent's preview is a pure function of the design and an explicit view
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [file.render]
+    paths: [bindings/wasm/src/agent.rs, bindings/headless/src/main.rs, crates/render/render/src/lib.rs]
+    requirements: [AX13]
+    cases: [design.agent.preview/declared-view, design.agent.preview/explicit-view, design.agent.preview/pure, design.agent.preview/scale-size, design.agent.preview/thread-count, design.agent.preview/typed-refusals]
+    since: "2026-11-17"
+  - id: design.agent.ids
+    title: Stable tool ids and typed command references for layers and resources
+    dimension: [ai, conversion]
+    priority: P0
+    status: partial
+    gap: "An independent reading covers all 372 write handlers; 368 commands are mechanically compared across 803 paths (four widget commands need an unavailable plugin). The gate permits zero held-less commands and twelve held-more commands: import name membership, page-window occupants, prototype mode-reference replay, painted-bound facts in five spatial commands and unconditional reflow inputs in three no-op text commands and unread current subtrees in Dev Mode resolution. Batch selection/dataflow, layout limits, text and group membership, variable defaults/aliases and consumed appearance are covered by independent-writer tests. The 300-cell constraint matrix has zero wrong writes and false refusals; other combinations remain unproven. The pinned SDK still accepts implicit-selection wrong writes, refuses unrelated address/membership changes, and cannot observe a linked library file changing by itself."
+    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/validate.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/rests/**, bindings/wasm/tests/declarations_independent.rs, bindings/headless/tests/premise.rs, bindings/headless/tests/outside/**]
+    requirements: [AX13]
+    cases: [design.agent.ids/guard-conflicts, design.agent.ids/guard-others, design.agent.ids/ids-survive-reopen, design.agent.ids/inspect-lists-pages, design.agent.ids/kdm-tool-ids, design.agent.ids/keyless-layer-repair, design.agent.ids/model-speaks-layer-ids, design.agent.ids/new-server, design.agent.ids/receipts, regressions/issue-c8-land-11-design, regressions/issue-c8-land-11-design-receipts, regressions/issue-c8-land-11-design-premises, regressions/issue-c8-land-11-design-receipt-sizes, regressions/issue-c8-land-11-design-outside, regressions/issue-c8-land-11-design-env, regressions/issue-c8-design-guard-review, regressions/issue-c8-design-review2-library, regressions/issue-c8-design-review2-branches, regressions/issue-c8-design-review2-families, regressions/issue-c8-design-review2-propagation, regressions/issue-c8-design-review2-external-library, regressions/issue-c8-design-3-place, regressions/issue-c8-design-3-vector, regressions/issue-c8-design-3-normalisation, regressions/issue-c8-design-3-implicit-place,
+      regressions/issue-c8-design-3-tool-cleanup, regressions/issue-c8-design-3-addresses, regressions/issue-c8-design-3-audit, regressions/issue-c8-design-3-board-label, regressions/issue-c8-design-read, regressions/issue-c8-expectations-review-design]
+    since: "2026-11-17"
+  - id: design.platform.display-modes
+    title: "The editor in every display mode: Single line and Classic open on Edit with its most used rows; Show/Hide UI is Focus"
+    dimension: [function, platform]
+    priority: P1
+    status: has
+    paths: [web/src/App.tsx, web/src/kit/context.tsx, web/src/menus/catalog.ts, web/src/menus/model.ts, web/src/menus/invoke.ts, web/tests/modes.mjs]
+    cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui]
+    since: "2026-11-17"
+  - id: design.file.import-export
+    title: "Import, place, export and save to version history"
+    dimension: [conversion, function]
+    priority: P1
+    status: partial
+    commands: [file.import, file.placeImage, file.saveVersion, file.versionHistory, file.export, file.exportFramesPdf, file.exportSvg, file.rename, file.colorProfile, export.add, export.update, export.remove, file.exportLayers, file.render]
+    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/commands.rs, tools/xtask/src/main.rs, crates/engine/engine/src/cmd/edit.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.branch.manage
+    title: "Branches: create, update from main, merge, archive"
+    dimension: [collab, function]
+    priority: P1
+    status: partial
+    commands: [branch.create, branch.list, branch.updateFromMain, branch.merge, branch.archive]
+    paths: [crates/engine/engine/src/sharing/branches.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/query.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.edit.history
+    title: "Undo, redo, cut, copy, paste and other Edit menu commands"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [edit.undo, edit.redo, edit.cut, edit.copy, edit.paste, edit.pasteOver, edit.pasteReplace, edit.duplicate, edit.delete, edit.findReplace, edit.copyProperties, edit.pasteProperties, edit.pickColor, edit.setDefaultProperties, edit.pasteDesignLayers, edit.repeat]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/edit/clipboard.rs, bindings/wasm/src/lists/menu.rs, bindings/wasm/src/commands.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.select.layers
+    title: "Select all, none, inverse and matching layers"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [select.all, select.matching, select.none, select.inverse, select.sameFill, select.sameStroke, select.sameEffect, select.sameText, select.sameFont, select.sameInstance, select.sameProperties, select.children, select.parent, select.next, select.previous, select.set, select.add, select.remove, select.layersAt, select.area, select.byName, selection.colors, selection.setPaint, selection.applyColorStyle, selection.bindColorVariable, selection.detachColor, selection.selectColor]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/selection/selection_colors.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/cmd/edit/select.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.view.display
+    title: "Rulers, grids, outlines, zoom and other View menu commands"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [view.pixelGrid, view.layoutGrids, view.rulers, view.slices, view.comments, view.outlines, view.outlinesSelection, view.outlinesHiddenLayers, view.outlinesObjectBounds, view.pixelPreview, view.maskOutlines, view.frameOutlines, view.proofSrgb, view.prevFrame, view.nextFrame, view.prevPage, view.nextPage, view.snapGeometry, view.snapObjects, view.snapPixel, view.devMode]
+    paths: [crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/lists/menu.rs, bindings/wasm/src/view.rs, bindings/wasm/src/query.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.object.frame-group
+    title: "Frame, group, ungroup, mask and other Object menu commands"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [object.frameSelection, object.group, object.ungroup, object.removeFrame, object.resizeToFit, object.mask, object.releaseMask, object.setThumbnail, object.flipH, object.flipV, object.rotate180, object.rotateLeft, object.rotateRight, object.rasterize, object.toggleVisible, object.toggleLock, object.hideOthers, layers.collapseAll, object.removeFill, object.removeStroke, object.swapFillStroke, object.rename, object.batchRename, object.moveToPage, frame.create, frame.swapOrientation, frame.presets, object.opacityKeys, object.convertToGroup, object.convertToFrame, object.convertToSection, object.wrapInSection, section.toggleContents]
+    paths: [crates/engine/engine/src/cmd/structure.rs, bindings/wasm/src/lists/menu.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/arrange.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.layout.auto
+    title: "Auto layout and layout grids"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [layout.add, layout.remove, layout.suggest, grid.add, grid.remove, grid.move, layout.setTrack]
+    paths: [crates/engine/engine/src/cmd/structure.rs, crates/engine/engine/src/cmd/edit.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/lists/menu.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.component.manage
+    title: "Components and variants"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [component.create, component.createMultiple, component.combineVariants, component.resetInstance, component.detach, component.goToMain, component.pushChanges, component.restoreMain, component.hideWhenPublishing, component.addVariant, component.exposeInstance, component.makeSlot, component.removeSlot, component.resetOverride, component.addProperty, component.editProperty, component.deleteProperty, component.bindProperty, component.properties, component.list, component.playground]
+    paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, bindings/wasm/src/lists/menu.rs, crates/engine/engine/src/cmd/component/props.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.component.instances
+    title: "Instances, nested instances and slots"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [instance.create, instance.place, instance.exposed, instance.slotInsert, instance.resetSlot, instance.swap, instance.swapAt, instance.setProperties]
+    paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, crates/engine/engine/src/assets/playground.rs, crates/engine/engine/src/content/templates/kit.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.object.arrange
+    title: "Arrange, align, distribute and tidy up"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [arrange.front, arrange.forward, arrange.backward, arrange.back, align.left, align.hcenter, align.right, align.top, align.vcenter, align.bottom, distribute.horizontal, distribute.vertical, arrange.tidy, arrange.packH, arrange.packV, arrange.roundToPixels, arrange.spacing, arrange.reorder]
+    paths: [crates/engine/engine/src/cmd/arrange.rs, bindings/wasm/src/lists/menu.rs, bindings/wasm/src/check.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.vector.edit
+    title: "Vector editing: flatten, outline stroke, join, heal and point editing"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [vector.flatten, vector.outlineStroke, vector.join, vector.smoothJoin, vector.deleteHeal, vector.simplify, vector.reverse, vector.offset, vector.create, vector.fillRule, vector.reverseLoop, vector.edit.begin, vector.edit.end, vector.edit.state, vector.edit.tool, vector.edit.select, vector.edit.selectAll, vector.edit.moveVertices, vector.edit.nudge, vector.edit.position, vector.edit.setHandle, vector.edit.moveHandles, vector.edit.mirroring, vector.edit.smooth, vector.edit.bend, vector.edit.addVertex, vector.edit.delete, vector.edit.cornerRadius, vector.edit.strokeCap, vector.edit.strokeJoin, vector.edit.paint, vector.edit.cut, vector.edit.erase, vector.edit.connect, vector.edit.lasso, vector.edit.pen, vector.edit.penEnd, vector.edit.bounds, vector.edit.resize, vector.edit.rotate, vector.edit.transform, vector.edit.widthPoint]
+    paths: [crates/engine/engine/src/canvas/vectoredit.rs, crates/engine/engine/src/cmd/structure.rs, crates/engine/engine/src/canvas/vectoredit/transform.rs, bindings/wasm/src/lists/menu.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.vector.boolean
+    title: "Boolean operations and Shape Builder"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [bool.union, bool.subtract, bool.intersect, bool.exclude, bool.flatten, shapeBuilder.regions, shapeBuilder.merge, shapeBuilder.remove, shapeBuilder.mode]
+    paths: [crates/engine/engine/src/cmd/structure.rs, crates/engine/engine/src/canvas/shapebuilder.rs, bindings/wasm/src/query.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.text.format
+    title: "Text editing and formatting: styles, lists, links, case, spacing"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [text.bold, text.italic, text.underline, text.strikethrough, text.link, text.bulletList, text.numberList, text.alignLeft, text.alignCenter, text.alignRight, text.alignJustify, text.sizeUp, text.sizeDown, text.weightUp, text.weightDown, text.lineHeightUp, text.lineHeightDown, text.trackingUp, text.trackingDown, text.caseOriginal, text.caseUpper, text.caseLower, text.caseTitle, text.missingFonts, text.create, text.onPath, text.pathOptions, text.removeFromPath, text.caseSmallCaps, text.case, text.decoration, text.listStyle, text.paragraphIndent, text.paragraphSpacing, text.maxLines, text.setFeatures, text.setVariations, text.preview, text.endPreview, text.set, text.style, text.edit.begin, text.edit.insert, text.edit.key, text.listIndent, text.listOutdent, text.edit.caret, text.edit.selectWord, text.edit.selectLine, text.edit.preedit, text.edit.selection, text.edit.end, text.fonts, text.refit, text.fit]
+    paths: [crates/engine/engine/src/cmd/text.rs, crates/engine/engine/src/canvas/textpreview.rs, bindings/wasm/src/query.rs, crates/engine/engine/src/content/datafill.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.app.preferences
+    title: "Preferences"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [pref.keepTool, pref.highlightHover, pref.renameDuplicates, pref.showDimensions, pref.numberKeysOpacity, pref.nudge]
+    paths: [crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/query.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.tool.canvas
+    title: "Canvas tools: move, scale, hand, frame, section, pen and the others"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [tool.move, tool.scale, tool.hand, tool.frame, tool.section, tool.slice, tool.rectangle, tool.line, tool.arrow, tool.ellipse, tool.polygon, tool.star, tool.pen, tool.pencil, tool.text, tool.comment, tool.shapeBuilder, tool.set, tool.place, tool.pencilBrush, tool.scaleAnchor, tool.textOnPath, tool.sticky, tool.shape, tool.connector, tool.marker, tool.highlighter, tool.eraser, tool.stamp]
+    paths: [crates/engine/engine/src/cmd/view.rs, crates/engine/engine/src/boards/board.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/canvas/tools/keys.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.object.layers-api
+    title: "Create, read, move and reorder layers by id"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [node.create, node.set, node.get, node.reparent, node.reorder]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/comment.rs, crates/engine/engine/src/cmd/edit/props.rs, crates/engine/engine/src/cmd/proto.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.shape.primitives
+    title: "Draw rectangles, ellipses, polygons, stars, lines and arrows"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [shape.rectangle, shape.ellipse, shape.polygon, shape.star, shape.line, shape.arrow]
+    paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/dev/codegen.rs, bindings/wasm/examples/conformance.rs, crates/engine/engine/src/cmd/layout.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.image.adjust
+    title: "Place and adjust images; image presets"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [image.place, image.adjust, image.savePreset, image.deletePreset, image.presets]
+    paths: [crates/engine/engine/src/cmd/image.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/query.rs, crates/engine/engine/src/cmd/create.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.object.transform
+    title: "Nudge, move, resize, rotate and flip"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [transform.nudge, transform.nudgeSize, transform.move, transform.moveTo, transform.rotate, transform.rotationOrigin, transform.setRotationOrigin, transform.scale, transform.resize]
+    paths: [crates/engine/engine/src/cmd/arrange.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/canvas/rotation_origin.rs, crates/engine/engine/src/cmd/edit.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.paint.fill-stroke
+    title: "Fills, strokes and document colours"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [fill.add, stroke.add, fill.remove, stroke.remove, fill.set, stroke.set, fill.copy, fill.paste, stroke.copy, stroke.paste, fill.pattern, stroke.widthProfile, stroke.brush, fill.move, stroke.move, paint.documentColors]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/edit/props.rs, bindings/wasm/src/check.rs, crates/engine/engine/src/cmd/lists.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.paint.effects
+    title: "Shadows, blurs and other effects"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [effect.add, effect.remove, effect.set, effect.copy, effect.paste, effect.move]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/edit/props.rs, crates/engine/engine/src/cmd/lists.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.app.batch
+    title: "Run several commands in one step"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [command.batch]
+    paths: [bindings/wasm/src/agent.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/automation/batch.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.devmode.handoff
+    title: "Dev Mode: changes, focus view, inspect, code, measurements, annotations, resources"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [dev.resolveChange, dev.compare, dev.focus, dev.unfocus, inspect.code, inspect.readyForDev, inspect.assets, inspect.properties, inspect.componentCode, codeConnect.set, codeConnect.remove, codeConnect.export, codeConnect.import, annotation.add, annotation.edit, annotation.remove, annotation.list, annotation.categories, annotation.addCategory, annotation.editCategory, annotation.removeCategory, devResource.add, devResource.edit, devResource.remove, devResource.list, devMode.addMeasurement, devMode.removeMeasurement, devMode.measurements, measure.distances, measure.padding]
+    paths: [bindings/wasm/src/query.rs, crates/engine/engine/src/dev/annotations.rs, crates/engine/engine/src/cmd/section.rs, crates/engine/engine/src/dev/code_connect.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.version.history
+    title: "Version history"
+    dimension: [collab, function]
+    priority: P1
+    status: partial
+    commands: [version.list, version.restore, version.rename, version.delete, version.preview, version.autosave, version.exitPreview]
+    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/query.rs, crates/engine/engine/src/cmd/file/version.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.page.manage
+    title: "Pages"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [page.add, page.select, page.rename, page.delete, page.duplicate, page.move, page.setBackground, page.list]
+    paths: [crates/engine/engine/src/cmd/page.rs, crates/engine/engine/src/content/templates/kit.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.guide.manage
+    title: "Guides"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [guide.add, guide.move, guide.remove, guide.select, guide.clear]
+    paths: [crates/engine/engine/src/cmd/page.rs, crates/engine/engine/src/canvas/tools/keys.rs, bindings/wasm/src/lists/menu.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.style.manage
+    title: "Styles"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [style.create, style.apply, style.detach, style.update, style.bind, style.duplicate, style.move, style.renameFolder, style.delete, style.list]
+    paths: [crates/engine/engine/src/cmd/styles.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/check.rs, bindings/wasm/src/files.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.variable.manage
+    title: "Variables, collections and modes"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [variable.createCollection, variable.addMode, variable.create, variable.set, variable.delete, variable.bind, variable.setMode, variable.list, variable.update, variable.duplicate, variable.renameMode, variable.removeMode, variable.moveMode, variable.renameCollection, variable.deleteCollection, variable.resetOverride, variable.export, variable.import]
+    paths: [crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/variables.rs, crates/engine/engine/src/content/templates/kit.rs, bindings/wasm/examples/conformance.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.library.publish
+    title: "Team libraries: publish, add, swap, remove"
+    dimension: [collab, function]
+    priority: P1
+    status: partial
+    commands: [library.publish, library.list, library.add, library.swap, library.remove, library.updates, library.acceptUpdates, library.place, library.swapAt, library.import, library.applyStyle, library.importVariable, library.bindVariable, library.aliasVariable, library.setVariableMode, library.extendCollection]
+    paths: [crates/engine/engine/src/cmd/library.rs, bindings/wasm/src/lists.rs, bindings/wasm/examples/sample_library.rs, bindings/wasm/src/files.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [regressions/issue-c8-land-11-design-library-delete]
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.proto.interactions
+    title: "Prototyping: interactions, flows, actions and conditionals"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [proto.interaction.add, proto.interaction.clear, proto.interaction.remove, proto.interaction.set, proto.flow.add, proto.flow.rename, proto.flow.remove, proto.settings, proto.present, proto.preview, proto.closePreview, proto.presentOptions, proto.linkNotice, proto.action.add, proto.action.set, proto.action.remove, proto.action.move, proto.conditional.addBlock, proto.conditional.setCondition, proto.conditional.removeBlock, proto.evaluate]
+    paths: [crates/engine/engine/src/cmd/proto.rs, crates/engine/engine/src/cmd/proto_actions.rs, bindings/wasm/src/files.rs, bindings/wasm/examples/conformance.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.comment.threads
+    title: "Comments: add, reply, react, resolve"
+    dimension: [collab, function]
+    priority: P1
+    status: partial
+    commands: [comment.add, comment.reply, comment.edit, comment.react, comment.resolve, comment.move, comment.delete, comment.markRead, comment.open, comment.next, comment.zoom, comment.link, comment.people, comment.list]
+    paths: [crates/engine/engine/src/cmd/comment.rs, bindings/wasm/src/query.rs, bindings/wasm/src/files.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.board.whiteboard
+    title: "Whiteboard: sticky notes, shapes with text, connectors, widgets and data"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [widget.insert, widget.click, widget.setText, widget.menu, widget.list, data.fill, board.sticky, board.nextSticky, board.shape, board.connector, board.reattach, board.label, board.stamp, board.ink, board.setColor, board.setStyle, board.timer, board.timerState, board.vote, board.voteResults, board.table, board.tableEdit, board.template, board.templates]
+    paths: [crates/engine/engine/src/boards/board.rs, bindings/wasm/src/commands.rs, crates/engine/engine/src/boards/board/tools.rs, crates/engine/engine/src/boards/board/items.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: design.object.frames-shapes-text
+    title: "Frames holding rectangles, ellipses and text, renamed and moved"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [frame.create, shape.rectangle, shape.ellipse, text.create, node.set, transform.move]
+    paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/text.rs, crates/engine/engine/src/cmd/arrange.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.object.frames-shapes-text/save-reopen]
+    since: "2026-11-17"
+  - id: design.component.button-instances
+    title: "Make a component and place renamed instances of it"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [component.create, instance.create, node.set]
+    paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.component.button-instances/save-reopen]
+    since: "2026-11-17"
+  - id: design.layout.auto-row
+    title: "Add auto layout to a frame and hug its contents"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [layout.add, node.set, shape.rectangle]
+    paths: [crates/engine/engine/src/cmd/structure.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.layout.auto-row/save-reopen]
+    since: "2026-11-17"
+  - id: design.paint.fill-stroke-effect-styles
+    title: "Fills, strokes, drop shadows and paint styles"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [fill.set, stroke.add, effect.add, style.create, style.apply]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/edit/props.rs, crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.paint.fill-stroke-effect-styles/save-reopen]
+    since: "2026-11-17"
+  - id: design.page.vectors-guides
+    title: "Vector paths, frame guides and more pages"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [vector.create, guide.add, page.add, shape.ellipse]
+    paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/cmd/page.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.page.vectors-guides/save-reopen]
+    since: "2026-11-17"
+  - id: design.variable.bound
+    title: "Variable collections, number variables and binding them to properties"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [variable.createCollection, variable.create, variable.bind]
+    paths: [crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/variables.rs, crates/engine/engine/src/cmd/file/save.rs]
+    target: "Figma desktop 126.10.7 (macOS)"
+    cases: [design.variable.bound/save-reopen, regressions/issue-1]
+    since: "2026-11-17"

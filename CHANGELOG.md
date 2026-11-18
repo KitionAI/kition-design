@@ -1,0 +1,27 @@
+# Changelog
+
+Changes to Kition Design, newest first. A version is the kit package version in `kit.json`;
+each package is published with a `package-v<version>` tag.
+
+## 0.1.0
+
+First public release of the source, under the Apache License 2.0. It contains:
+
+- The Rust engine: pages, frames, groups, sections, shapes, vector networks and text; auto layout
+  and constraints; components, variants and instances; paint, text, effect and grid styles;
+  variables with collections and modes; prototypes; comments, version history and branches; Dev
+  Mode inspection and code; every behaviour a command (615 of them), rendered on the CPU and
+  exported to PNG, JPG, SVG and PDF. `.fig` and `.sketch` files open read-only, as a best-effort
+  import.
+- The kit engine (`kition-design-kit`), native and WebAssembly: the design is a KDM replica
+  (schema `kit.design` v4) kept in the `.kdesign` file, replicas merge concurrent edits, and undo
+  is per person and per agent. A check catalogue reports overflowing text, layers off the pixel
+  grid, low contrast and missing components, images, styles or variables.
+- The headless kit (`kition-design`) for agents over the Kit Protocol: it reads a design's pages
+  and layers by id, edits them with the editor's own commands, checks and exports them, and
+  previews a page or a layer. A write names the revision it read and is refused when someone
+  else changed what it rests on.
+- The kit's editor (`web/`): the toolbar, the Layers and Assets panels, the canvas, and the
+  Design, Prototype and Dev Mode panels, in kit-editor's frame.
+- NOTICE and docs/attribution.md list the upstream work, every asset and the fonts build input,
+  and Loro (MIT), linked by the engine and bundled by the editor.

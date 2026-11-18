@@ -1,0 +1,116 @@
+[
+  {
+    "code": "design.missing-component",
+    "fixture": "check-missing-component.kdesign",
+    "severity": "error",
+    "summary": "An instance's main component is not in the file, so it cannot follow its main."
+  },
+  {
+    "code": "design.missing-image",
+    "fixture": "check-missing-image.kdesign",
+    "severity": "error",
+    "summary": "A fill or stroke shows an image the file does not hold, so it draws nothing."
+  },
+  {
+    "code": "design.broken-interaction",
+    "fixture": "check-broken-interaction.kdesign",
+    "severity": "error",
+    "summary": "A prototype interaction goes to a layer, or sets a variable or collection, that the file no longer has."
+  },
+  {
+    "code": "design.broken-flow",
+    "fixture": "check-broken-flow.kdesign",
+    "severity": "error",
+    "summary": "A prototype flow starts at a frame that is not on its page."
+  },
+  {
+    "code": "design.text-overflow",
+    "fixture": "check-text-overflow.kdesign",
+    "severity": "warning",
+    "summary": "A fixed-size text layer's text runs past the bottom of its box."
+  },
+  {
+    "code": "design.low-contrast",
+    "fixture": "check-low-contrast.kdesign",
+    "severity": "warning",
+    "summary": "Text contrasts with the solid colour behind it less than WCAG AA asks (4.5:1, or 3:1 for large text)."
+  },
+  {
+    "code": "design.missing-variable",
+    "fixture": "check-missing-variable.kdesign",
+    "severity": "warning",
+    "summary": "A layer is bound to a variable the file does not have, so the value no longer follows it."
+  },
+  {
+    "code": "design.missing-style",
+    "fixture": "check-missing-style.kdesign",
+    "severity": "warning",
+    "summary": "A layer uses a style the file does not have, so it no longer follows it."
+  },
+  {
+    "code": "design.outside-clip",
+    "fixture": "check-outside-clip.kdesign",
+    "severity": "warning",
+    "summary": "A visible layer lies wholly outside the frame that clips it, so it never shows."
+  },
+  {
+    "code": "design.empty-component",
+    "fixture": "check-empty-component.kdesign",
+    "severity": "warning",
+    "summary": "A main component has no layers and paints nothing, so its instances show nothing."
+  },
+  {
+    "code": "design.font-substituted",
+    "fixture": "check-font-substituted.kdesign",
+    "severity": "info",
+    "summary": "Text names a font this kit does not have, so it is drawn (and previewed) with a substitute."
+  },
+  {
+    "code": "design.text-ellipsis",
+    "fixture": "check-text-ellipsis.kdesign",
+    "severity": "info",
+    "summary": "A truncating text layer cuts its text off with an ellipsis."
+  },
+  {
+    "code": "design.unbound-color",
+    "fixture": "check-unbound-color.kdesign",
+    "severity": "info",
+    "summary": "A solid colour equals a colour variable's value but is not bound to it."
+  },
+  {
+    "code": "design.unused-style",
+    "fixture": "check-unused-style.kdesign",
+    "severity": "info",
+    "summary": "A local style is used by no layer."
+  },
+  {
+    "code": "design.off-pixel",
+    "fixture": "check-off-pixel.kdesign",
+    "severity": "info",
+    "summary": "A layer's position or size is not on whole pixels, so its edges render blurred."
+  },
+  {
+    "code": "design.absolute-in-auto-layout",
+    "fixture": "check-absolute-in-auto-layout.kdesign",
+    "severity": "info",
+    "summary": "A layer in an auto layout frame ignores the layout (absolute position), so the layout does not move it."
+  },
+  {
+    "code": "design.empty-text",
+    "fixture": "check-empty-text.kdesign",
+    "severity": "info",
+    "summary": "A text layer has no text."
+  },
+  {
+    "code": "design.empty-frame",
+    "fixture": "check-empty-frame.kdesign",
+    "severity": "info",
+    "summary": "A frame has no layers and paints nothing."
+  },
+  {
+    "code": "design.truncated",
+    "fixture": "check-truncated.kdesign",
+    "severity": "info",
+    "summary": "A code was found more often than the check lists; the rest are counted."
+  }
+]

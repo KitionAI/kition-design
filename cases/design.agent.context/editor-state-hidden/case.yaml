@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/editor-state-hidden
+feature: design.agent.context
+intent: >-
+  The current page, the selection, the tool, the view and the edit modes are editor state (EDITOR_STATE): changing them changes nothing an agent reads of the design.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: context, filter: editor_state_changes_nothing_in_what_an_agent_reads }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.ids/kdm-tool-ids
+feature: design.agent.ids
+intent: >-
+  The object model names every layer and page by its numeric layer id (Node.key as the KitObjectModel OM9 tool id, read-only to batches), through a rename, a reorder, a reparent and a new replica, so receipts, queries and batches speak the ids inspect lists and commands take.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/tool_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kdm, test: tool_ids }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

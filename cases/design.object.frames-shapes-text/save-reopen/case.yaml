@@ -1,0 +1,17 @@
+format: 1
+id: design.object.frames-shapes-text/save-reopen
+feature: design.object.frames-shapes-text
+intent: >-
+  A renamed frame holding a rectangle, a moved ellipse and a text layer, made only with commands, has the same content (kition_design_kdm::same_content) after saving the .kdesign file and opening it again, from bytes as the web editor does and from a path as the desktop does.
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/src/roundtrip_tests.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-design-engine", filter: "roundtrip_tests::frames_shapes_and_text_survive_save_and_reopen" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

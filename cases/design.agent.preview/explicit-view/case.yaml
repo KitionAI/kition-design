@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.preview/explicit-view
+feature: design.agent.preview
+intent: >-
+  file.render draws the view the call names (a page by id or number, a layer, a frame, an area) and the first page without one, never the current page, and says what it drew.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: render, filter: the_default_view_is_the_first_page_never_the_current_one }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,16 @@
+format: 1
+id: regressions/issue-c8-design-guard-review
+feature: design.agent.ids
+intent: Independent file writers cannot silently change point choices, expression names, component dependencies, constrained children, messages or saved settings before a guarded write; unrelated edits still apply.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-design review
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "review::" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

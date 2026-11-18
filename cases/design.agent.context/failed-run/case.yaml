@@ -1,0 +1,19 @@
+format: 1
+id: design.agent.context/failed-run
+feature: design.agent.context
+intent: >-
+  A failing later step rolls the whole run back byte for byte and leaves the person on their page.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: premise, filter: a_failing_later_step_changes_nothing_and_leaves_the_person_where_they_were }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

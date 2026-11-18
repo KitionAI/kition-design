@@ -1,0 +1,172 @@
+{
+  "kdm": 1,
+  "kit": "kit.design",
+  "schemaVersion": 4,
+  "root": "Design",
+  "types": {
+    "Design": {
+      "batchOps": { "*": { "direct": true } },
+      "derived": {
+        "history": { "description": "Ordered saved-version identities, names, descriptions and timestamps." },
+        "versionIds": { "description": "Ordered saved-version identities, independent of labels and snapshot contents." },
+        "imagePresetCount": { "description": "Number of saved image presets, checked against capacity when appending a new named preset." },
+        "codeOwners": { "description": "Component and set owners grouped by hashed name for code-link import resolution." },
+        "snapshots": { "description": "Saved-version identities and SHA-256 fingerprints of snapshot documents and image bytes." },
+        "defaultCondition": { "description": "The engine's implicit prototype condition, including the chosen variable and resolved starting value." },
+        "branches": { "description": "Saved branch metadata and fingerprints of bases, heads and history, including image bytes." },
+        "assets": { "description": "Identities of publishable local assets." },
+        "textNodes": { "description": "Identities of all text layers used by global text-resource commands." },
+        "variableNames": { "description": "Collection eligibility and variable names/types used when an import matches destinations by name." },
+        "libraryUsage": { "description": "Local library user membership, reference inputs and variable alias/extension graph used by refresh, swap and pruning." },
+        "published": { "description": "The file's published library snapshot." }
+      },
+      "fields": {
+        "settings": { "kind": "map" },
+        "nodes": { "kind": "tree", "of": "Node" },
+        "styles": { "kind": "list", "of": "Style" },
+        "collections": { "kind": "list", "of": "Collection" },
+        "variables": { "kind": "list", "of": "Variable" },
+        "images": { "kind": "list", "of": "Image" },
+        "comments": { "kind": "list", "of": "CommentThread" },
+        "libraries": { "kind": "list", "of": "Library" },
+        "libraryStore": { "kind": "tree", "of": "Node" },
+        "libraryCopies": { "kind": "list", "of": "LibraryCopy" }
+      }
+    },
+    "Node": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "derived": {
+        "bounds": { "description": "Local painted bounds before ancestor transforms, including stroke and effects." },
+        "boundVariables": { "description": "Variable bindings with a stable empty value, independent of style links and mode overrides." },
+        "styleLinks": { "description": "Style links with stable empty values, independent of variable bindings and mode overrides." },
+        "hierarchy": { "description": "Parent id, sibling index and child count, derived from the document tree." },
+        "sourceOpacity": { "description": "The source layer's opacity and opacity binding, used by inherited instance values." },
+        "width": { "description": "Local width, independent of height, translation and rotation." },
+        "height": { "description": "Local height, independent of width, translation and rotation." },
+        "textNodes": { "description": "Sorted identities of text layers in this layer's subtree." },
+        "children": { "description": "Ordered identities of this layer's direct children." },
+        "transform": { "description": "Local affine transform, independent of width and height." }
+      },
+      "fields": {
+        "key": { "kind": "integer", "optional": true, "readOnly": true },
+        "name": { "kind": "string", "optional": true },
+        "visible": { "kind": "boolean", "optional": true, "label": "visible" },
+        "locked": { "kind": "boolean", "optional": true, "label": "locked" },
+        "opacity": { "kind": "number", "optional": true, "minimum": 0, "maximum": 1 },
+        "kind": { "kind": "json", "sample": false },
+        "frame": { "kind": "json", "optional": true, "position": true },
+        "fills": { "kind": "json", "optional": true },
+        "strokes": { "kind": "json", "optional": true },
+        "stroke": { "kind": "json", "optional": true },
+        "effects": { "kind": "json", "optional": true },
+        "corners": { "kind": "json", "optional": true },
+        "layout": { "kind": "json", "optional": true },
+        "childLayout": { "kind": "json", "optional": true },
+        "constraints": { "kind": "json", "optional": true },
+        "prototype": { "kind": "json", "optional": true },
+        "bindings": { "kind": "json", "optional": true },
+        "instance": { "kind": "json", "optional": true },
+        "mirrors": { "kind": "integer", "optional": true, "sample": false },
+        "dev": { "kind": "json", "optional": true },
+        "props": { "kind": "json", "optional": true }
+      },
+      "toolId": { "field": "key" }
+    },
+    "Style": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true },
+        "value": { "kind": "json" },
+        "props": { "kind": "json", "optional": true }
+      }
+    },
+    "Collection": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true },
+        "modes": { "kind": "list", "of": "Mode" },
+        "props": { "kind": "json", "optional": true }
+      }
+    },
+    "Mode": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true }
+      }
+    },
+    "Variable": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true },
+        "collection": { "kind": "string", "optional": true, "sample": false },
+        "type": { "kind": "string", "optional": true, "sample": false },
+        "values": { "kind": "map" },
+        "props": { "kind": "json", "optional": true }
+      }
+    },
+    "Library": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true },
+        "path": { "kind": "string", "optional": true, "sample": false },
+        "version": { "kind": "integer", "optional": true, "minimum": 0, "sample": false }
+      }
+    },
+    "LibraryCopy": {
+      "readOnly": true,
+      "fields": {
+        "kind": { "kind": "string" },
+        "local": { "kind": "string" },
+        "record": { "kind": "json" }
+      }
+    },
+    "Image": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "blob": { "kind": "blob", "optional": true },
+        "size": { "kind": "json", "optional": true }
+      }
+    },
+    "CommentThread": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "integer", "readOnly": true },
+        "anchor": { "kind": "json" },
+        "resolved": { "kind": "boolean", "optional": true, "label": "resolved" },
+        "comments": { "kind": "list", "of": "Comment" }
+      }
+    },
+    "Comment": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "body",
+      "fields": {
+        "author": { "kind": "string" },
+        "name": { "kind": "string", "optional": true },
+        "body": { "kind": "text" },
+        "created": { "kind": "string", "sample": false },
+        "edited": { "kind": "integer", "optional": true, "minimum": 0, "sample": false },
+        "reactions": { "kind": "json", "optional": true },
+        "key": { "kind": "integer", "optional": true, "readOnly": true }
+      }
+    }
+  }
+}

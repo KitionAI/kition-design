@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/refused-contexts
+feature: design.agent.context
+intent: >-
+  A context naming a missing layer or page, a layer as a page, a page in on, layers of two pages, layers off the part's page or a time is refused, saying what is valid, and changes nothing.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: context, filter: refused_contexts_change_nothing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

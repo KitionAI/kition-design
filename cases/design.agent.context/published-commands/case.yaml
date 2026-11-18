@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.context/published-commands
+feature: design.agent.context
+intent: >-
+  The published commands, with their targets and reads, pass kition-sdk's check_commands.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: acts, filter: the_published_commands_pass_the_sdks_checks }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

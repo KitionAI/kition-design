@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-3
+feature: design.agent.observe
+intent: >-
+  inspect has the current page's layer tree (id, name, type, children, top first, at most 500
+  layers); node.get lists the node's children and every node with children counts them
+  (childCount), so an answer never has children in one place and only a count in another.
+layer: gate
+source:
+  kind: issue
+  from: Kition Design regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: round2_answers, filter: issue_3_layer_tree }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

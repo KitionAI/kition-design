@@ -1,0 +1,278 @@
+/* The Design panel (2.3): the two field columns follow the panel's width (`col_width`). */
+.design-design {
+  container-type: inline-size;
+  --design-col: max(40px, calc((100cqw - 72px) / 2));
+  color: var(--design-text);
+  font: var(--design-regular) 11px/1.2 var(--design-font);
+}
+
+.design-design .design-d-row { flex-wrap: nowrap; box-sizing: border-box; }
+.design-d-grow { flex: 1; min-width: 0; display: flex; align-items: center; }
+.design-d-anchor { display: inline-flex; flex: none; }
+.design-d-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.design-d-block[data-disabled='true'] > * { opacity: 0.45; }
+.design-d-block[data-disabled='true'] .design-sublabels { opacity: 1; color: var(--design-text-tertiary); }
+
+/* Selection header: the type label's hit area (120 × 24 at +8), Swap orientation beside it, quick actions at the right. */
+.design-d-header { position: relative; height: 40px; }
+.design-d-type {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 120px;
+  height: 24px;
+  padding: 0 0 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text) !important;
+  font: var(--design-semibold) 13px/1 var(--design-font) !important;
+  text-align: left;
+}
+.design-d-type:hover { background: var(--design-hover); }
+.design-d-type-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.design-d-type-chevron { position: absolute; top: 7px; color: var(--design-icon-secondary); }
+.design-d-header .design-d-swap { position: absolute; left: 132px; top: 8px; }
+.design-d-header-actions { position: absolute; right: 8px; top: 8px; display: flex; gap: 2px; }
+
+/* Segments a third of a column wide (alignment, rotate and flip). */
+.design-d-col3 { display: inline-flex; flex: none; }
+.design-d-col3 .design-segment { width: calc(var(--design-col) / 3) !important; }
+
+/* Sizing: tick marks at the icon's ends when min or max limits are set. */
+.design-d-sizing-lead { position: relative; }
+.design-d-sizing-lead[data-limits='true']::before,
+.design-d-sizing-lead[data-limits='true']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 8px;
+  margin-top: -4px;
+  background: var(--design-icon-secondary);
+}
+.design-d-sizing-lead[data-limits='true']::before { left: -2px; }
+.design-d-sizing-lead[data-limits='true']::after { left: 15px; }
+
+/* The add-limit slot: a quiet field-sized button ("+ Max W"). */
+.design-d-add-slot {
+  position: relative;
+  flex: none;
+  height: 24px;
+  padding: 0 0 0 22px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--design-border);
+  color: var(--design-text-secondary) !important;
+  font: var(--design-regular) 11px/24px var(--design-font) !important;
+  text-align: left;
+}
+.design-d-add-slot:hover { box-shadow: inset 0 0 0 1px var(--design-field-hover-border); }
+.design-d-add-slot > svg { position: absolute; left: 7px; top: 7px; color: var(--design-icon-secondary); }
+
+/* The 3 × 3 alignment grid: dots, the lit cells as accent bars. */
+.design-d-align-grid { position: relative; flex: none; width: 72px; height: 64px; border-radius: 5px; background: var(--design-field); }
+.design-d-align-cell { position: absolute; width: 22px; height: 20px; padding: 0; border: 0; background: transparent; display: grid; place-items: center; }
+.design-d-align-cell > span { width: 3px; height: 3px; border-radius: 50%; background: var(--design-text-tertiary); }
+.design-d-align-cell:hover > span { width: 5px; height: 5px; background: var(--design-accent-line); }
+.design-d-align-cell[data-on='true'] > span { border-radius: 1px; background: var(--design-accent-line); }
+.design-d-align-cell[data-on='true'][data-dir='h'] > span { width: 4px; height: 12px; }
+.design-d-align-cell[data-on='true'][data-dir='v'] > span { width: 12px; height: 4px; }
+.design-d-stack { display: flex; flex-direction: column; gap: 8px; }
+
+/* Bound fields: the variable's name in a chip, a detach button at the right. */
+.design-d-bound { gap: 0; }
+.design-d-bound-lead { flex: none; display: grid; place-items: center; width: 24px; height: 24px; color: var(--design-icon-secondary); }
+.design-d-chip {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  margin: 0 2px 0 -2px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--design-hover);
+  box-shadow: inset 0 0 0 1px var(--design-border);
+  color: var(--design-text) !important;
+  font: var(--design-regular) 11px/18px var(--design-font) !important;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.design-d-detach { flex: none; width: 18px; height: 18px; margin-right: 2px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--design-icon-secondary); display: grid; place-items: center; visibility: hidden; }
+.design-d-bound:hover .design-d-detach { visibility: visible; }
+.design-d-detach:hover { background: var(--design-hover); }
+
+/* Wide and ghost buttons. */
+.design-d-wide {
+  width: 100%;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--design-border-strong);
+  color: var(--design-text) !important;
+  font: var(--design-regular) 11px/24px var(--design-font) !important;
+}
+.design-d-wide:hover { background: var(--design-hover); }
+.design-d-ghost {
+  flex: none;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text) !important;
+  font: var(--design-regular) 11px/24px var(--design-font) !important;
+}
+.design-d-ghost:hover { background: var(--design-hover); }
+
+/* Swatches (a checkerboard under the colour) and the section colour dots. */
+.design-d-swatch {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: linear-gradient(var(--swatch), var(--swatch)), repeating-conic-gradient(#d9d9d9 0 25%, #ffffff 0 50%) 0 0 / 8px 8px;
+  box-shadow: inset 0 0 0 1px var(--design-border);
+}
+.design-d-swatch-16 { width: 16px; height: 16px; border-radius: 3px; background-size: auto, 6px 6px; }
+.design-d-dot { flex: none; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--design-border); }
+.design-d-dot[aria-checked='true'] { box-shadow: inset 0 0 0 2px var(--design-accent-line); }
+.design-d-colors[data-disabled='true'] { pointer-events: none; opacity: 0.6; }
+.design-d-colors { box-sizing: border-box; overflow: auto; scrollbar-width: none; }
+.design-d-colors::-webkit-scrollbar { display: none; }
+.design-d-colors-frame { position: relative; }
+.design-d-colors-frame::before,
+.design-d-colors-frame::after { content: ''; position: absolute; left: 0; right: 0; height: 20px; pointer-events: none; z-index: 1; }
+.design-d-colors-frame::before { top: 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--design-panel) calc(var(--fade-top) * 100%), transparent), transparent); }
+.design-d-colors-frame::after { bottom: 0; background: linear-gradient(to top, color-mix(in srgb, var(--design-panel) calc(var(--fade-bottom) * 100%), transparent), transparent); }
+.design-d-color-value { flex: none; display: flex; }
+
+/* Component blocks. */
+.design-d-heading { justify-content: space-between; }
+.design-d-heading-title { font: var(--design-semibold) 11px/1.2 var(--design-font); color: var(--design-text); }
+.design-d-heading-actions { display: flex; gap: 8px; }
+/* Upstream draws these with `icons::button` (16 px glyphs), not the section header's 14 px. */
+.design-d-heading-actions .design-icon-button svg { width: 16px; height: 16px; }
+.design-d-component-icon { flex: none; color: var(--design-component-const); }
+.design-d-icon-secondary { flex: none; color: var(--design-icon-secondary); }
+.design-d-prop-label { flex: none; display: flex; align-items: center; gap: 6px; width: 84px; height: 20px; color: var(--design-text-secondary); overflow: hidden; }
+.design-d-prop-label > svg { flex: none; color: var(--design-icon-secondary); }
+.design-d-prop-label > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.design-d-description { padding: 0 var(--design-pad); }
+.design-d-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  height: 49px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 5px;
+  outline: 0;
+  background: var(--design-field);
+  color: var(--design-text);
+  font: var(--design-regular) 11px/13px var(--design-font);
+  resize: none;
+}
+.design-d-textarea:hover { box-shadow: inset 0 0 0 1px var(--design-field-hover-border); }
+.design-d-textarea:focus { box-shadow: inset 0 0 0 1px var(--design-accent-line); }
+.design-d-textarea::placeholder { color: var(--design-text-tertiary); }
+.design-d-warning { color: var(--design-warning); }
+
+/* Menus: headings (frame preset categories, pages) and notes. */
+/* An egui label in the menu: 13 tall at the content's left edge, the menu's 6 px spacing around it. */
+.design-d-menu-heading { height: 13px; margin: 6px 0; padding: 0; color: var(--design-text-secondary); font: var(--design-semibold) 11px/13px var(--design-font); white-space: nowrap; }
+.design-d-menu-note { padding: 6px 8px; color: var(--design-text-secondary); font: var(--design-regular) 11px/1.2 var(--design-font); }
+.design-menu[data-testid='design-design-type-menu'],
+.design-menu[data-testid$='-swap-menu'],
+.design-menu[data-testid='design-design-instance-swap-menu'] { max-height: 420px; overflow-y: auto; }
+
+/* Variable modes: the collection's name (0.7 of a column). */
+.design-d-mode-name { flex: none; width: calc(var(--design-col) * 0.7); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Export: the size combo, the PDF print row, options, the preview. */
+.design-d-combo { position: relative; flex: none; display: flex; }
+.design-d-combo .design-field input { padding-right: 18px; }
+.design-d-combo-chevron { position: absolute; right: 0; top: 0; width: 18px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--design-icon-secondary); display: grid; place-items: center; }
+.design-d-combo-chevron:hover { background: var(--design-hover); }
+.design-d-print {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5px 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text-secondary) !important;
+  font: var(--design-regular) 11px/1.2 var(--design-font) !important;
+  text-align: left;
+}
+.design-d-print:hover { background: var(--design-hover); }
+.design-d-print > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.design-d-print > svg { flex: none; color: var(--design-icon-secondary); }
+.design-d-options { display: flex; flex-direction: column; gap: 2px; }
+.design-d-options-label { margin-top: 4px; }
+.design-d-options-row { display: flex; align-items: center; gap: 8px; }
+.design-d-disclosure {
+  flex: 1;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 0 2px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text) !important;
+  font: var(--design-regular) 11px/1.2 var(--design-font) !important;
+}
+.design-d-disclosure > svg { color: var(--design-icon-secondary); }
+.design-d-disclosure > span { margin-left: 4px; }
+.design-d-disclosure:hover { background: var(--design-hover); }
+.design-d-preview-wrap { padding: 0 var(--design-pad) 8px; }
+.design-d-preview {
+  height: 160px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: repeating-conic-gradient(#e6e6e6 0 25%, #ffffff 0 50%) 0 0 / 16px 16px;
+  box-shadow: inset 0 0 0 1px var(--design-border);
+  overflow: hidden;
+}
+
+/* The Frame tool's presets. */
+.design-d-preset-cat,
+.design-d-preset {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--design-text) !important;
+  text-align: left;
+}
+.design-d-preset-cat { height: 32px; padding: 0 var(--design-pad); gap: 6px; font: var(--design-semibold) 11px/1.2 var(--design-font) !important; }
+.design-d-preset-cat > svg { color: var(--design-icon-secondary); }
+.design-d-preset { height: 28px; padding: 0 var(--design-pad) 0 calc(var(--design-pad) + 16px); justify-content: space-between; font: var(--design-regular) 11px/1.2 var(--design-font) !important; }
+.design-d-preset-cat:hover::before,
+.design-d-preset:hover::before { content: ''; position: absolute; inset: 1px 8px; border-radius: 5px; background: var(--design-hover); z-index: -1; }
+.design-d-preset-cat > *,
+.design-d-preset > * { position: relative; }
+
+/* Disabled segments fade like egui's disabled widgets. */
+.design-design .design-segment:disabled > * { opacity: 0.45; }
+.design-design .design-segment:disabled:hover::before { background: transparent; }
+.design-d-swatch-button { flex: none; display: block; width: 24px; height: 24px; padding: 0; border: 0; background: none; }
+.design-d-swatch-button > .design-swatch { display: block; }

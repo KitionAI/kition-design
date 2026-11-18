@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.ids/keyless-layer-repair
+feature: design.agent.ids
+intent: >-
+  A layer a model batch creates without a key (the key is the kit's tool id, read-only to batches) gets one from the repair, derived from its object id, instead of being dropped from the design.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/src/tests.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kdm, filter: a_layer_created_without_a_key_gets_one }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

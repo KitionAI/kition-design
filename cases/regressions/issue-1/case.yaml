@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-1
+feature: design.variable.bound
+intent: >-
+  A colour bound with the documented field alias fill counts as bound for the check (no
+  design.unbound-color for it); node.get shows the variable modes set on a layer (variableModes,
+  collection and mode names); variable.list gives every colour value its hex beside the editor's
+  rgba.
+layer: gate
+source:
+  kind: issue
+  from: Kition Design regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: round2_answers, filter: issue_1_variables }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

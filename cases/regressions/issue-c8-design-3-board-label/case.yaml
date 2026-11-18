@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-3-board-label
+feature: design.agent.ids
+intent: A connector addressed through its label holds its routing record and endpoints, refusing a moved fixed endpoint while allowing unrelated opacity.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 5 board handler audit, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: board_reattach_by_label }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

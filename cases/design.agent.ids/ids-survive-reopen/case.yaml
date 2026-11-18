@@ -1,0 +1,18 @@
+format: 1
+id: design.agent.ids/ids-survive-reopen
+feature: design.agent.ids
+intent: >-
+  Layer and page ids survive saving the design and opening it again, and a command takes them afterwards.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: ids, filter: layer_and_page_ids_survive_saving_and_opening_again }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

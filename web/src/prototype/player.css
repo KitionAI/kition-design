@@ -1,0 +1,233 @@
+/* The preview pane and the presenter (2.6). */
+
+.design-proto-pane {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  height: 600px;
+  min-width: 220px;
+  min-height: 260px;
+  box-sizing: border-box;
+  border: 1px solid var(--design-border);
+  border-radius: var(--design-radius-window);
+  background: var(--design-panel);
+  box-shadow: var(--design-window-shadow);
+  overflow: hidden;
+  resize: both;
+}
+
+/* egui's resize corner: three 1 px diagonals 2, 6 and 10 long, 5 px in from the corner, over the native (hidden) grip. */
+.design-proto-pane::-webkit-resizer { background: transparent; }
+.design-proto-pane-grip { position: absolute; right: 4px; bottom: 4px; z-index: 6; width: 12px; height: 12px; color: var(--design-border); pointer-events: none; }
+
+.design-proto-pane-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  flex: none;
+  padding: 0 6px 0 8px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--design-border);
+  cursor: default;
+}
+
+.design-proto-crumbs { display: flex; align-items: center; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; font: var(--design-regular) 11.5px/1.2 var(--design-font); }
+/* The "/" 8 after the flow picker; the frame's name 14 after it (upstream `top_bar`). */
+.design-proto-crumb-sep { flex: none; width: 14px; margin-left: 8px; color: var(--design-text-secondary); }
+.design-proto-crumb-name { overflow: hidden; text-overflow: ellipsis; color: var(--design-text); }
+
+/* The label 8 in, the button 30 wider than the label, a 17 px chevron centred 11 from its right. */
+.design-proto-flow-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 24px;
+  padding: 0 22px 0 8px;
+  border: 0;
+  border-radius: var(--design-radius);
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-semibold) 11.5px/1.2 var(--design-font);
+  white-space: nowrap;
+}
+
+.design-proto-flow-picker:hover,
+.design-proto-flow-picker[aria-expanded='true'] { background: var(--design-hover); }
+.design-proto-flow-picker svg { position: absolute; right: 2.5px; top: 3.5px; color: var(--design-icon-secondary); }
+.design-proto-flow-menu-description { padding: 0 8px 6px 26px; color: var(--design-text-secondary); font: var(--design-regular) 10.5px/1.3 var(--design-font); white-space: normal; }
+
+.design-proto-pane-area { position: relative; flex: 1; min-height: 0; border-radius: 0 0 var(--design-radius-window) var(--design-radius-window); overflow: hidden; }
+
+.design-proto-player { position: relative; display: flex; overflow: auto; }
+.design-proto-player-empty { display: grid; place-items: center; height: 100%; color: #aaaaaa; font: var(--design-regular) 12px/1.2 var(--design-font); }
+/* margin: auto centres the stage and still lets what is bigger than the area scroll from its start. */
+.design-proto-stage { flex: none; margin: auto; }
+.design-proto-device { position: relative; }
+.design-proto-screen-at { position: absolute; }
+.design-proto-device-body { position: absolute; inset: 0; pointer-events: none; }
+.design-proto-screen { position: relative; overflow: hidden; cursor: default; touch-action: none; user-select: none; }
+.design-proto-canvas { display: block; }
+.design-proto-camera { position: absolute; z-index: 5; background: #000000; pointer-events: none; }
+
+.design-proto-hints { position: absolute; inset: 0; z-index: 4; pointer-events: none; animation: design-proto-hint 0.5s linear both; }
+
+.design-proto-hints > span {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid var(--design-accent-line);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--design-accent-line) 25%, transparent);
+}
+
+@keyframes design-proto-hint { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-proto-hints { animation: none !important; }
+}
+
+/* The presenter: a full-iframe overlay (upstream's own document tab). */
+.design-proto-present {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  background: var(--design-panel);
+  color: var(--design-text);
+  font: var(--design-regular) 11px/1.2 var(--design-font);
+}
+
+.design-proto-present-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+/* Inspect: a 280 px panel at the right, the full height (upstream `present_inspect`). */
+/* Its egui panel keeps the default 6 px between items (the right panel has none). */
+.design-proto-present-inspect .design-separator { margin-top: 7px; }
+.design-proto-present-inspect .design-dev-section-title,
+.design-proto-present-inspect .design-dev-prop { margin-top: 6px; }
+.design-proto-present-inspect > .design-note { margin-top: 6px; }
+
+.design-proto-present-inspect {
+  flex: none;
+  width: 280px;
+  box-sizing: border-box;
+  padding-top: 2px;
+  border-left: 1px solid var(--design-border);
+  background: var(--design-panel);
+  overflow-y: auto;
+}
+
+
+/* Over the screen, unclipped: the inspected layer's outline and the comment pins. */
+.design-proto-screen-layer { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.design-proto-inspect-clip { position: absolute; overflow: hidden; pointer-events: none; }
+.design-proto-inspect-outline { position: absolute; box-sizing: content-box; margin: -1.5px 0 0 -1.5px; border: 1.5px solid var(--design-accent-line); pointer-events: none; }
+
+.design-proto-present-bar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  flex: none;
+  padding: 0 8px 0 12px;
+  box-sizing: border-box;
+  background: var(--design-panel);
+}
+
+.design-proto-present-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  border-radius: 4px;
+  background: var(--design-field);
+  overflow: hidden;
+}
+
+.design-proto-present-thumb img { max-width: 26px; max-height: 26px; }
+.design-proto-present-actions { display: flex; flex-direction: row-reverse; gap: 4px; }
+
+.design-proto-text-button {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--design-radius);
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-regular) 11.5px/1.2 var(--design-font);
+}
+
+.design-proto-text-button:hover { background: var(--design-hover); }
+.design-proto-text-button[aria-pressed='true'] { background: var(--design-accent); color: var(--design-accent-on); }
+
+.design-proto-present-area { position: relative; display: grid; place-items: center; flex: 1; min-height: 0; overflow: hidden; }
+
+.design-proto-present-nav {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--design-border);
+  border-radius: 9px;
+  background: var(--design-panel);
+  z-index: 5;
+}
+
+.design-proto-nav-step {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--design-radius);
+  background: transparent;
+  color: var(--design-icon);
+}
+
+.design-proto-nav-step:hover:not(:disabled) { background: var(--design-hover); }
+.design-proto-nav-step:disabled { color: var(--design-icon-secondary); }
+.design-proto-nav-count { white-space: nowrap; font: var(--design-regular) 11.5px/1.2 var(--design-font); }
+/* egui's separator: 6 wide, its line in the middle. */
+.design-proto-nav-separator { flex: none; width: 1px; height: 22px; margin: 0 2.5px; background: var(--design-border); }
+
+/* egui's menu button: the label and four spaces, 4 in from each side; a 17 px chevron centred 11 from its right. */
+.design-proto-nav-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 4px;
+  white-space: pre;
+  border: 0;
+  border-radius: var(--design-radius);
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-regular) 11.5px/1.2 var(--design-font);
+}
+
+.design-proto-nav-menu:hover { background: var(--design-hover); }
+.design-proto-nav-menu svg { position: absolute; right: 2.5px; top: 3.5px; color: var(--design-icon-secondary); }
+
+.design-proto-notice-scrim { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0, 0, 0, 0.2); }
+
+.design-proto-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 340px;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: var(--design-radius-window);
+  background: var(--design-panel);
+  color: var(--design-text);
+  box-shadow: var(--design-window-shadow);
+}
+
+.design-proto-notice-check { display: flex; align-items: center; gap: 6px; }
+.design-proto-notice-buttons { display: flex; justify-content: flex-end; gap: 8px; }

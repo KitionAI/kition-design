@@ -1,0 +1,47 @@
+/* The dialogs' own corrections over the shared dialog window (menus.css), measured on dialog-*.png. */
+
+/* egui's window close: a 12 px X of 1 px lines in `text`. */
+.design-dialog-close { color: var(--design-text); }
+
+/* Upstream's plain egui window (Find and replace): a 40 px title band with the fold triangle at
+   the left and the title centred (regular 13), a 12 px margin, frameless buttons. */
+.design-dialog[data-plain='true'] .design-dialog-title { height: 40px; justify-content: center; padding-left: 0; font: var(--design-regular) 13px/1 var(--design-font); }
+.design-dialog[data-plain='true'] .design-dialog-title[data-folded='true'] { border-bottom: 0; }
+.design-dialog[data-plain='true'] .design-dialog-close { right: 6px; }
+.design-dialog[data-plain='true'] .design-dialog-body { padding: 12px; }
+.design-dialog[data-plain='true'] .design-dialog-buttons { margin-top: 0; }
+
+.design-dialog-fold {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 17px;
+  height: 17px;
+  margin-top: -9px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--design-text);
+}
+
+/* egui's default button: frameless until hovered. */
+.design-dialog-plain-button {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--design-text);
+  font: var(--design-regular) 12px/1 var(--design-font);
+}
+
+.design-dialog-plain-button:hover { background: var(--design-hover); }
+
+/* `widgets::label`: egui's row height for regular 11 is 13 px (wrapped lines 13 apart). */
+.design-dialog-caption { line-height: 13px; }
+
+/* egui's default label (`ui.label`): regular 12 in `text`, 15 px rows. */
+.design-dialog-label { color: var(--design-text); font: var(--design-regular) 12px/15px var(--design-font); }
+.design-dialog-label [data-tone='secondary'] { color: var(--design-text-secondary); }

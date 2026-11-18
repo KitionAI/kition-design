@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-3-place
+feature: design.agent.ids
+intent: Tool placement holds its pointer-down parent pick and refuses a changed destination while unrelated outside edits apply.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design-3 item 1, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "c8_3::tool_place" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

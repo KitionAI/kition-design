@@ -1,0 +1,17 @@
+format: 1
+id: design.component.button-instances/save-reopen
+feature: design.component.button-instances
+intent: >-
+  A button frame made into a component, with two instances placed and one renamed, keeps its component, both instances and the rename after saving and reopening the .kdesign file (same content, bytes and path).
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/src/roundtrip_tests.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-design-engine", filter: "roundtrip_tests::components_and_instances_survive_save_and_reopen" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

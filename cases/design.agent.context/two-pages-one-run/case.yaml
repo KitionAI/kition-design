@@ -1,0 +1,54 @@
+format: 1
+id: design.agent.context/two-pages-one-run
+feature: design.agent.context
+intent: >-
+  The design opens on its Home page. In one design_run the agent fills the frame Plan on the Pricing
+  page and renames the rectangle Box on Home, naming each step's page (`at.part` with the page's
+  id) or its layers (`on`, `ids`) instead of going to a page; each edit lands on its own layer and
+  nothing else changes.
+layer: eval
+source:
+  kind: synthetic
+  from: 'a two-page design the design engine wrote (SOURCE_DATE_EPOCH set)'
+  license: Apache-2.0
+input: [input/app.kdesign]
+steps:
+  - task:
+      prompt: >-
+        In app.kdesign, in one design_run call, give the frame Plan on the Pricing page a solid #FF0000
+        fill and rename the rectangle Box on the Home page to Hero. Change nothing else.
+      max_turns: 20
+  - query: { path: app.kdesign, args: { follow: nodes, fields: [key, name, kind, fills] }, as: after }
+  - check: { path: app.kdesign, as: diagnostics }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      objects:
+        any: { fields.key: 8710202266222593, fields.name: Hero }
+  - actual: out:after
+    compare: values
+    value:
+      objects:
+        any: { fields.key: 8710202266222595, fields.name: Plan, fields.fills.0.color.r: 1, fields.fills.0.color.g: 0, fields.fills.0.color.b: 0 }
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      total: 6
+      objects:
+        any: { fields.key: 2, fields.name: Card }
+solution:
+  - tool: design_inspect
+    args: { path: app.kdesign, target: { pageId: 8710202266222594 } }
+  - tool: design_run
+    args:
+      path: app.kdesign
+      steps:
+        - { command: node.set, at: { part: { pageId: 8710202266222594 } }, on: [8710202266222595], params: { props: { fill: "#FF0000" } } }
+        - { command: node.set, params: { ids: [8710202266222593], props: { name: Hero } } }
+since: "2026-11-17"
+timeout_s: 600

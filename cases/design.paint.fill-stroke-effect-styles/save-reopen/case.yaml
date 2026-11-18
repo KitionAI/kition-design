@@ -1,0 +1,17 @@
+format: 1
+id: design.paint.fill-stroke-effect-styles/save-reopen
+feature: design.paint.fill-stroke-effect-styles
+intent: >-
+  A rectangle with a red fill, a blue stroke and a drop shadow, and another linked to a new paint style, keep their paints, effect and style link after saving and reopening the .kdesign file (same content, bytes and path).
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/src/roundtrip_tests.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-design-engine", filter: "roundtrip_tests::fills_strokes_effects_and_styles_survive_save_and_reopen" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

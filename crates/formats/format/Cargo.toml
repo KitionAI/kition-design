@@ -1,0 +1,21 @@
+[package]
+name = "kition-design-format"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Design native file format (.kdesign: zip of document.json + images), image import helpers, REST API file JSON import and .fig import"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-design-doc = { workspace = true }
+kition-design-pathops = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+zip = { workspace = true }
+flate2 = { workspace = true }
+ruzstd = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+image = { workspace = true }

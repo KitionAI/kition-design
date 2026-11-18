@@ -1,0 +1,156 @@
+/* Comments on the canvas (2.5 §17): pins, clusters, the thread and draft popovers. */
+
+.design-comment-layer { position: fixed; z-index: 40; overflow: hidden; pointer-events: none; }
+
+/* A pin: a 28 px speech bubble whose bottom-left corner is the spot. */
+.design-comment-pin {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px 14px 14px 0;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(0, 0, 0, 0.16);
+  pointer-events: auto;
+}
+
+.design-comment-pin:hover,
+.design-comment-pin[data-open='true'] { background: #00875f; }
+
+.design-comment-pin-avatar {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font: var(--design-semibold) 9px/1 var(--design-font);
+}
+
+.design-comment-pin-unread { position: absolute; right: -2px; top: -2px; width: 9px; height: 9px; box-sizing: border-box; border: 1px solid #ffffff; border-radius: 50%; background: #00875f; }
+.design-comment-pin-check { position: absolute; right: -3px; bottom: -3px; display: grid; place-items: center; width: 12px; height: 12px; border-radius: 50%; background: #ffffff; color: #00875f; }
+.design-comment-draft-dot { width: 6px; height: 6px; border-radius: 50%; background: #07352a; }
+
+/* A cluster: two stacked bubbles (the back one 3 px up and right), a grey count inside. */
+.design-comment-cluster { position: absolute; height: 28px; padding: 0; border: 0; background: transparent; pointer-events: auto; cursor: zoom-in; }
+.design-comment-cluster-back,
+.design-comment-cluster-front { position: absolute; inset: 0; border-radius: 14px 14px 14px 0; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(0, 0, 0, 0.16); }
+.design-comment-cluster-back { transform: translate(3px, -3px); }
+.design-comment-cluster-front > span { position: absolute; inset: 3px; display: grid; place-items: center; border-radius: 11px; background: #2c2c2c; color: #ffffff; font: var(--design-semibold) 11px/1 var(--design-font); }
+
+/* The popover: 300 wide, `panel`, 1 px `border`, radius 12, padding 12. */
+.design-comment-popover {
+  position: fixed;
+  z-index: 700;
+  box-sizing: border-box;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--design-border);
+  border-radius: 12px;
+  background: var(--design-panel);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  color: var(--design-text);
+}
+
+.design-comment-head { display: flex; align-items: center; gap: 8px; }
+.design-comment-head > span { flex: 1; font: var(--design-regular) 12px/1 var(--design-font); }
+/* Measured on upstream: 14 px under the header, 10 px between a message's head and its text, 24 px
+   between messages, 25 px before the composer (egui's spacing). */
+.design-comment-messages { max-height: 320px; margin: 6px 0 17px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+.design-comment-message { position: relative; }
+.design-comment-meta { display: flex; align-items: center; gap: 8px; height: 24px; }
+.design-comment-meta > .design-comment-avatar { margin-right: 4px; }
+.design-comment-avatar { flex: none; display: grid; place-items: center; border-radius: 50%; color: #ffffff; font-family: var(--design-font); font-weight: var(--design-semibold); }
+/* Upstream's screenshots draw the author and the header in the regular weight. */
+.design-comment-author { font: var(--design-regular) 12px/1 var(--design-font); }
+.design-comment-age { flex: 1; color: var(--design-text-tertiary); font: var(--design-regular) 11px/1 var(--design-font); }
+.design-comment-tools { display: none; gap: 2px; }
+.design-comment-message:hover .design-comment-tools { display: flex; }
+.design-comment-body { margin: 10px 0 0 36px; white-space: pre-wrap; overflow-wrap: anywhere; font: var(--design-regular) 12px/1.4 var(--design-font); }
+.design-comment-body b { color: var(--design-accent-text); font-weight: var(--design-semibold); }
+.design-comment-hint { margin-top: 4px; color: var(--design-text-tertiary); font: var(--design-regular) 10.5px/1 var(--design-font); }
+.design-comment-reactions { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0 36px; }
+
+.design-comment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--design-field);
+  color: var(--design-text);
+  font: var(--design-regular) 11.5px/1 var(--design-font);
+}
+
+.design-comment-chip > :first-child { font-size: 14px; }
+.design-comment-chip[data-on='true'] { background: var(--design-selected-row); box-shadow: inset 0 0 0 1px #00875f; }
+.design-comment-chip:hover { background: var(--design-hover); }
+.design-comment-emoji { display: flex; gap: 0; }
+.design-comment-emoji > button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; font-size: 16px; }
+.design-comment-emoji > button:hover { background: var(--design-hover); }
+.design-comment-emoji > button[data-on='true'] { background: var(--design-selected-row); }
+
+/* The composer: `field`, radius 6, padding 8 × 6; a 24 px round send button. */
+.design-comment-composer { position: relative; display: flex; align-items: flex-end; gap: 6px; padding: 6px 6px 6px 8px; border-radius: 6px; background: var(--design-field); }
+
+.design-comment-composer textarea {
+  flex: 1;
+  min-height: 18px;
+  max-height: 120px;
+  padding: 3px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--design-text);
+  field-sizing: content;
+  font: var(--design-regular) 12px/1.4 var(--design-font);
+}
+
+.design-comment-composer textarea::placeholder { color: var(--design-text-tertiary); }
+.design-comment-send { flex: none; width: 24px; height: 24px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--design-hover); color: var(--design-icon-secondary); }
+.design-comment-send[data-on='true'] { background: #00875f; color: #ffffff; }
+.design-comment-mentions { position: absolute; left: 0; right: 0; top: 100%; z-index: 1; margin-top: 4px; padding: 4px; border: 1px solid var(--design-border); border-radius: 8px; background: var(--design-panel); box-shadow: 0 4px 16px var(--design-shadow); }
+.design-comment-mentions > div { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 6px; border-radius: 5px; font: var(--design-regular) 12px/1 var(--design-font); }
+.design-comment-mentions > div[data-active='true'] { background: var(--design-hover); }
+
+/* The Comments panel (in place of the Design panel with the Comment tool). */
+.design-comments-panel { display: flex; flex-direction: column; min-height: 0; color: var(--design-text); }
+.design-comments-head { display: flex; align-items: center; height: 40px; padding: 0 8px 0 16px; font: var(--design-regular) 12px/1 var(--design-font); }
+.design-comments-head > span { flex: 1; }
+.design-comments-search { padding: 0 16px 8px; }
+.design-comments-filter { display: flex; gap: 4px; padding: 0 16px 8px; color: var(--design-text-secondary); font: var(--design-regular) 11px/1.3 var(--design-font); }
+.design-comments-filter > button { padding: 0; border: 0; background: transparent; color: var(--design-accent-text); font: inherit; cursor: pointer; }
+.design-comments-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 16px; text-align: center; }
+.design-comments-empty > strong { color: var(--design-text-secondary); font: var(--design-semibold) 12px/1.3 var(--design-font); }
+.design-comments-empty > span { color: var(--design-text-tertiary); font: var(--design-regular) 11px/1.3 var(--design-font); }
+.design-comments-page { padding: 4px 16px 2px; color: var(--design-text-secondary); font: var(--design-semibold) 11px/1.3 var(--design-font); }
+
+/* A row: 52 + 16 per line (1-3); the avatar centre at (28, 22), the text from x 48. */
+.design-comments-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 68px;
+  padding: 0 16px 28px 48px;
+  border: 0;
+  background: transparent;
+  color: var(--design-text);
+  text-align: left;
+}
+
+.design-comments-row::after { content: ''; position: absolute; left: 16px; right: 0; bottom: 0; height: 1px; background: var(--design-border); }
+.design-comments-row:hover { background: var(--design-hover); }
+.design-comments-row[data-open='true'] { background: var(--design-selected-row); }
+.design-comments-unread { position: absolute; left: 4.5px; top: 18.5px; width: 7px; height: 7px; border-radius: 50%; background: #00875f; }
+.design-comments-author { position: absolute; left: 48px; top: 15px; font: var(--design-regular) 12px/14px var(--design-font); }
+.design-comments-author[data-unread='true'] { font-weight: var(--design-semibold); }
+.design-comments-age { position: absolute; right: 16px; top: 16px; color: var(--design-text-tertiary); font: var(--design-regular) 11px/12px var(--design-font); }
+.design-comments-text { display: -webkit-box; margin-top: 38px; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font: var(--design-regular) 12px/16px var(--design-font); }
+.design-comments-meta { position: absolute; left: 48px; right: 16px; bottom: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--design-text-secondary); font: var(--design-regular) 11px/12px var(--design-font); }

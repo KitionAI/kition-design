@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "command": "shape.ellipse",
+      "params": {
+        "height": 60,
+        "props": {
+          "fills": [
+            "#0E9F6E"
+          ]
+        },
+        "width": 60,
+        "x": 300,
+        "y": 200
+      }
+    }
+  ]
+}

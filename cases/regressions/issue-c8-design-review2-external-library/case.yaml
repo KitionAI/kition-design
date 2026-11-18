@@ -1,0 +1,13 @@
+format: 1
+id: regressions/issue-c8-design-review2-external-library
+feature: design.agent.ids
+intent: Pins the SDK 1935d52 limit that a linked library file's change alone is invisible to the premise guard; the library-consuming write applies and its receipt names what it changed.
+layer: gate
+dimension: collab
+source: { kind: synthetic, from: C8-design review 2 item 5, license: Apache-2.0 }
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "review2::pinned_sdk_library_only_change" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-17"

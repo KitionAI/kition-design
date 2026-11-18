@@ -1,0 +1,40 @@
+format: 1
+id: design.agent.observe/widest-layer
+feature: design.agent.observe
+intent: >-
+  The agent reads the layers' sizes and renames the widest layer in the frame, addressing it by its
+  numeric layer id (`key`), not the object-model UUID `design_query` also answers; the guide's
+  two-ids pitfall.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.kdesign
+  license: Apache-2.0
+  note: A copy of the conformance fixture the design engine writes.
+input: [input/screen.kdesign]
+steps:
+  - task:
+      prompt: In screen.kdesign, rename the widest layer inside Frame 1 to "Banner". Change nothing else.
+      max_turns: 20
+  - query: { path: screen.kdesign, args: { follow: nodes, fields: [key, name, kind, frame, layout] }, as: after }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      objects.4.fields.key: 5
+      objects.4.fields.name: Banner
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      total: 5
+      objects.1.fields.name: Frame 1
+      objects.2.fields.name: Rectangle
+      objects.3.fields.name: Ellipse
+      objects.4.fields.frame.width: 320
+      objects.2.fields.frame.width: 160
+solution:
+  - tool: design_run
+    args: { path: screen.kdesign, steps: [{ command: node.set, params: { id: 5, props: { name: Banner } } }] }
+since: "2026-11-17"
+timeout_s: 600

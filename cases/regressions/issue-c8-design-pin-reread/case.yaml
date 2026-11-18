@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-design-pin-reread
+feature: design.agent.context
+intent: An outside save of a clean design keeps its editor state and both undo histories; a state whose active target the file deleted is refused with its reason; a planning copy restores the editor state it was made with.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/pin_reread.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: pin_reread }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

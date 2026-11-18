@@ -1,0 +1,50 @@
+format: 1
+id: design.agent.act/auto-layout
+feature: design.agent.act
+intent: >-
+  The agent gives a frame a vertical auto layout with the spacing asked for, set on the frame
+  (gap, padding) rather than by moving its children, and keeps the children in the frame.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.kdesign
+  license: Apache-2.0
+  note: A copy of the conformance fixture the design engine writes.
+input: [input/screen.kdesign]
+steps:
+  - task:
+      prompt: >-
+        In screen.kdesign, make Frame 1 arrange its layers in a vertical auto layout with a 16 px gap
+        between them and 24 px of padding on every side.
+      max_turns: 20
+  - query: { path: screen.kdesign, args: { follow: nodes, fields: [key, name, kind, frame, layout] }, as: after }
+  - check: { path: screen.kdesign, as: diagnostics }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      objects.1.fields.key: 2
+      objects.1.fields.layout.mode: vertical
+      objects.1.fields.layout.gap: 16
+      objects.1.fields.layout.padding: [24, 24, 24, 24]
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      total: 5
+      objects.2.fields.name: Rectangle
+      objects.2.fields.frame.width: 160
+      objects.3.fields.name: Ellipse
+      objects.4.fields.frame.width: 320
+solution:
+  - tool: design_run
+    args:
+      path: screen.kdesign
+      steps:
+        - { command: layout.add, params: { ids: [2], direction: vertical } }
+        - { command: node.set, params: { id: 2, props: { gap: 16, padding: 24 } } }
+since: "2026-11-17"
+timeout_s: 600
