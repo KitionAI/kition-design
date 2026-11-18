@@ -31,8 +31,9 @@ apply to the engine.
 - The whole repository is licensed under Apache-2.0 ([LICENSE](../LICENSE)); third-party notices are
   listed in `NOTICE`. Upstream is credited only in NOTICE; never write upstream names anywhere
   else.
-- Never add or run CI in this repository. Kition
-  publishes the kit package from a developer machine (`scripts/publish-kit.sh design` in Kition).
+- Never add or run CI in this repository besides the Package workflow
+  (`.github/workflows/package.yml`), which builds and publishes the kit package on GitHub with
+  Kition's reusable `kit-package.yml`.
 
 # Kition Design — instructions for agents
 
