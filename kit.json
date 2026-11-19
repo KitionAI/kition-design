@@ -12,7 +12,8 @@
     "module": "kition_design_kit",
     "class": "DesignDocument",
     "contract": 2,
-    "crate": "kition-design-kit"
+    "crate": "kition-design-kit",
+    "editorState": ["/page", "/tree", "/background", "/area", "/initialArea", "/contentBounds", "/selection", "/selectionBounds", "/tool", "/editing", "/textEdit", "/vectorEdit", "/interaction", "/hover"]
   },
   "formats": [
     {
