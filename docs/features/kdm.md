@@ -314,6 +314,16 @@ replica a person edits. `.kdesign` does so, inside its zip:
   with its own replica (the file wins, as `.klayout`); otherwise the host's stored replica opens
   and the file is recorded on top as one `import` transaction (as kition-vector); empty `bytes`
   open the replica alone (a sync room's snapshot) and fail rather than fall back.
+- **Identity and forks** (Kit Process Protocol 5.6, KitModel M7a; `kition_design_kdm::file::embedded_replica`
+  and `fork_entries`, `kition_design_format::replica_entries` and `replace_replica`, served as
+  `document.identity` and `document.fork`): the file embeds its replica, so a byte copy is the
+  same document. Its identity is the docId of the snapshot with the listed changes imported
+  (`meta.json`'s copy must agree, or the file is damaged); a file without `kdm/` entries has none.
+  A fork writes the SDK's copy under a new docId (no history) as `snapshot.bin`, no change
+  entries, `meta.json`'s `docId` the copy's, no `versions/` or `branches/` (earlier versions of
+  the document), and only the images the copy's state, `document.json` and the published library
+  use; `document.json`, the thumbnail, the published library and unknown entries are copied as
+  they are.
 - **Read again after another program saved it** (kition-sdk `reconcile_reread`): a clean design
   keeps its replica, its undo histories and its editor state. What the file holds differently is
   written as one `import` transaction (`file reread`), outside both undo scopes, so each undo step

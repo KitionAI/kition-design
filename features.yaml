@@ -1,6 +1,6 @@
 format: 1
 kit: design
-updated: "2026-11-17"
+updated: "2026-11-20"
 gate_budget_s: 600
 protected: []
 features:
@@ -75,6 +75,14 @@ features:
     paths: [web/src/App.tsx, web/src/kit/context.tsx, web/src/menus/catalog.ts, web/src/menus/model.ts, web/src/menus/invoke.ts, web/tests/modes.mjs]
     cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui]
     since: "2026-11-17"
+  - id: design.platform.document-identity
+    title: "A host reads the document id a .kdesign carries and forks a copied design into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/headless/src/lib.rs, bindings/headless/src/main.rs, crates/kdm/kdm-model/src/file.rs, crates/formats/format/src/lib.rs, crates/formats/format/src/library.rs, kit.json]
+    cases: [design.platform.document-identity/fork, design.platform.document-identity/no-replica]
+    since: "2026-11-20"
   - id: design.file.import-export
     title: "Import, place, export and save to version history"
     dimension: [conversion, function]

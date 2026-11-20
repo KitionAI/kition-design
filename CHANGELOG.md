@@ -3,6 +3,11 @@
 Changes to Kition Design, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.2
+
+- A host tells a design file's document id (`document.identity`) and makes a copied design a new document (`document.fork`): the fork keeps the pages, layers and their ids, `document.json` and the thumbnail, and carries a new id and none of the source's history: no change entries, no saved versions or branches, and only the pictures it uses (Kit Process Protocol section 5.6, kition-sdk 6b4d471). Two copies of the same `.kdesign` were one document until now.
+- The headless program speaks Kit Process Protocol version 1 (`headless.protocol` is `kition-kit/1`), as hosts on kition-sdk from bb1b07b require.
+
 ## 0.1.1
 
 - `kit.json` declares the engine's editor state (`engine.editorState`), so a host that does not run the engine's Rust code reads `inspect()` without it.

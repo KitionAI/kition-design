@@ -11,9 +11,10 @@
 //! byte and appends one entry with the changes since (P5), or writes a fresh snapshot and no
 //! entries when the log has grown past [`wants_compaction`]'s thresholds.
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use kition_kit::kdm::{KDM_VERSION, Version};
+use kition_kit::kdm::{ActorId, KDM_VERSION, Replica, Version};
 use kition_kit::session::{KitError, MemoryBlobs};
 use serde::{Deserialize, Serialize};
 
@@ -88,9 +89,9 @@ fn damaged(why: impl std::fmt::Display) -> KitError {
     KitError::new(format!("damaged: {why}"))
 }
 
-/// Opens a file's replica entries as a replica of a fresh actor, with `blobs` (the file's
-/// images). Errs, opening nothing, when an entry is missing or the replica does not load.
-pub fn open(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result<(DesignSession, FileBase)> {
+/// A file's replica entries read: `meta.json`, the snapshot and the listed changes in order.
+/// Errs when an entry is missing or `meta.json` is not a replica's this build reads.
+fn read_entries(entries: &[(String, Vec<u8>)]) -> Result<(Meta, Vec<u8>, Vec<Vec<u8>>)> {
     let entry = |name: &str| entries.iter().find(|(n, _)| n == name).map(|(_, b)| b);
     let meta: Meta = serde_json::from_slice(entry(META).ok_or_else(|| damaged("no kdm/meta.json"))?).map_err(damaged)?;
     if meta.format != FORMAT {
@@ -110,6 +111,13 @@ pub fn open(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result<(Design
         }
         changes.push(entry(name).ok_or_else(|| damaged(format!("{name} is listed but missing")))?.clone());
     }
+    Ok((meta, snapshot, changes))
+}
+
+/// Opens a file's replica entries as a replica of a fresh actor, with `blobs` (the file's
+/// images). Errs, opening nothing, when an entry is missing or the replica does not load.
+pub fn open(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result<(DesignSession, FileBase)> {
+    let (meta, snapshot, changes) = read_entries(entries)?;
     let session = DesignSession::open(&snapshot, &changes, blobs)?;
     let doc_id = session.doc_id().to_string();
     if !meta.doc_id.is_empty() && meta.doc_id != doc_id {
@@ -156,4 +164,52 @@ pub fn save(session: &DesignSession, base: Option<&FileBase>) -> Result<(Entries
         entries.push((name, (**change).clone()));
     }
     Ok((entries, FileBase { snapshot, changes, version, doc_id }))
+}
+
+/// The replica a file's `kdm/` entries hold, as one KDM snapshot (`document.identity`, KitModel
+/// M7a): the snapshot with the listed changes imported, checked against `meta.json`'s copy of the
+/// docId, or `None` when the file has no replica entries (a file written without the bridge, an
+/// import). Errs, as [`open`] does, when the entries are damaged or of a newer format; never
+/// repairs, never writes.
+pub fn embedded_replica(entries: &[(String, Vec<u8>)]) -> Result<Option<Vec<u8>>> {
+    if entries.is_empty() {
+        return Ok(None);
+    }
+    let (meta, snapshot, changes) = read_entries(entries)?;
+    let mut replica = Replica::load(crate::schema()?, &snapshot, ActorId::random()).map_err(damaged)?;
+    for change in &changes {
+        replica.import_changes(change).map_err(damaged)?;
+    }
+    let doc_id = replica.doc_id().to_string();
+    if !meta.doc_id.is_empty() && meta.doc_id != doc_id {
+        return Err(damaged(format!("kdm/meta.json names document {}, the snapshot {doc_id}", meta.doc_id)));
+    }
+    if changes.is_empty() {
+        return Ok(Some(snapshot));
+    }
+    replica.snapshot().map(Some).map_err(kit_err)
+}
+
+/// The replica entries of a file that holds the document `snapshot` (`document.fork`, KitModel
+/// M7a): `meta.json` with the snapshot's docId, `snapshot.bin`, and no change entries, so no
+/// earlier identity or history is left; and the images (their SHA-256) its state references.
+pub fn fork_entries(snapshot: &[u8]) -> Result<(Entries, BTreeSet<String>)> {
+    let replica = Replica::load(crate::schema()?, snapshot, ActorId::random()).map_err(damaged)?;
+    let mut images = BTreeSet::new();
+    for object in replica.list(&crate::root_id(), "images").map_err(damaged)? {
+        if let Some(key) = replica.get(&object, "key").map_err(damaged)?.as_str() {
+            images.insert(key.to_owned());
+        }
+    }
+    let meta = Meta {
+        format: FORMAT.into(),
+        format_version: FORMAT_VERSION,
+        kdm: KDM_VERSION,
+        schema_version: replica.schema().schema_version,
+        doc_id: replica.doc_id().to_string(),
+        kit: KIT.into(),
+        changes: Vec::new(),
+    };
+    let entries = vec![(META.into(), serde_json::to_vec_pretty(&meta).map_err(kit_err)?), (SNAPSHOT.into(), snapshot.to_vec())];
+    Ok((entries, images))
 }

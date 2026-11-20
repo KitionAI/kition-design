@@ -1,0 +1,23 @@
+format: 1
+id: design.platform.document-identity/no-replica
+feature: design.platform.document-identity
+intent: >-
+  Through the real kition-design process: an empty .kdesign, a .kdesign written without the
+  replica bridge and a bare document.json carry no identity, and each forks into the same bytes
+  with no docId; a file whose replica entries do not load (a damaged snapshot, a meta.json that is
+  not a design replica's, a listed snapshot missing) is refused as unsupported_format by both
+  document.identity and document.fork, never answered with no identity, and the fork writes
+  nothing.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/identity.rs (a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_refused)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: identity, filter: a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_refused }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-20"

@@ -182,7 +182,7 @@ auto layout narrowed to make room. The agent's guide is [agent/guide.md](agent/g
 
 ## Maturity
 
-Preview: early, expect gaps. Version 0.1.1 · KHP 1.0, conformance level `agent-ready`. The level
+Preview: early, expect gaps. Version 0.1.2 · KHP 1.0, conformance level `agent-ready`. The level
 describes how complete the interface for agents is; Preview describes how much of the editor is
 there.
 

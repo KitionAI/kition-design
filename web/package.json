@@ -1,6 +1,6 @@
 {
   "name": "kition-design-ui",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "The Design kit's own editor (Kit Harness Protocol (KHP) 6.1), embedded by hosts over the Kit UI protocol.",
   "license": "Apache-2.0",

@@ -13,11 +13,13 @@ workspace = true
 [dependencies]
 kition-design-kit = { workspace = true }
 kition-headless = { workspace = true }
+# The design container's replica (`DesignFiles`, document.identity): its entries, schema and error type.
+kition-design-format = { workspace = true }
+kition-design-kdm = { workspace = true }
+kition-kit = { workspace = true }
+kition-kit-server = { workspace = true }
 
 [dev-dependencies]
-kition-design-format.workspace = true
-kition-kit-server = { workspace = true }
-kition-kit = { workspace = true }
 base64 = { workspace = true }
 image = { workspace = true }
 serde_json = { workspace = true }
@@ -25,3 +27,6 @@ kition-design-doc = { workspace = true }
 kition-kits = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tempfile = "3"
+# document.identity and document.fork through the real process (tests/identity.rs).
+kition-kit-host = { workspace = true }
+zip = { workspace = true }

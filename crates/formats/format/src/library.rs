@@ -56,6 +56,16 @@ pub(crate) fn write<W: Write + Seek>(z: &mut zip::ZipWriter<W>, lib: &PublishedL
     Ok(())
 }
 
+/// The images the published library's snapshot uses (none when the file was never published),
+/// wherever the archive keeps them.
+pub(crate) fn used<R: Read + Seek>(z: &mut zip::ZipArchive<R>) -> Result<BTreeSet<String>, FormatError> {
+    if z.index_for_name(MANIFEST).is_none() {
+        return Ok(BTreeSet::new());
+    }
+    let text = String::from_utf8(read_member(z, SNAPSHOT, MAX_MEMBER)?).map_err(corrupt)?;
+    Ok(used_images(&from_json(&text)?.0))
+}
+
 /// The published library in an archive (`None` when the file was never published). `own` are
 /// the images already read from `images/`; `budget` caps the bytes its snapshot and images unpack
 /// to, together (beyond the per-part caps).

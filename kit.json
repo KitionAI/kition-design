@@ -4,7 +4,7 @@
   "level": "agent-ready",
   "id": "kit.design",
   "name": "Design",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "distribution": "plugin",
   "engine": {
@@ -80,7 +80,7 @@
   },
   "headless": {
     "executable": "kition-design",
-    "protocol": "kition-kit/2",
+    "protocol": "kition-kit/1",
     "features": [
       "view.describe",
       "document.check",
@@ -89,7 +89,8 @@
       "model.export",
       "model.save",
       "model.describe",
-      "model.batch"
+      "model.batch",
+      "document.identity"
     ]
   },
   "model": {

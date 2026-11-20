@@ -745,6 +745,58 @@ fn is_replica_entry(name: &str) -> bool {
         .is_some_and(|rest| !rest.is_empty() && !rest.contains('\\') && rest.split('/').all(|p| !p.is_empty() && p != ".." && p != "."))
 }
 
+/// The Kition KDM replica entries (`kdm/…`) of a `.kdesign` archive, read without the document
+/// (`document.identity`): none for bytes that are no zip archive (a bare `document.json`, a file
+/// the engine imports) or an archive without them. Unlike opening, an entry that can't be read is
+/// an error, never an empty replica.
+pub fn replica_entries(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, FormatError> {
+    let Ok(mut z) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return Ok(Vec::new()) };
+    let names: Vec<String> = z.file_names().filter(|n| is_replica_entry(n)).map(str::to_string).collect();
+    if names.len() > MAX_REPLICA_ENTRIES {
+        return Err(FormatError::Corrupt("too many replica entries".into()));
+    }
+    names.into_iter().map(|name| read_member(&mut z, &name, MAX_MEMBER).map(|data| (name, data))).collect()
+}
+
+/// `bytes` (a `.kdesign` archive) as the file of a new document (`document.fork`): `replica` as
+/// its `kdm/` entries in place of the archive's, no version history and no branches (earlier
+/// versions of the document), and of `images/` only those in `images` (the replica's), those
+/// `document.json` lists as its own and those the published library uses. Every other entry (`document.json`, `thumbnail.png`, the published library,
+/// entries this build does not know) is copied as it is, compressed as it was.
+pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTreeSet<String>) -> Result<Vec<u8>, FormatError> {
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| FormatError::Corrupt(e.to_string()))?;
+    let mut keep = library::used(&mut z)?;
+    keep.extend(images.iter().cloned());
+    if z.index_for_name("document.json").is_some() {
+        let text = read_member(&mut z, "document.json", MAX_DOCUMENT)?;
+        let header: Header = serde_json::from_slice(&text).map_err(|e| FormatError::Corrupt(e.to_string()))?;
+        keep.extend(header.images.unwrap_or_default());
+    }
+    let mut buf = std::io::Cursor::new(Vec::new());
+    {
+        let mut out = zip::ZipWriter::new(&mut buf);
+        for index in 0..z.len() {
+            let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
+            let name = file.name();
+            let history = name == "versions" || name.starts_with("versions/") || name == "branches" || name.starts_with("branches/");
+            let unused = name.strip_prefix("images/").is_some_and(|hash| !keep.contains(hash));
+            if history || unused || is_replica_entry(name) {
+                continue;
+            }
+            out.raw_copy_file(file).map_err(io_err)?;
+        }
+        let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        for (name, data) in replica {
+            if !is_replica_entry(name) {
+                return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
+            }
+            put(&mut out, name, stored, data)?;
+        }
+        out.finish().map_err(io_err)?;
+    }
+    Ok(buf.into_inner())
+}
+
 /// The archive's replica entries; an entry that can't be read drops them all (the document then
 /// opens on a new replica).
 fn read_replica<R: Read + Seek>(z: &mut zip::ZipArchive<R>, issues: &mut Vec<String>) -> Vec<(String, Vec<u8>)> {
