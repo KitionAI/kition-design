@@ -308,10 +308,7 @@ impl<'a> Checker<'a> {
         self.bindings(n, page);
         self.unbound_color(n, page);
         self.placement(n, page);
-        if self.outside_clip(n, page) {
-            return false;
-        }
-        true
+        !self.outside_clip(n, page)
     }
 
     fn images(&mut self, n: &Node, page: u32) {
