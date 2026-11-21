@@ -329,6 +329,7 @@ fn interaction_schema(id: &str) -> serde_json::Value {
     let notes = kition_design_engine::find_command(id).map_or("", |spec| spec.params);
     serde_json::json!({
         "id": { "type": "integer", "description": "The layer the interaction is on (default the selection)." },
+        "ids": { "type": "array", "items": { "type": "integer" }, "description": "The layers it goes on, each its own interaction (instead of id; default the selection)." },
         "trigger": {
             "type": "object",
             "additionalProperties": true,
