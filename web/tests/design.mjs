@@ -3,7 +3,7 @@
 // the sample, drives the panel's controls and checks the engine's document after each.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
-import { evidence } from './evidence.mjs'
+import { evidence, traceEvents, traced } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -295,6 +295,7 @@ try {
     return data == null ? '' : typeof data === 'string' ? data : new TextDecoder().decode(data instanceof Uint8Array ? data : new Uint8Array(data.bytes ?? data))
   })
   const withoutIds = await svgText()
+  await traceEvents(frame())
   await byTest('design-design-export-0-more').click()
   await byTest('design-design-export-0-svgIdAttribute').click()
   await until(async () => (await node(TOP_FRAME)).exports[0].svgIdAttribute === true)
@@ -303,7 +304,7 @@ try {
   await byTest('design-design-export-run').click()
   await until(async () => (await svgText()) !== '')
   const ids = (text) => (text.match(/\sid="/g) ?? []).length
-  step('Include id attribute reaches the exported SVG', ids(await svgText()) > ids(withoutIds), `${ids(withoutIds)} → ${ids(await svgText())} ids, svgIdAttribute ${(await node(TOP_FRAME)).exports[0].svgIdAttribute}`)
+  step('Include id attribute reaches the exported SVG', ids(await svgText()) > ids(withoutIds), `${ids(withoutIds)} → ${ids(await svgText())} ids, svgIdAttribute ${(await node(TOP_FRAME)).exports[0].svgIdAttribute}, events ${await traced(frame())}`)
 
   // Layout grid: add one and open its settings.
   await byTest('design-design-grid-add').click()

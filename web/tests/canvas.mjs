@@ -143,7 +143,15 @@ try {
   await page.mouse.down()
   await page.mouse.move(surface.x + (a.x + b.x) / 2, surface.y + (a.y + b.y) / 2, { steps: 4 })
   await page.mouse.move(surface.x + b.x, surface.y + b.y, { steps: 4 })
-  await until(async () => (await overlays()).some((o) => o.kind === 'marquee'))
+  // The drag's moves reach the engine one after another: wait for the marquee to reach the
+  // pointer (on GitHub's Linux runners WebKit's marquee was still 3/4 of the way when read).
+  const reached = async () => {
+    const marquee = (await overlays()).find((o) => o.kind === 'marquee')
+    if (!marquee) return false
+    const end = await docToCanvas(marquee.x1, marquee.y1)
+    return Math.abs(end.x - b.x) < 1 && Math.abs(end.y - b.y) < 1
+  }
+  await until(reached)
   await page.waitForTimeout(300)
   const edge = await pixel(Math.round(a.x) + 0.5, (a.y + b.y) / 2)
   // Halfway down its left edge: a dashed stroke (kit-editor's default) would leave gaps.

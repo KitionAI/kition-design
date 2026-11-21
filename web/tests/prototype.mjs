@@ -3,7 +3,7 @@
 // canvas, the preview pane and the presenter, then Dev Mode's steps (tests/prototype-dev.mjs).
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
-import { evidence } from './evidence.mjs'
+import { evidence, traceEvents, traced } from './evidence.mjs'
 import { devSteps } from './prototype-dev.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -209,8 +209,9 @@ try {
   // A frame: add an interaction, edit it.
   await run('select.set', { ids: [HOME] })
   await until(async () => (await kit.getByTestId('design-proto-interactions').count()) === 1)
+  await traceEvents(frame())
   await kit.getByTestId('design-proto-interaction-add').click()
-  step('+ adds a click interaction and opens its editor', await until(async () => (await interactions(HOME)).length === 1 && (await kit.getByTestId('design-proto-editor').count()) === 1), `${(await interactions(HOME)).length} on ${HOME}, editor ${await kit.getByTestId('design-proto-editor').count()}, selection ${JSON.stringify(await designKit(() => window.designKit.inspect.selection))}`)
+  step('+ adds a click interaction and opens its editor', await until(async () => (await interactions(HOME)).length === 1 && (await kit.getByTestId('design-proto-editor').count()) === 1), `${(await interactions(HOME)).length} on ${HOME}, editor ${await kit.getByTestId('design-proto-editor').count()}, selection ${JSON.stringify(await designKit(() => window.designKit.inspect.selection))}, events ${await traced(frame())}`)
   step('the row summarises it', await until(async () => (await kit.getByTestId('design-proto-interaction-0').textContent()).includes('On click')))
   await kit.getByTestId('design-proto-trigger').click()
   await kit.getByTestId('design-proto-trigger-After delay').click()

@@ -2,7 +2,7 @@
 // Fill, Stroke, Effects, Typography and the colour picker against the engine; prints PASS or FAIL per step.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
-import { evidence } from './evidence.mjs'
+import { evidence, traceEvents, traced } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -183,6 +183,7 @@ try {
   step('Escape closes the picker', (await picker.count()) === 0)
 
   // Paste fill follows the engine's clipboard (clipboard.paintState).
+  await traceEvents(frame())
   await kit.getByTestId('design-fill-0').click({ button: 'right' })
   await until(async () => (await kit.getByTestId('design-fill-0-menu').count()) === 1)
   const pasteBefore = await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()
@@ -190,7 +191,7 @@ try {
   await until(async () => (await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}').then((text) => JSON.parse(text).fill))) === true)
   await kit.getByTestId('design-fill-0').click({ button: 'right' })
   await until(async () => (await kit.getByTestId('design-fill-0-menu').count()) === 1)
-  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}, clipboard ${await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}'))}, menu ${JSON.stringify(await kit.getByTestId('design-fill-0-menu').allTextContents())}`)
+  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}, clipboard ${await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}'))}, menu ${JSON.stringify(await kit.getByTestId('design-fill-0-menu').allTextContents())}, events ${await traced(frame())}`)
   await page.keyboard.press('Escape')
 
   // Add a fill: it goes on top and its picker opens; remove it again.
@@ -396,9 +397,10 @@ try {
   step('Details lists OpenType features', await until(async () => (await kit.getByTestId('design-ts-feature-tnum').count()) === 1))
   const tnum = kit.getByTestId('design-ts-feature-tnum')
   const tnumOn = (await tnum.getAttribute('aria-checked')) === 'true'
+  await traceEvents(frame())
   await tnum.click()
   await until(async () => (await node(TITLE)).features?.tnum === !tnumOn)
-  step('a feature toggle sets it on the layer (features)', (await node(TITLE)).features?.tnum === !tnumOn, `${JSON.stringify((await node(TITLE)).features)} was ${tnumOn}, shows ${await tnum.getAttribute('aria-checked')}, font ${(await node(TITLE)).fontFamily}`)
+  step('a feature toggle sets it on the layer (features)', (await node(TITLE)).features?.tnum === !tnumOn, `${JSON.stringify((await node(TITLE)).features)} was ${tnumOn}, shows ${await tnum.getAttribute('aria-checked')}, font ${(await node(TITLE)).fontFamily}, selection ${JSON.stringify((await inspect()).selection)}, events ${await traced(frame())}`)
   // Read back after the selection moves away and returns.
   await select([SAVE])
   await until(async () => (await kit.getByTestId('design-type-settings').count()) === 0)
