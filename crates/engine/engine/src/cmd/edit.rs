@@ -257,12 +257,12 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!("stroke.remove", "Remove stroke", "{ids?, index}", true, |s, p| paint_list(s, p, false, false)),
         spec!("fill.set", "Set fill", "{ids?, index?, paint | color, opacity?, visible?, blend?}", true, |s, p| paint_set(s, p, true)),
         spec!("stroke.set", "Set stroke", "{ids?, index?, paint | color, opacity?, visible?, blend?}", true, |s, p| paint_set(s, p, false)),
-        spec!("fill.copy", "Copy fill", "{id?, index? (default the top fill)}", false, |s, p| paint_copy(s, p, true)),
+        spec!("fill.copy", "Copy fill", "{id?, ids? (the first layer), index? (default the top fill)}", false, |s, p| paint_copy(s, p, true)),
         spec!("fill.paste", "Paste fill", "{ids?, index? (replace the fill there; without: add one)}", true, |s, p| paint_paste(s, p, true)),
         spec!(
             "stroke.copy",
             "Copy stroke",
-            "{id?, index? (default the top stroke)}  its paint and the stroke's weight, alignment, sides, caps, joins and dashes",
+            "{id?, ids? (the first layer), index? (default the top stroke)}  its paint and the stroke's weight, alignment, sides, caps, joins and dashes",
             false,
             |s, p| paint_copy(s, p, false)
         ),
@@ -320,7 +320,7 @@ pub fn specs() -> Vec<CommandSpec> {
             }
             ok()
         }),
-        spec!("effect.copy", "Copy effect", "{id?, index? (default the top effect)}", false, effect_copy),
+        spec!("effect.copy", "Copy effect", "{id?, ids? (the first layer), index? (default the top effect)}", false, effect_copy),
         spec!("effect.paste", "Paste effect", "{ids?, index? (replace the effect there; without: add one)}", true, effect_paste),
         spec!("grid.add", "Add layout grid", "{ids?, grid? {kind: grid|columns|rows, ..}}", true, |s, p| {
             let g: LayoutGrid = parse("grid.add", p, "grid")?.unwrap_or_default();
@@ -357,7 +357,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "export.update",
             "Edit export setting",
-            "{ids?, index, size? (2x|512w|512h|{by, value}), suffix?, format? (png|jpg|svg|pdf|webp|xml: Android Vector Drawable), bleed? (PDF: points, or with a unit: \"3mm\", \"0.125in\", \"9pt\"), cropMarks?, bleedMarks?, cmyk? (PDF print options), vdCompat? (XML: bestEffort|exact|ignore)}",
+            "{ids?, index, size? (2x|512w|512h|{by, value}), suffix?, format? (png|jpg|svg|pdf|webp|xml: Android Vector Drawable), bleed? (PDF: points, or with a unit: \"3mm\", \"0.125in\", \"9pt\"), cropMarks?, bleedMarks?, cmyk? (PDF print options), vdCompat? (XML: bestEffort|exact|ignore), contentsOnly?, includeBoundingBox?, svgOutlineText?, svgIdAttribute?, svgSimplifyStroke?}",
             true,
             |s, p| {
                 let cmd = "export.update";

@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-editor-params
+feature: design.agent.recover
+intent: >-
+  The editor's own calls name only parameters their commands take. Since commands refuse a key
+  their schema does not name (regressions/issue-unknown-params), the editor's Copy fill, stroke
+  and effect, OpenType features, variable axes, text on path, the export options (Include id
+  attribute, Outline text, Simplify stroke) and the prototype's interaction and action edits were
+  refused: the editor passes the selection as `ids`, which these commands read but their schemas
+  did not name. Found by the editor's browser tests on GitHub's Linux runners.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design CI on GitHub (web/tests/paint.mjs, design.mjs, prototype.mjs)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: unknown_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-21"

@@ -35,7 +35,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.action.set",
             "Edit prototype action",
-            "{id?, index, path [action, block, action, …], action {…}}  replaces the action there",
+            "{id?, ids?, index, path [action, block, action, …], action {…}}  replaces the action there",
             true,
             set
         ),
@@ -57,7 +57,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.conditional.setCondition",
             "Edit condition",
-            "{id?, index, path (a conditional action), block, expression (text) | condition (expression JSON)}  the condition must give true or false",
+            "{id?, ids?, index, path (a conditional action), block, expression (text) | condition (expression JSON)}  the condition must give true or false",
             true,
             set_condition
         ),

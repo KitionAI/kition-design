@@ -13,7 +13,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.interaction.add",
             "Add interaction",
-            "{id?, trigger? {type: onClick|onHover|onPress|onDrag|mouseEnter|mouseLeave|mouseDown|mouseUp|afterDelay {ms}|keyPress {key (a key or a combination: Shift+K, Ctrl+Alt+Delete; or a controller button: Gamepad A|B|X|Y|LB|RB|LT|RT|View|Menu|LS|RS|Up|Down|Left|Right|Home)}}, action?: {type: navigate {preserveScroll?}|back|scrollTo {offset? [x, y] (where the layer ends up from the top-left)}|openOverlay {position?, anchor? screen|triggerInside|triggerOutside (default screen; the trigger ones measure the position preset on the layer that opens the overlay: outside puts top presets above it and bottom presets below it, edges lined up), offset? [x, y] (position manual: the overlay's top-left from the top-left of the layer that opens it; without it, right below that layer), close_on_outside? (default true), background?}|swapOverlay|closeOverlay|openUrl {url}|changeTo|setVariable {variable, value | expression (text, e.g. \"count + 1\")}|setVariableMode {collection, mode}|conditional {blocks [{condition? | expression? (text, e.g. \"count >= 3\"), actions}]}, dest?}, actions? [..], transition? {type: instant|dissolve|smartAnimate|moveIn|moveOut|push|slideIn|slideOut, direction?: left|right|top|bottom}, durationMs?, easing? linear|easeIn|easeOut|easeInOut|easeInBack|easeOutBack|easeInOutBack|gentle|quick|bouncy|slow|{customBezier {x1, y1, x2, y2}}|{customSpring {mass, stiffness, damping}}}, delayMs? (mouse enter, leave, down and up: how long after the gesture the actions run, up to 600000), dest? (a frame id: with id alone, a click that navigates there)} — or {id, dest} for a click-navigate. Returns {index}",
+            "{id?, ids?, trigger? {type: onClick|onHover|onPress|onDrag|mouseEnter|mouseLeave|mouseDown|mouseUp|afterDelay {ms}|keyPress {key (a key or a combination: Shift+K, Ctrl+Alt+Delete; or a controller button: Gamepad A|B|X|Y|LB|RB|LT|RT|View|Menu|LS|RS|Up|Down|Left|Right|Home)}}, action?: {type: navigate {preserveScroll?}|back|scrollTo {offset? [x, y] (where the layer ends up from the top-left)}|openOverlay {position?, anchor? screen|triggerInside|triggerOutside (default screen; the trigger ones measure the position preset on the layer that opens the overlay: outside puts top presets above it and bottom presets below it, edges lined up), offset? [x, y] (position manual: the overlay's top-left from the top-left of the layer that opens it; without it, right below that layer), close_on_outside? (default true), background?}|swapOverlay|closeOverlay|openUrl {url}|changeTo|setVariable {variable, value | expression (text, e.g. \"count + 1\")}|setVariableMode {collection, mode}|conditional {blocks [{condition? | expression? (text, e.g. \"count >= 3\"), actions}]}, dest?}, actions? [..], transition? {type: instant|dissolve|smartAnimate|moveIn|moveOut|push|slideIn|slideOut, direction?: left|right|top|bottom}, durationMs?, easing? linear|easeIn|easeOut|easeInOut|easeInBack|easeOutBack|easeInOutBack|gentle|quick|bouncy|slow|{customBezier {x1, y1, x2, y2}}|{customSpring {mass, stiffness, damping}}}, delayMs? (mouse enter, leave, down and up: how long after the gesture the actions run, up to 600000), dest? (a frame id: with id alone, a click that navigates there)} — or {id, dest} for a click-navigate. Returns {index}",
             true,
             add
         ),
@@ -25,7 +25,7 @@ pub fn specs() -> Vec<CommandSpec> {
             }
             ok()
         }),
-        spec!("proto.interaction.remove", "Remove interaction", "{id?, index}", true, |s, p| {
+        spec!("proto.interaction.remove", "Remove interaction", "{id?, ids?, index}", true, |s, p| {
             let cmd = "proto.interaction.remove";
             let k = req_num(cmd, p, "index")?;
             if k < 0.0 {
@@ -48,7 +48,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.interaction.set",
             "Edit interaction",
-            "{id?, index, interaction {..}} replaces it; or patch fields: {id?, index, trigger?, action? (first action), actions?, transition?, durationMs?, easing?, delayMs?}",
+            "{id?, ids?, index, interaction {..}} replaces it; or patch fields: {id?, ids?, index, trigger?, action? (first action), actions?, transition?, durationMs?, easing?, delayMs?}",
             true,
             set
         ),

@@ -189,7 +189,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "text.onPath",
             "Text on path",
-            "{text? (text layer), path? (vector or shape layer; default: the selected text and other layer), start? (0..1 along the path), flip?}  the text follows the path and takes its effects and its fills when one shows, and the path layer is removed → {id}",
+            "{text? (text layer), path? (vector or shape layer; default: the selected text and other layer), ids? (the text and the path layer, instead of the selection), start? (0..1 along the path), flip?}  the text follows the path and takes its effects and its fills when one shows, and the path layer is removed → {id}",
             true,
             on_path
         ),
@@ -315,7 +315,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "text.setFeatures",
             "OpenType features",
-            "{features: {tag: bool | null (font default)}, replace? (clear others first), id?/ids?}",
+            "{features: {tag: bool | null (font default)}, replace? (clear others first), id?, ids?}",
             true,
             |s, p| {
                 let f = super::props::features_of("text.setFeatures", get(p, "features").unwrap_or(&Value::Null))?;
@@ -340,7 +340,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "text.setVariations",
             "Variable font axes",
-            "{variations: {axis: number | null (style default)}, replace? (clear others first), id?/ids?}; while editing: the selected range",
+            "{variations: {axis: number | null (style default)}, replace? (clear others first), id?, ids?}; while editing: the selected range",
             true,
             |s, p| {
                 let vars = super::props::variations_of("text.setVariations", get(p, "variations").unwrap_or(&Value::Bool(false)))?;

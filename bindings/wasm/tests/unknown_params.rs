@@ -25,3 +25,37 @@ fn a_misspelled_parameter_names_the_one_it_resembles_and_changes_nothing() {
     assert!(error.contains("`widht`") && error.contains("did you mean `width`"), "{error}");
     assert_eq!(doc.save(None).unwrap(), before);
 }
+
+/// The editor's own calls name only parameters the commands take: it passes the selection as
+/// `ids` to commands that read `id` or `ids`, and the export options as their own keys. Before
+/// their schemas named them, every one of these was refused (Copy fill, an OpenType feature,
+/// Include id attribute and Add interaction did nothing in the editor).
+#[test]
+fn the_editors_parameters_are_named_in_the_schemas() {
+    let calls = [
+        ("fill.copy", json!({ "ids": [1], "index": 0 })),
+        ("stroke.copy", json!({ "ids": [1], "index": 0 })),
+        ("effect.copy", json!({ "ids": [1], "index": 0 })),
+        ("text.setFeatures", json!({ "ids": [1], "features": { "tnum": true } })),
+        ("text.setVariations", json!({ "ids": [1], "variations": { "wght": 500 } })),
+        ("text.onPath", json!({ "ids": [1, 2] })),
+        (
+            "export.update",
+            json!({ "ids": [1], "index": 0, "contentsOnly": true, "includeBoundingBox": true, "svgOutlineText": false, "svgIdAttribute": true, "svgSimplifyStroke": false }),
+        ),
+        ("proto.interaction.add", json!({ "ids": [1], "trigger": { "type": "onClick" }, "action": { "type": "back" } })),
+        ("proto.interaction.set", json!({ "ids": [1], "index": 0, "durationMs": 300 })),
+        ("proto.interaction.remove", json!({ "ids": [1], "index": 0 })),
+        ("proto.action.set", json!({ "ids": [1], "index": 0, "path": [0], "action": { "type": "back" } })),
+        ("proto.conditional.setCondition", json!({ "ids": [1], "index": 0, "path": [0], "block": 0, "expression": "true" })),
+    ];
+    let mut refused = Vec::new();
+    for (command, params) in calls {
+        if let Err(error) = design().execute(command, params)
+            && error.contains("has no parameter")
+        {
+            refused.push(format!("{command}: {error}"));
+        }
+    }
+    assert!(refused.is_empty(), "{}", refused.join("\n"));
+}
