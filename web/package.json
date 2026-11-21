@@ -19,10 +19,10 @@
     "test:canvas": "node tests/canvas.mjs chromium && node tests/canvas.mjs webkit"
   },
   "dependencies": {
-    "@kition/kit-dev-host": "^0.1.0",
-    "@kition/kit-editor": "^0.1.0",
-    "@kition/kit-host": "^0.1.0",
-    "@kition/kit-ui-protocol": "^0.1.0",
+    "@kition/kit-dev-host": "^0.5.2",
+    "@kition/kit-editor": "^0.5.2",
+    "@kition/kit-host": "^0.5.2",
+    "@kition/kit-ui-protocol": "^0.5.2",
     "@kition/tessera-icons": "^0.1.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
