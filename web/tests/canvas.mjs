@@ -6,6 +6,7 @@
 // DESIGN_ORIGIN names a running one. Prints PASS or FAIL per step.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 let server = null
@@ -18,11 +19,15 @@ if (!origin) {
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 })
 const page = await context.newPage()
+const shots = evidence(page, 'canvas', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 60) => {
@@ -144,7 +149,7 @@ try {
   // Halfway down its left edge: a dashed stroke (kit-editor's default) would leave gaps.
   const edges = []
   for (let y = Math.round(a.y) + 4; y < Math.round(a.y) + 12; y += 1) edges.push(await pixel(Math.round(a.x) + 0.5, y))
-  step('the marquee is the page green, solid', near(edge, BRAND) && edges.every((p) => near(p, BRAND)), hex(edge))
+  step('the marquee is the page green, solid', near(edge, BRAND) && edges.every((p) => near(p, BRAND)), `${hex(edge)} at ${JSON.stringify(a)}, ${edges.map(hex).join(' ')}, overlays ${JSON.stringify((await overlays()).filter((o) => o.kind === 'marquee'))}`)
   await page.mouse.up()
   await page.waitForTimeout(300)
 
@@ -175,9 +180,11 @@ try {
   step('the rotation zone shows the drawn rotation cursor', rotate)
 } catch (error) {
   failures += 1
-  console.log(`FAIL ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+  shots.failed('error')
+  console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   if (server) await server.close()
 }

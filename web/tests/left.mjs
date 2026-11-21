@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -16,11 +17,15 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await context.newPage()
+const shots = evidence(page, 'left', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 60) => {
@@ -387,6 +392,9 @@ try {
     await page.keyboard.press('Escape')
     await page.mouse.up()
     const closed = await until(async () => (await kit.getByTestId(testId).count()) === 0)
+    // The drag's queued updates and its commit run in order on the engine's worker: on a slow
+    // machine they can take longer than a fixed pause.
+    await until(async () => (await toolbarInteraction()) === null)
     await page.waitForTimeout(400)
     const open = await toolbarInteraction()
     // (Hovering a style row previews it: an "Apply style" step may follow.)
@@ -633,9 +641,11 @@ try {
   step('the rail opens it again', (await kit.getByTestId('design-left-panel').count()) === 1 && (await until(async () => (await layer(68).count()) === 1)), `${await kit.getByTestId('design-left-panel').count()}`)
 } catch (error) {
   failures += 1
-  console.log(`FAIL ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+  shots.failed('error')
+  console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   await server.close()
 }

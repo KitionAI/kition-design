@@ -2,6 +2,7 @@
 // Fill, Stroke, Effects, Typography and the colour picker against the engine; prints PASS or FAIL per step.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -10,11 +11,15 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await context.newPage()
+const shots = evidence(page, 'paint', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 80) => {
@@ -185,7 +190,7 @@ try {
   await until(async () => (await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}').then((text) => JSON.parse(text).fill))) === true)
   await kit.getByTestId('design-fill-0').click({ button: 'right' })
   await until(async () => (await kit.getByTestId('design-fill-0-menu').count()) === 1)
-  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}`)
+  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}, clipboard ${await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}'))}, menu ${JSON.stringify(await kit.getByTestId('design-fill-0-menu').allTextContents())}`)
   await page.keyboard.press('Escape')
 
   // Add a fill: it goes on top and its picker opens; remove it again.
@@ -393,7 +398,7 @@ try {
   const tnumOn = (await tnum.getAttribute('aria-checked')) === 'true'
   await tnum.click()
   await until(async () => (await node(TITLE)).features?.tnum === !tnumOn)
-  step('a feature toggle sets it on the layer (features)', (await node(TITLE)).features?.tnum === !tnumOn, JSON.stringify((await node(TITLE)).features))
+  step('a feature toggle sets it on the layer (features)', (await node(TITLE)).features?.tnum === !tnumOn, `${JSON.stringify((await node(TITLE)).features)} was ${tnumOn}, shows ${await tnum.getAttribute('aria-checked')}, font ${(await node(TITLE)).fontFamily}`)
   // Read back after the selection moves away and returns.
   await select([SAVE])
   await until(async () => (await kit.getByTestId('design-type-settings').count()) === 0)
@@ -404,9 +409,11 @@ try {
   step('and Details shows it again from the layer', await until(async () => (await kit.getByTestId('design-ts-feature-tnum').getAttribute('aria-checked')) === String(!tnumOn)))
 } catch (error) {
   failures += 1
-  console.log(`FAIL ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+  shots.failed('error')
+  console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   await server.close()
 }

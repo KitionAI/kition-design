@@ -3,6 +3,7 @@
 // canvas, the preview pane and the presenter, then Dev Mode's steps (tests/prototype-dev.mjs).
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 import { devSteps } from './prototype-dev.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -12,11 +13,15 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await context.newPage()
+const shots = evidence(page, 'prototype', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 80) => {
@@ -205,7 +210,7 @@ try {
   await run('select.set', { ids: [HOME] })
   await until(async () => (await kit.getByTestId('design-proto-interactions').count()) === 1)
   await kit.getByTestId('design-proto-interaction-add').click()
-  step('+ adds a click interaction and opens its editor', await until(async () => (await interactions(HOME)).length === 1 && (await kit.getByTestId('design-proto-editor').count()) === 1))
+  step('+ adds a click interaction and opens its editor', await until(async () => (await interactions(HOME)).length === 1 && (await kit.getByTestId('design-proto-editor').count()) === 1), `${(await interactions(HOME)).length} on ${HOME}, editor ${await kit.getByTestId('design-proto-editor').count()}, selection ${JSON.stringify(await designKit(() => window.designKit.inspect.selection))}`)
   step('the row summarises it', await until(async () => (await kit.getByTestId('design-proto-interaction-0').textContent()).includes('On click')))
   await kit.getByTestId('design-proto-trigger').click()
   await kit.getByTestId('design-proto-trigger-After delay').click()
@@ -320,9 +325,11 @@ try {
   await devSteps({ page, kit, designKit, step, until, toPage, canvas })
 } catch (error) {
   failures += 1
-  console.log(`FAIL ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+  shots.failed('error')
+  console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   await server.close()
 }

@@ -4,6 +4,7 @@
 // unless DESIGN_ORIGIN names a running one. Prints PASS or FAIL per step.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 let server = null
@@ -16,12 +17,16 @@ if (!origin) {
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await context.newPage()
+const shots = evidence(page, 'menus', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 if (process.env.SHOTS) page.on('console', (m) => m.type() === 'error' && console.log('CONSOLE', m.text().slice(0, 300)))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 60) => {
@@ -374,9 +379,11 @@ try {
   step('Escape leaves the Focus Show/Hide UI entered', await until(async () => (await frameApp.getAttribute('data-mode')) === modeBefore), `${modeBefore} -> ${await frameApp.getAttribute('data-mode')}`)
 } catch (error) {
   failures += 1
+  shots.failed('error')
   console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   await server?.close()
 }

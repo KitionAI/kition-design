@@ -2,6 +2,7 @@
 // Starts the Vite dev server itself, opens dev.html with the sample, and prints PASS or FAIL per step.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { evidence } from './evidence.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -10,11 +11,15 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await context.newPage()
+const shots = evidence(page, 'flow', which)
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
 const step = (name, ok, detail = '') => {
-  if (!ok) failures += 1
+  if (!ok) {
+    failures += 1
+    shots.failed(name)
+  }
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`)
 }
 const until = async (check, tries = 80) => {
@@ -205,9 +210,11 @@ try {
   step('saves through the host', (await page.evaluate(() => window.devHost.files.get('Sample.kdesign')?.version ?? 0)) > 1)
 } catch (error) {
   failures += 1
-  console.log(`FAIL ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+  shots.failed('error')
+  console.log(`FAIL ${error instanceof Error ? error.message.split('\n').slice(0, 12).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
+  await shots.settled()
   await browser.close()
   await server.close()
 }
