@@ -412,7 +412,7 @@ features:
     commands: [frame.create, shape.rectangle, shape.ellipse, text.create, node.set, transform.move]
     paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/text.rs, crates/engine/engine/src/cmd/arrange.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
-    cases: [design.object.frames-shapes-text/save-reopen]
+    cases: [design.object.frames-shapes-text/save-reopen, regressions/issue-colr-v1-emoji]
     since: "2026-11-17"
   - id: design.component.button-instances
     title: "Make a component and place renamed instances of it"

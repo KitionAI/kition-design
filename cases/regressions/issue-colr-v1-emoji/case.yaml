@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-colr-v1-emoji
+feature: design.object.frames-shapes-text
+intent: >-
+  A colour font whose only colour is COLR v1 paint graphs (kition-fonts' Noto Color Emoji) is not
+  embedded: the renderer draws COLR v0 layers and bitmap strikes, the font's outlines are empty, and
+  embedded it took the place of Linux's own Noto Color Emoji (CBDT strikes), so emoji drew nothing.
+layer: gate
+source:
+  kind: issue
+  from: Kition Design CI on GitHub's Linux runners
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-text, test: build_input, filter: colour_fonts_the_renderer_does_not_draw_are_not_embedded }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-20"

@@ -112,10 +112,39 @@ fn kition_fonts(dir: &std::path::Path, manifest_rel: &str, wasm: bool, embed_cjk
         }
         let path = dir.join(file).canonicalize().map_err(|e| format!("{file}: {e}"))?;
         println!("cargo::rerun-if-changed={}", path.display());
+        if undrawable_colour_font(&std::fs::read(&path).map_err(|e| format!("{file}: {e}"))?) {
+            continue;
+        }
         faces.push(((*family).to_owned(), (*style).to_owned()));
         let _ = writeln!(out, "    KitionFont {{ family: {family:?}, style: {style:?}, bytes: include_bytes!({:?}) }},", path.display().to_string());
     }
     Ok(Catalog { entries: out, faces })
+}
+
+/// Whether a font file's glyphs are colour the renderer does not draw: a `COLR` table without
+/// version 0 layers (only COLR v1 paint graphs) and no bitmap strikes (`sbix`, `CBDT`, `EBDT`).
+/// kition-fonts' Noto Color Emoji is such a font: its outlines are empty, so embedded it drew
+/// nothing, and it took the place of the system's own Noto Color Emoji (CBDT strikes on Linux),
+/// which the system font scan does not load beside an embedded face of the same name and style.
+/// A file that is not a single OpenType font is kept.
+fn undrawable_colour_font(bytes: &[u8]) -> bool {
+    let u16_at = |at: usize| bytes.get(at..at + 2).map(|b| u16::from_be_bytes([b[0], b[1]]));
+    let u32_at = |at: usize| bytes.get(at..at + 4).map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]));
+    if bytes.get(..4) == Some(b"ttcf") {
+        return false;
+    }
+    let Some(count) = u16_at(4) else { return false };
+    let mut colr = None;
+    for record in (0..usize::from(count)).map(|i| 12 + 16 * i) {
+        let Some(tag) = bytes.get(record..record + 4) else { return false };
+        match tag {
+            b"sbix" | b"CBDT" | b"EBDT" => return false,
+            b"COLR" => colr = u32_at(record + 8),
+            _ => {}
+        }
+    }
+    // COLR: version (u16), then numBaseGlyphRecords (u16), the version 0 layers' count.
+    colr.and_then(|at| u16_at(at as usize + 2)).is_some_and(|base_glyphs| base_glyphs == 0)
 }
 
 #[cfg(test)]
@@ -206,6 +235,45 @@ mod tests {
         assert!(input_fonts(None, true, true, false).unwrap_err().contains("KITION_FONTS_DIR is missing"));
         assert!(input_fonts(Some(&f.0), true, false, false).unwrap().contains("Noto Sans Georgian"));
         assert!(input_fonts(Some(&f.0), false, true, false).unwrap().contains("Noto Sans Georgian"));
+    }
+
+    /// A synthetic OpenType file holding `tables`, each with the given bytes.
+    fn font_with(tables: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
+        let mut out = vec![0, 1, 0, 0];
+        out.extend((tables.len() as u16).to_be_bytes());
+        out.extend([0; 6]);
+        let mut at = 12 + 16 * tables.len();
+        for (tag, data) in tables {
+            out.extend(tag.iter());
+            out.extend([0; 4]);
+            out.extend((at as u32).to_be_bytes());
+            out.extend((data.len() as u32).to_be_bytes());
+            at += data.len();
+        }
+        for (_, data) in tables {
+            out.extend(data.iter());
+        }
+        out
+    }
+
+    /// Asserts a colour font whose only colour is COLR v1 paint graphs (kition-fonts' Noto Color
+    /// Emoji) is not embedded, while COLR v0 layers, bitmap strikes and plain outlines are.
+    #[test]
+    fn colour_fonts_the_renderer_does_not_draw_are_not_embedded() {
+        let f = Fixture::new();
+        f.manifest("manifest.txt", &[("Noto Sans Georgian", "Regular"), ("Noto Color Emoji", "Regular")]);
+        let colr_v1 = [0u8, 1, 0, 0];
+        let colr_v0 = [0u8, 0, 0, 3];
+        for (tables, embedded) in [
+            (vec![(b"glyf", &[0u8; 4][..]), (b"COLR", &colr_v1[..])], false),
+            (vec![(b"glyf", &[0u8; 4][..]), (b"COLR", &colr_v0[..])], true),
+            (vec![(b"CBDT", &[0u8; 4][..]), (b"COLR", &colr_v1[..])], true),
+            (vec![(b"glyf", &[0u8; 4][..])], true),
+        ] {
+            std::fs::write(f.0.join("fonts/face.ttf"), font_with(&tables)).unwrap();
+            let native = kition_fonts(&f.0, "fonts/manifest.txt", false, false).unwrap();
+            assert_eq!(native.faces.len(), if embedded { 2 } else { 0 }, "{tables:?}");
+        }
     }
 
     /// Asserts required web input rejects a manifest whose face file is missing, even when every
