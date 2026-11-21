@@ -63,6 +63,8 @@ try {
     await input.press('Enter')
   }
   const undo = async () => {
+    // A drag's last updates and its commit land first (as paint.mjs's undo waits).
+    await until(async () => (await designKit(() => window.designKit.query('toolbar'))).interaction === null)
     await kit.getByTestId('design-undo').click()
     await page.waitForTimeout(250)
   }
