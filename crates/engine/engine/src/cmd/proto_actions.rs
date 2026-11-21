@@ -28,7 +28,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.action.add",
             "Add prototype action",
-            "{id?, index (interaction), path? (where it goes: [n] appends to an interaction with n actions, [i, b, j] inside block b of the conditional i; default: after the last action), action {type: …, as proto.interaction.add; setVariable takes `expression` text, conditional blocks take `expression` or `condition`}} → {path}",
+            "{id?, ids?, index (interaction), path? (where it goes: [n] appends to an interaction with n actions, [i, b, j] inside block b of the conditional i; default: after the last action), action {type: …, as proto.interaction.add; setVariable takes `expression` text, conditional blocks take `expression` or `condition`}} → {path}",
             true,
             add
         ),
@@ -42,15 +42,21 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.action.remove",
             "Remove prototype action",
-            "{id?, index, path}  (an interaction keeps at least one action: remove the interaction instead)",
+            "{id?, ids?, index, path}  (an interaction keeps at least one action: remove the interaction instead)",
             true,
             remove
         ),
-        spec!("proto.action.move", "Reorder prototype action", "{id?, index, path, to (its new index in the same list)} → {path}", true, move_action),
+        spec!(
+            "proto.action.move",
+            "Reorder prototype action",
+            "{id?, ids?, index, path, to (its new index in the same list)} → {path}",
+            true,
+            move_action
+        ),
         spec!(
             "proto.conditional.addBlock",
             "Add else if / else",
-            "{id?, index, path (a conditional action), else?: bool (add the else block; default: an else if before it), expression? (text, e.g. \"count >= 3\") | condition? (expression JSON); default condition: the first variable equal to its value} → {block}",
+            "{id?, ids?, index, path (a conditional action), else?: bool (add the else block; default: an else if before it), expression? (text, e.g. \"count >= 3\") | condition? (expression JSON); default condition: the first variable equal to its value} → {block}",
             true,
             add_block
         ),
@@ -64,7 +70,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "proto.conditional.removeBlock",
             "Remove if / else if / else",
-            "{id?, index, path (a conditional action), block}  removing the if when only an else (or nothing) is left removes the whole conditional action → {removedAction}",
+            "{id?, ids?, index, path (a conditional action), block}  removing the if when only an else (or nothing) is left removes the whole conditional action → {removedAction}",
             true,
             remove_block
         ),

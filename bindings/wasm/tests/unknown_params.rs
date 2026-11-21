@@ -46,7 +46,12 @@ fn the_editors_parameters_are_named_in_the_schemas() {
         ("proto.interaction.add", json!({ "ids": [1], "trigger": { "type": "onClick" }, "action": { "type": "back" } })),
         ("proto.interaction.set", json!({ "ids": [1], "index": 0, "durationMs": 300 })),
         ("proto.interaction.remove", json!({ "ids": [1], "index": 0 })),
+        ("proto.action.add", json!({ "ids": [1], "index": 0, "path": [1], "action": { "type": "back" } })),
         ("proto.action.set", json!({ "ids": [1], "index": 0, "path": [0], "action": { "type": "back" } })),
+        ("proto.action.remove", json!({ "ids": [1], "index": 0, "path": [0] })),
+        ("proto.action.move", json!({ "ids": [1], "index": 0, "path": [0], "to": 1 })),
+        ("proto.conditional.addBlock", json!({ "ids": [1], "index": 0, "path": [0] })),
+        ("proto.conditional.removeBlock", json!({ "ids": [1], "index": 0, "path": [0], "block": 0 })),
         ("proto.conditional.setCondition", json!({ "ids": [1], "index": 0, "path": [0], "block": 0, "expression": "true" })),
     ];
     let mut refused = Vec::new();
