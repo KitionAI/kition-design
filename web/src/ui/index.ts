@@ -1,5 +1,5 @@
 /** The editor's control kit: every panel builds on these (see web/README.md). */
-export { NumberField, type NumberFieldProps, type ScrubHandlers } from './NumberField'
+export { NumberField, scrubDeltas, type NumberFieldProps, type ScrubHandlers } from './NumberField'
 export { TextField, type TextFieldProps } from './TextField'
 export { Dropdown, type DropdownOption, type DropdownProps } from './Dropdown'
 export { Menu, type MenuEntry, type MenuItem, type MenuProps, type MenuTone } from './Menu'

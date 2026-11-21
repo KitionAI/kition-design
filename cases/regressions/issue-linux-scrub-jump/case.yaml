@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-linux-scrub-jump
+feature: design.object.transform
+intent: >-
+  Scrubbing a number field's lead moves the value by the drag: on Linux, Chromium gave one pointer
+  event of the scrub a movementX of about minus the pointer's x, so a scrub of X on a mixed
+  selection moved both layers by -1230 and a stroke weight or a pattern scale fell to its
+  minimum. Off Pointer Lock the scrub now reads the pointer's position, and the event the lock
+  begins or ends on moves nothing.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design CI on GitHub's Linux runners (web/tests/design.mjs, web/tests/paint.mjs)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/design.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-21"
+timeout_s: 600
+requires: [chromium]

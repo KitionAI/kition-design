@@ -8,7 +8,7 @@
  */
 import { useCallback, useRef, useState } from 'react'
 import { useDesignKit, useInspect, useInteraction, useQuery, type Interaction } from '../kit/hooks'
-import { Button, IconButton, Menu, NumberField, Row, SectionHeader, Segmented, Separator, type MenuEntry, type ScrubHandlers } from '../ui'
+import { Button, IconButton, Menu, NumberField, Row, scrubDeltas, SectionHeader, Segmented, Separator, type MenuEntry, type ScrubHandlers } from '../ui'
 import { dispatchUiRequests } from '../kit/requests'
 import { type SelectionData, textRange } from './data'
 import { FontPicker, rememberFamily } from './FontPicker'
@@ -335,11 +335,9 @@ function SpacingField({ glyph, tip, value, onCommit, scrub, testId }: { glyph: '
     let total = 0
     let began = false
     let last = numeric
-    let lastX = event.clientX
+    const deltaOf = scrubDeltas(event.clientX)
     const move = (e: PointerEvent) => {
-      // WebKit leaves `movementX` at 0 for some pointer sources: the position tells then.
-      const dx = e.movementX || e.clientX - lastX
-      lastX = e.clientX
+      const dx = deltaOf(e)
       total += dx * (e.shiftKey ? 10 : e.altKey ? 0.1 : 1)
       if (!began) {
         if (Math.abs(total) < 2) return

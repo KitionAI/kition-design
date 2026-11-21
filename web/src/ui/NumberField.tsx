@@ -18,6 +18,27 @@ export type ScrubHandlers = {
   end: (cancelled: boolean) => void
 }
 
+/**
+ * The horizontal movement of each pointer event of a scrub that began at `startX`. Without Pointer
+ * Lock the position tells: WebKit leaves `movementX` at 0 for some pointer sources, and Chromium
+ * on Linux has given one event of a scrub a `movementX` of about minus the pointer's x (−1230 on
+ * a lead at x 1230), which threw the value to its minimum. Under Pointer Lock only the movement
+ * tells (the position stays put), except on the event the lock began or ended on: its movement
+ * is measured from somewhere else, so it moves nothing.
+ */
+export function scrubDeltas(startX: number): (event: PointerEvent) => number {
+  let lastX = startX
+  let locked = document.pointerLockElement !== null
+  return (event) => {
+    const nowLocked = document.pointerLockElement !== null
+    const changed = nowLocked !== locked
+    locked = nowLocked
+    const dx = changed ? 0 : nowLocked ? event.movementX || event.clientX - lastX : event.clientX - lastX
+    lastX = event.clientX
+    return dx
+  }
+}
+
 export type NumberFieldProps = {
   /** The value, or null for none (the placeholder shows). */
   value: number | null
@@ -136,7 +157,7 @@ export function NumberField({
     let last = start
     cancelled.current = false
     const quantum = (alt: boolean) => (alt ? step / 10 : step)
-    let lastX = event.clientX
+    const deltaOf = scrubDeltas(event.clientX)
     let ended = false
     // WebKit can grant the lock after the drag ended: give it back then, or the next clicks go to the lead.
     const lockChanged = () => {
@@ -144,10 +165,7 @@ export function NumberField({
     }
     document.addEventListener('pointerlockchange', lockChanged)
     const move = (e: PointerEvent) => {
-      // Under pointer lock only the movement tells; otherwise the position does (WebKit leaves
-      // `movementX` at 0 for some pointer sources).
-      const dx = document.pointerLockElement ? e.movementX : e.movementX || e.clientX - lastX
-      lastX = e.clientX
+      const dx = deltaOf(e)
       if (!began) {
         moved += Math.abs(dx)
         if (moved < 2) return

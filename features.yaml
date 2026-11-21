@@ -270,6 +270,7 @@ features:
     status: partial
     commands: [transform.nudge, transform.nudgeSize, transform.move, transform.moveTo, transform.rotate, transform.rotationOrigin, transform.setRotationOrigin, transform.scale, transform.resize]
     paths: [crates/engine/engine/src/cmd/arrange.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/canvas/rotation_origin.rs, crates/engine/engine/src/cmd/edit.rs]
+    cases: [regressions/issue-linux-scrub-jump]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
