@@ -30,12 +30,12 @@
 This repository is Kition's `kit.design` kit. These rules come first; the engine rules below still
 apply to the engine.
 
-- The kit draws **its own editor**: `web/` is a React app on `@kition/kit-editor` (kition-sdk's
+- The kit draws **its own editor**: `web/` is a React app on `@kition/sdk/editor` (kition-sdk's
   shared kit UI library) with the upstream editor's toolbar, Layers and Assets panel, canvas, and
   the Design, Prototype, and Dev panels. A host (Kition, or `web/dev.html` for development) shows
   it in an iframe and talks to it over the Kit UI protocol (`kition-kit-ui/1`, kition-sdk
   `docs/platform/reference/ui-protocol.md`). Style it only with the host's theme tokens, Kition Tessera
-  (`@kition/tessera-ui`), and kit-editor components. Labels and command titles are the upstream
+  (`@kition/tessera/ui`), and kit-editor components. Labels and command titles are the upstream
   editor's English text, translated by its own upstream catalogs in `web/src/i18n/upstream/` and,
   where those lack a label, by `PHRASES` in `web/src/strings.ts`. Files go only through the host.
 - `bindings/wasm` compiles the engine to WebAssembly on the `KitionAI/kition-sdk` crate;

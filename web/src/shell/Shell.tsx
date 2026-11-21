@@ -4,7 +4,7 @@
  * (`fitPanels`), keyboard regions (F6), and the UI requests the shell answers (panels, Dev Mode).
  */
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useFrameMode, type KitCanvasView } from '@kition/kit-editor'
+import { useFrameMode, type KitCanvasView } from '@kition/sdk/editor'
 import { DesignCanvas } from '../canvas/DesignCanvas'
 import { useDesignKit } from '../kit/hooks'
 import { regionKeyDown, regionProps } from '../kit/regions'

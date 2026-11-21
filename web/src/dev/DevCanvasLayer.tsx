@@ -5,7 +5,7 @@
  * never takes the pointer: the canvas keeps its input.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KitCanvasView } from '@kition/kit-editor'
+import type { KitCanvasView } from '@kition/sdk/editor'
 import { useDesignKit, useQuery } from '../kit/hooks'
 import type { Rect } from '../kit/types'
 import { useDev } from './store'

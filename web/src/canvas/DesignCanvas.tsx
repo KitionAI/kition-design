@@ -5,7 +5,7 @@
  * `node.set` as one undo step.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { KitDocumentCanvas, type KitCanvasView, type RasterRect, type RasterView } from '@kition/kit-editor'
+import { KitDocumentCanvas, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
 import { useDesignKit, useView } from '../kit/hooks'
 import { dispatchUiRequests } from '../kit/requests'
 import type { DesignChrome } from '../kit/types'

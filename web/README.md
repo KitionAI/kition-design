@@ -1,6 +1,6 @@
 # kit.design editor (web/)
 
-The Design kit's own editor: a React app on `@kition/kit-editor` that rebuilds the upstream editor's
+The Design kit's own editor: a React app on `@kition/sdk/editor` that rebuilds the upstream editor's
 UI. A host (Kition, or `dev.html` here)
 shows it in an iframe over the Kit UI protocol; the engine (`bindings/wasm`) runs in a worker.
 

@@ -12,7 +12,7 @@
  * the capture phase so a key is never run twice (Cmd+Delete must ungroup, not delete).
  */
 import { useMemo } from 'react'
-import { isMac, shortcutMatches } from '@kition/kit-editor'
+import { isMac, shortcutMatches } from '@kition/sdk/editor'
 import type { DesignKit } from '../kit/context'
 import { useQuery } from '../kit/hooks'
 import { prettyShortcut } from '../ui/shortcuts'

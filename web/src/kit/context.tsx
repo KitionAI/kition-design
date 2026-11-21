@@ -4,7 +4,7 @@
  * view, and the shell's UI state (tabs, panels). Panels read it with the hooks in `hooks.ts`.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import type { KitCanvasHandle, KitCanvasView, KitEditor, KitEngine, KitTools } from '@kition/kit-editor'
+import type { KitCanvasHandle, KitCanvasView, KitEditor, KitEngine, KitTools } from '@kition/sdk/editor'
 import type { DesignStrings, Values } from '../strings'
 import { showToast } from '../ui/Toast'
 import type { DesignInspect, LeftTab, RightTab } from './types'

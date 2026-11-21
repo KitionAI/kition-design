@@ -4,7 +4,7 @@
  * Keys this editor adds itself (and kit-editor's frame keys) live in `CATALOGS`; English labels
  * the upstream catalogs lack are translated by `PHRASES`.
  */
-import { KIT_UI_CATALOGS, catalogNames, type Catalog, type Phrases } from '@kition/kit-editor'
+import { KIT_UI_CATALOGS, catalogNames, type Catalog, type Phrases } from '@kition/sdk/editor'
 
 /** The editor's own strings (`en-US` is required; others fall back to it). */
 const enUS: Catalog = {

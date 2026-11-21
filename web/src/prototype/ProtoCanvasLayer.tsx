@@ -7,7 +7,7 @@
  * selects its layer and opens its editor; a press elsewhere closes the editor.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KitCanvasView } from '@kition/kit-editor'
+import type { KitCanvasView } from '@kition/sdk/editor'
 import { useDesignKit, useQuery } from '../kit/hooks'
 import type { Rect } from '../kit/types'
 import { topLevelFrame, useTree } from './data'

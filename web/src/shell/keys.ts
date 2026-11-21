@@ -5,7 +5,7 @@
  * command shortcuts.
  */
 import type { KeyboardEvent } from 'react'
-import { isMac } from '@kition/kit-editor'
+import { isMac } from '@kition/sdk/editor'
 import type { DesignKit } from '../kit/context'
 
 export function shellKeyDown(designKit: DesignKit, event: KeyboardEvent): boolean {

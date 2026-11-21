@@ -5,7 +5,7 @@
  * `host/stamp` like any workspace file; the link chooser (`links/pick`) answers it for "Add library file…".
  * Tests replace it in `window.devHost.files` (a new `version`) to play a library published again.
  */
-import { startDevHost } from '@kition/kit-dev-host'
+import { startDevHost } from '@kition/sdk/dev-host'
 
 startDevHost({
   sample: './sample/Sample.kdesign',

@@ -4,7 +4,7 @@
  * it, the view-only, vector edit and shape builder pills.
  */
 import { useMemo, useRef, useState } from 'react'
-import { isMac } from '@kition/kit-editor'
+import { isMac } from '@kition/sdk/editor'
 import { Icon, type IconName } from '../icons/Icon'
 import { useDesignKit, useQuery } from '../kit/hooks'
 import { regionProps } from '../kit/regions'

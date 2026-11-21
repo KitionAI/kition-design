@@ -13,7 +13,7 @@
 //! `(64-char ASCII-hex sha256, u64 LE length, bytes) * N`, as every kit does.
 //!
 //! `contractVersion()` stays 1, as kition-sdk's export macro answers it: Kition and
-//! `@kition/kit-editor` refuse a newer number, and recognise contract 2 by the manifest and these
+//! `@kition/sdk/editor` refuse a newer number, and recognise contract 2 by the manifest and these
 //! members (platform `kits/engine.md`).
 
 use std::collections::HashMap;

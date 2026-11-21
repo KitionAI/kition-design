@@ -14,7 +14,7 @@
  *   (1.5 px); a solid accent line with no points around is the auto layout insertion line (2 px);
  * - measure after a guide line: that line's distance label; otherwise an arc or radius readout.
  */
-import { overlayCss, type EngineOverlay, type OverlayDrawContext, type OverlayDrawer, type OverlayRgba, type OverlayStylePatch } from '@kition/kit-editor'
+import { overlayCss, type EngineOverlay, type OverlayDrawContext, type OverlayDrawer, type OverlayRgba, type OverlayStylePatch } from '@kition/sdk/editor'
 import { FONT, readTheme, semibold } from './chrome'
 
 /** The overlay greens (upstream `ACCENT` on light pages, `BRAND` on dark ones). */

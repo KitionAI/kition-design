@@ -30,7 +30,7 @@ lower layers, and no crate below L6 may depend on a UI toolkit or a networking c
 | L6 | `kition-design-kit` (`bindings/wasm`) | The engine behind kition-sdk's `KitDocument` contract, compiled to WebAssembly for the editor: commands, queries, tools, overlays, rendering, the KDM collaboration members |
 | L6 | `kition-design` (`bindings/headless`) | The headless kit executable: the same document served over the Kit Protocol for agents; it never shows a window |
 | tools | `xtask` | `ci`, `test`, `layers`, `assets`, `parity`, `version`, `wasm`, `eval` |
-| editor | `web/` (not a crate) | The kit's editor: a React app on kition-sdk's `@kition/kit-editor` that runs the WebAssembly engine in a worker; a host shows it in an iframe over the Kit UI protocol ([`web/README.md`](../web/README.md)) |
+| editor | `web/` (not a crate) | The kit's editor: a React app on kition-sdk's `@kition/sdk/editor` that runs the WebAssembly engine in a worker; a host shows it in an iframe over the Kit UI protocol ([`web/README.md`](../web/README.md)) |
 
 ## Data model
 

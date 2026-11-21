@@ -1,4 +1,4 @@
-import type { KitModuleManifest } from '@kition/kit-editor'
+import type { KitModuleManifest } from '@kition/sdk/editor'
 
 /**
  * Faces the web build does not embed, from the package's own `fonts/` folder (build-engine.sh

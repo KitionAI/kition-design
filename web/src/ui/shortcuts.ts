@@ -1,5 +1,5 @@
 /** Shortcuts as the upstream editor shows them (`keymap::display`): ⌃⌥⇧⌘ then the key on macOS, `Ctrl+Shift+K` elsewhere. */
-import { isMac } from '@kition/kit-editor'
+import { isMac } from '@kition/sdk/editor'
 
 const GLYPHS: Record<string, string> = {
   Enter: '↵',

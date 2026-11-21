@@ -1,5 +1,5 @@
 /** View helpers: the page's content bounds (Zoom to fit) and document ↔ screen mapping. */
-import type { KitCanvasView, RasterRect } from '@kition/kit-editor'
+import type { KitCanvasView, RasterRect } from '@kition/sdk/editor'
 import type { DesignInspect, Rect } from '../kit/types'
 
 type Query = <R>(name: string, params?: Record<string, unknown>) => Promise<R>

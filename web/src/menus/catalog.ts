@@ -10,7 +10,7 @@
  * upstream places. Host and dropped items (new, open, save, close, theme, full screen,
  * plug-ins, live sessions, About) stay out.
  */
-import type { MenuRow } from '@kition/kit-editor'
+import type { MenuRow } from '@kition/sdk/editor'
 
 /** kit-editor's prefix for a catalog row the kit runs itself. */
 export const KIT_COMMAND_PREFIX = 'kit:'

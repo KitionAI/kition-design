@@ -16,7 +16,7 @@ import {
   type HostConnection,
   type KitCanvasHandle,
   type KitCanvasView,
-} from '@kition/kit-editor'
+} from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { DESIGN_OVERLAY_STYLE, drawDesignOverlay } from './canvas/engineOverlays'
 import { DesignKitProvider, useDesignKit, type ShellUi } from './kit/context'

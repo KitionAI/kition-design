@@ -4,7 +4,7 @@
  * status badges, the size pill, auto layout bands and grid tracks, ruler guides, rulers. Drawn
  * over the rendered page as a kit-editor decoration, so it follows every pan and zoom.
  */
-import type { RasterDecoration } from '@kition/kit-editor'
+import type { RasterDecoration } from '@kition/sdk/editor'
 import { ICON_SVG_ATTRS, iconMarkup, iconMetrics, type IconName } from '../icons/icons'
 import type { DesignChrome } from '../kit/types'
 

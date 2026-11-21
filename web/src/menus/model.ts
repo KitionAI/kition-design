@@ -3,7 +3,7 @@
  * (`catalog.ts`), their translated labels, shortcuts and check marks, and how a row runs.
  */
 import { useMemo, useRef } from 'react'
-import { catalogTabs, type FrameTab, type MenuRow } from '@kition/kit-editor'
+import { catalogTabs, type FrameTab, type MenuRow } from '@kition/sdk/editor'
 import { useDesignKit, useQuery } from '../kit/hooks'
 import { checkedIds, kitId, menuRows, PRIMARY_ROWS, TOGGLES, VIEW_MENUS, type EngineRow } from './catalog'
 import { runMenuCommand } from './invoke'
