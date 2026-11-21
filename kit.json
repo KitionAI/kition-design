@@ -4,7 +4,7 @@
   "level": "agent-ready",
   "id": "kit.design",
   "name": "Design",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "Apache-2.0",
   "distribution": "plugin",
   "engine": {
