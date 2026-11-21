@@ -191,7 +191,7 @@ try {
   await until(async () => (await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}').then((text) => JSON.parse(text).fill))) === true)
   await kit.getByTestId('design-fill-0').click({ button: 'right' })
   await until(async () => (await kit.getByTestId('design-fill-0-menu').count()) === 1)
-  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}, clipboard ${await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}'))}, menu ${JSON.stringify(await kit.getByTestId('design-fill-0-menu').allTextContents())}, events ${await traced(frame())}`)
+  step('Copy fill offers Paste fill', pasteBefore === 0 && (await kit.getByTestId('design-fill-0-menu').getByText('Paste fill', { exact: true }).count()) === 1, `before ${pasteBefore}, clipboard ${await designKit(() => window.designKit.invoke('query', 'clipboard.paintState', '{}'))}, menu ${JSON.stringify(await kit.getByTestId('design-fill-0-menu').allTextContents())}, events ${await traced(frame())}, fill.copy run by the session: ${await designKit(async (id) => { try { await window.designKit.editor.session.run('fill.copy', { ids: [id], index: 0 }); return `ok, clipboard ${await window.designKit.invoke('query', 'clipboard.paintState', '{}')}` } catch (error) { return `error ${error?.message ?? error}` } }, SAVE)}`)
   await page.keyboard.press('Escape')
 
   // Add a fill: it goes on top and its picker opens; remove it again.

@@ -26,6 +26,22 @@ export function evidence(page, script, which) {
 export async function traceEvents(frame) {
   await frame.evaluate(() => {
     window.__trace = []
+    const editor = window.designKit?.editor
+    if (editor && typeof editor.run === 'function' && !editor.__traced) {
+      editor.__traced = true
+      const run = editor.run
+      editor.run = async (...args) => {
+        window.__trace.push(`run ${String(args[0])} ${JSON.stringify(args[1] ?? {}).slice(0, 160)}`)
+        try {
+          const answer = await run(...args)
+          window.__trace.push(`ran ${String(args[0])} -> ${String(answer).slice(0, 120)} failure ${String(editor.session?.failure ?? '')}`)
+          return answer
+        } catch (error) {
+          window.__trace.push(`run ${String(args[0])} threw ${String(error?.message ?? error).slice(0, 200)}`)
+          throw error
+        }
+      }
+    }
     if (window.__tracing) return
     window.__tracing = true
     const describe = (t) => {
@@ -40,6 +56,17 @@ export async function traceEvents(frame) {
     document.addEventListener('scroll', (e) => window.__trace.push(`scroll ${describe(e.target)}`), true)
     window.addEventListener('unhandledrejection', (e) => window.__trace.push(`unhandledrejection ${String(e.reason?.stack ?? e.reason).slice(0, 300)}`))
     window.addEventListener('error', (e) => window.__trace.push(`error ${String(e.message).slice(0, 200)}`))
+    // Toasts (the editor's and kit-editor's), and every command the editor runs with its outcome.
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (!(node instanceof Element)) continue
+          for (const el of [node, ...node.querySelectorAll('[role=status], [role=alert]')]) {
+            if (el.matches('[role=status], [role=alert]') || /toast/i.test(typeof el.className === 'string' ? el.className : '')) window.__trace.push(`toast ${(el.textContent ?? '').trim().slice(0, 200)}`)
+          }
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true })
     const error = console.error.bind(console)
     console.error = (...args) => {
       window.__trace.push(`console.error ${args.map(String).join(' ').slice(0, 200)}`)

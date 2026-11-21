@@ -212,7 +212,7 @@ try {
   await traceEvents(frame())
   await kit.getByTestId('design-proto-interaction-add').click()
   step('+ adds a click interaction and opens its editor', await until(async () => (await interactions(HOME)).length === 1 && (await kit.getByTestId('design-proto-editor').count()) === 1), `${(await interactions(HOME)).length} on ${HOME}, editor ${await kit.getByTestId('design-proto-editor').count()}, selection ${JSON.stringify(await designKit(() => window.designKit.inspect.selection))}, events ${await traced(frame())}`)
-  step('the row summarises it', await until(async () => (await kit.getByTestId('design-proto-interaction-0').textContent()).includes('On click')))
+  step('the row summarises it', await until(async () => (await kit.getByTestId('design-proto-interaction-0').textContent({ timeout: 100 })).includes('On click')))
   await kit.getByTestId('design-proto-trigger').click()
   await kit.getByTestId('design-proto-trigger-After delay').click()
   step('the trigger dropdown sets After delay 800ms', await until(async () => (await interactions(HOME))[0]?.trigger.type === 'afterDelay' && (await interactions(HOME))[0].trigger.ms === 800))
