@@ -46,7 +46,8 @@ try {
     const view = await designKit(() => window.designKit.canvas.current.view())
     return { x: canvas.x + (x - view.x) * view.zoom, y: canvas.y + (y - view.y) * view.zoom }
   }
-  const mod = which === 'webkit' || process.platform === 'darwin' ? 'Meta' : 'Control'
+  // The editor's Cmd is the platform's (navigator.platform): Meta on a Mac, Control elsewhere.
+  const mod = (await page.evaluate(() => /Mac|iPhone|iPad/i.test(navigator.platform))) ? 'Meta' : 'Control'
   const labels = (locator) => locator.locator('[role^="menuitem"]').evaluateAll((rows) => rows.map((row) => (row.querySelector('.design-menu-label, [class*="label"]')?.textContent ?? row.textContent ?? '').trim()))
   const checkedIds = () => designKit(async () => (await window.designKit.query('checked')).ids)
   const focusCanvas = async () => {

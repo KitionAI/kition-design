@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-ctrl-shift-question
+feature: design.platform.display-modes
+intent: >-
+  Ctrl+Shift+? opens Keyboard shortcuts off the Mac too: the `?` matcher took the Ctrl key for Cmd
+  there and then asked for Cmd not pressed and Ctrl pressed, which no key press is, so on Linux and
+  Windows the shortcut did nothing.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design CI on GitHub's Linux runners (web/tests/menus.mjs)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/menus.mjs, webkit]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-20"
+timeout_s: 300
+requires: [webkit]

@@ -143,14 +143,16 @@ function isField(target: EventTarget | null) {
   return target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
 }
 
-/** Matches `spec` against `event`; `?` is Shift+/ on a US layout (a `?` key without Shift elsewhere counts too). */
+/**
+ * Matches `spec` against `event`; `?` is Shift+/ on a US layout (a `?` key without Shift elsewhere
+ * counts too). Off the Mac, Cmd and Ctrl are both the Ctrl key.
+ */
 function matches(spec: string, event: KeyboardEvent, mac: boolean) {
   if (spec.endsWith('+?') || spec === '?') {
     const mods = spec.slice(0, -1)
     const want = { cmd: mods.includes('Cmd'), ctrl: mods.includes('Ctrl'), alt: mods.includes('Alt') }
-    const command = mac ? event.metaKey : event.ctrlKey
-    const control = mac ? event.ctrlKey : false
-    return (event.key === '?' || (event.code === 'Slash' && event.shiftKey)) && command === want.cmd && control === want.ctrl && event.altKey === want.alt
+    const modifiers = mac ? event.metaKey === want.cmd && event.ctrlKey === want.ctrl : !event.metaKey && event.ctrlKey === (want.cmd || want.ctrl)
+    return (event.key === '?' || (event.code === 'Slash' && event.shiftKey)) && modifiers && event.altKey === want.alt
   }
   if (spec.endsWith('Backspace')) return shortcutMatches(spec.replace('Backspace', 'Delete'), event, mac)
   return shortcutMatches(spec, event, mac, true)

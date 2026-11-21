@@ -73,7 +73,7 @@ features:
     priority: P1
     status: has
     paths: [web/src/App.tsx, web/src/kit/context.tsx, web/src/menus/catalog.ts, web/src/menus/model.ts, web/src/menus/invoke.ts, web/tests/modes.mjs]
-    cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui]
+    cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui, regressions/issue-ctrl-shift-question]
     since: "2026-11-17"
   - id: design.platform.document-identity
     title: "A host reads the document id a .kdesign carries and forks a copied design into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"
