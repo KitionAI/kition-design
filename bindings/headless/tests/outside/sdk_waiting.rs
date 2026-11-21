@@ -3,6 +3,7 @@ use super::read::{case, prepare};
 use super::*;
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "waits for kition-sdk: variable.import's held read must cover only the collections whose names it matches; today a colleague's rename of another collection refuses the import"]
 async fn waiting_for_sdk_variable_import_reads_matching_names_and_not_another_collection() {
     let failures = case(
         "variable.import names",
