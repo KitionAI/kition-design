@@ -436,8 +436,30 @@ try {
   await kit.locator('[role^="menuitem"]').filter({ hasText: /^Panels/ }).hover()
   await kit.getByTestId('design-control-view.toggleUi').click()
   step('View > Show/Hide UI enters Focus', await until(async () => (await frameApp.getAttribute('data-mode')) === 'focus'))
+  // Where the Escape went, for the step's detail: the keyboard's target, and whether any window
+  // listener stopped or took it.
+  await designKit(() => {
+    window.focusEscape = 'stopped before the window bubble phase'
+    const seen = (event) => {
+      if (event.key !== 'Escape') return
+      window.removeEventListener('keydown', seen)
+      window.focusEscape = `reached the window bubble phase, ${event.defaultPrevented ? 'taken' : 'not taken'}`
+    }
+    window.addEventListener('keydown', seen)
+    const at = document.activeElement
+    window.focusEscapeTarget = at ? `${at.tagName.toLowerCase()}${at.getAttribute('data-testid') ? `[${at.getAttribute('data-testid')}]` : ''}${at.className && typeof at.className === 'string' ? `.${at.className.split(' ')[0]}` : ''}` : 'none'
+  })
   await page.keyboard.press('Escape')
-  step('Escape leaves the Focus Show/Hide UI entered', await until(async () => (await frameApp.getAttribute('data-mode')) === modeBefore), `${modeBefore} -> ${await frameApp.getAttribute('data-mode')}`)
+  const focusLeft = await until(async () => (await frameApp.getAttribute('data-mode')) === modeBefore)
+  const where = await designKit(() => ({
+    escape: window.focusEscape,
+    target: window.focusEscapeTarget,
+    threads: document.querySelectorAll('[data-testid="design-comment-thread"]').length,
+    drafts: document.querySelectorAll('[data-testid="design-comment-draft"]').length,
+    openPins: [...document.querySelectorAll('.design-comment-pin[data-open]')].map((pin) => pin.getAttribute('data-testid')),
+    tool: window.designKit.inspect.tool,
+  }))
+  step('Escape leaves the Focus Show/Hide UI entered', focusLeft, `${modeBefore} -> ${await frameApp.getAttribute('data-mode')}; ${JSON.stringify(where)}`)
 } catch (error) {
   failures += 1
   shots.failed('error')
