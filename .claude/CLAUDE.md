@@ -31,9 +31,10 @@ apply to the engine.
 - The whole repository is licensed under Apache-2.0 ([LICENSE](../LICENSE)); third-party notices are
   listed in `NOTICE`. Upstream is credited only in NOTICE; never write upstream names anywhere
   else.
-- Never add or run CI in this repository besides the Package workflow
-  (`.github/workflows/package.yml`), which builds and publishes the kit package on GitHub with
-  Kition's reusable `kit-package.yml`.
+- CI: `.github/workflows/ci.yml` calls Kition's reusable kit CI (`kit-ci.yml`), which runs the
+  full checks and tests on GitHub, and the Package workflow (`.github/workflows/package.yml`)
+  builds the kit package with Kition's reusable `kit-package.yml`. Do not add other workflows,
+  and do not start the Package workflow: releasing is the owner's step.
 
 # Kition Design — instructions for agents
 
@@ -109,10 +110,17 @@ public REST API file JSON open as imports (best effort).
 - **Time goes through `chrono`.** Never hand-roll calendar conversion.
 - **Never break wasm** (`cargo xtask wasm`).
 
-### Quality gates (before every commit)
+### Checks (local and in CI)
 
-`cargo xtask ci` (fmt, clippy -D warnings, tests, layers, assets, wasm), and for editor changes
-`cd web && pnpm typecheck && pnpm test:flow`. Commit only the files your task touched.
+On this machine run only the fast checks: `cargo fmt --all -- --check`,
+`cargo check -p <touched crates> --all-targets`, the wasm check
+(`cargo check -p kition-design-kit --target wasm32-unknown-unknown`), and for editor changes
+`cd web && pnpm typecheck`. The full checks run in the kit's CI run on GitHub: clippy,
+`cargo test --workspace`, `cargo xtask ci` (fmt, clippy -D warnings, tests, layers, assets,
+wasm) and every `test:*` script of `web/` (`test:flow`, `test:design`, ...). A task is done
+when the CI run of HEAD is green and HEAD is on `origin/main`: push, wait and land with
+Kition's `scripts/kit-ci.sh` (`push`, `wait`, `failures`, `land`). Commit only the files your
+task touched.
 
 ## Running and looking at the editor
 
