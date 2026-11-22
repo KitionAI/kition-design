@@ -454,6 +454,16 @@ try {
     }
     window.focusEscapeEarly = 'stopped at the window capture phase'
     document.addEventListener('keydown', early, true)
+    // Who stops it: the stack of the first stopPropagation on an Escape key.
+    const stop = Event.prototype.stopPropagation
+    window.focusEscapeStopper = 'none'
+    Event.prototype.stopPropagation = function () {
+      if (this.type === 'keydown' && this.key === 'Escape' && window.focusEscapeStopper === 'none') {
+        window.focusEscapeStopper = (new Error().stack ?? '').split("\n").slice(1, 9).map((line) => line.trim().replace(/https?:\/\/[^/]+/, '').replace(/\?[^:]*/, '')).join(' < ')
+        Event.prototype.stopPropagation = stop
+      }
+      return stop.call(this)
+    }
     const at = document.activeElement
     window.focusEscapeTarget = at ? `${at.tagName.toLowerCase()}${at.getAttribute('data-testid') ? `[${at.getAttribute('data-testid')}]` : ''}${at.className && typeof at.className === 'string' ? `.${at.className.split(' ')[0]}` : ''}` : 'none'
   })
@@ -462,6 +472,7 @@ try {
   const where = await designKit(() => ({
     escape: window.focusEscape,
     early: window.focusEscapeEarly,
+    stopper: window.focusEscapeStopper,
     active: window.designKit.tools.active,
     wantsText: window.designKit.tools.wantsText,
     selection: window.designKit.inspect.selection.length,
