@@ -120,8 +120,8 @@ fn previews_are_framed_and_targeted() {
     let whole = render(&mut kit, json!({}));
     assert_eq!(whole.dimensions(), (400, 300), "framed to the content");
     assert!(distinct(&whole) > 4);
-    let golden = decode(&std::fs::read(repo().join("conformance/golden/basic.png")).unwrap());
-    assert_eq!(golden.dimensions(), whole.dimensions());
+    let expected = decode(&std::fs::read(repo().join("conformance/expected/basic.png")).unwrap());
+    assert_eq!(expected.dimensions(), whole.dimensions());
     assert_eq!(render(&mut kit, json!({ "scale": 2 })).dimensions(), (800, 600));
     assert_eq!(render(&mut kit, json!({ "slide": 0 })).dimensions(), (400, 300), "a host's part preview");
     let diagnostics = {

@@ -1,9 +1,9 @@
 //! The agent's preview (`file.render`, KHP A39) of `conformance/basic.kdesign`: not uniform, framed to
 //! the page's content, of a diagnostic's target (a layer, a page), at a scale up to 2 and a size
-//! budget up to 4096, never a change to the design, and equal to `conformance/golden/` within
-//! `golden/tolerance.json`. The whole-document picture hosts take headless (`render` of the
-//! document frame) is real too. `KITION_DESIGN_WRITE_GOLDEN=1 cargo test -p kition-design-kit --test
-//! preview` rewrites the goldens.
+//! budget up to 4096, never a change to the design, and equal to `conformance/expected/` within
+//! `expected/tolerance.json`. The whole-document picture hosts take headless (`render` of the
+//! document frame) is real too. `KITION_DESIGN_WRITE_EXPECTED=1 cargo test -p kition-design-kit --test
+//! preview` rewrites the expected previews.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use std::collections::BTreeSet;
@@ -166,32 +166,32 @@ fn the_whole_document_picture_is_real() {
     assert!(distinct.len() > 4, "{} colours", distinct.len());
 }
 
-fn golden(name: &str) -> PathBuf {
-    repo().join("conformance/golden").join(name)
+fn expected(name: &str) -> PathBuf {
+    repo().join("conformance/expected").join(name)
 }
 
 /// Pixels differ by at most `maxChannelDelta` per channel, on at most `maxDifferentPixels`.
 fn compare(name: &str, image: &Image, png: &[u8]) {
-    if std::env::var_os("KITION_DESIGN_WRITE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden("")).unwrap();
-        std::fs::write(golden(name), png).unwrap();
+    if std::env::var_os("KITION_DESIGN_WRITE_EXPECTED").is_some() {
+        std::fs::create_dir_all(expected("")).unwrap();
+        std::fs::write(expected(name), png).unwrap();
         return;
     }
-    let tolerance: Value = serde_json::from_str(&std::fs::read_to_string(golden("tolerance.json")).unwrap()).unwrap();
+    let tolerance: Value = serde_json::from_str(&std::fs::read_to_string(expected("tolerance.json")).unwrap()).unwrap();
     let (delta, allowed) = (tolerance["maxChannelDelta"].as_u64().unwrap(), tolerance["maxDifferentPixels"].as_u64().unwrap());
-    let expected = decode(&std::fs::read(golden(name)).unwrap());
-    assert_eq!((image.width, image.height), (expected.width, expected.height), "{name}");
+    let wanted = decode(&std::fs::read(expected(name)).unwrap());
+    assert_eq!((image.width, image.height), (wanted.width, wanted.height), "{name}");
     let different = image
         .rgba
         .chunks_exact(4)
-        .zip(expected.rgba.chunks_exact(4))
+        .zip(wanted.rgba.chunks_exact(4))
         .filter(|(a, b)| a.iter().zip(b.iter()).any(|(x, y)| u64::from(x.abs_diff(*y)) > delta))
         .count();
     assert!(different as u64 <= allowed, "{name}: {different} pixels differ");
 }
 
 #[test]
-fn the_previews_match_the_goldens() {
+fn the_previews_match_the_expected_previews() {
     let mut doc = basic();
     let (_, rect) = ids(&doc);
     let (_, image, png) = render(&mut doc, json!({}));
