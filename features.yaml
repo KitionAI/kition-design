@@ -392,6 +392,7 @@ features:
     status: partial
     commands: [comment.add, comment.reply, comment.edit, comment.react, comment.resolve, comment.move, comment.delete, comment.markRead, comment.open, comment.next, comment.zoom, comment.link, comment.people, comment.list]
     paths: [crates/engine/engine/src/cmd/comment.rs, bindings/wasm/src/query.rs, bindings/wasm/src/files.rs]
+    cases: [regressions/issue-comment-post-reopens]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
