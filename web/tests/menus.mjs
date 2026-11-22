@@ -426,6 +426,7 @@ try {
   await until(async () => (await kit.getByTestId('design-comment-draft').count()) === 0)
   step('Escape then closes the new draft and opens nothing', (await kit.getByTestId('design-comment-draft').count()) === 0 && (await kit.getByTestId('design-comment-thread').count()) === 0)
   await designKit(() => window.designKit.tools.select('move'))
+  console.log(`NOTE after the comments: ${JSON.stringify(await designKit(() => ({ active: window.designKit.tools.active, tool: window.designKit.inspect.tool, selection: window.designKit.inspect.selection.length, focus: document.activeElement?.tagName })))}`)
 
   // View > Panels > Show/Hide UI is kit-editor's Focus display (designKit.platform.display-modes/show-hide-ui);
   // with nothing selected, Escape leaves it.
@@ -446,6 +447,13 @@ try {
       window.focusEscape = `reached the window bubble phase, ${event.defaultPrevented ? 'taken' : 'not taken'}`
     }
     window.addEventListener('keydown', seen)
+    const early = (event) => {
+      if (event.key !== 'Escape') return
+      document.removeEventListener('keydown', early, true)
+      window.focusEscapeEarly = 'reached the document capture phase'
+    }
+    window.focusEscapeEarly = 'stopped at the window capture phase'
+    document.addEventListener('keydown', early, true)
     const at = document.activeElement
     window.focusEscapeTarget = at ? `${at.tagName.toLowerCase()}${at.getAttribute('data-testid') ? `[${at.getAttribute('data-testid')}]` : ''}${at.className && typeof at.className === 'string' ? `.${at.className.split(' ')[0]}` : ''}` : 'none'
   })
@@ -453,6 +461,10 @@ try {
   const focusLeft = await until(async () => (await frameApp.getAttribute('data-mode')) === modeBefore)
   const where = await designKit(() => ({
     escape: window.focusEscape,
+    early: window.focusEscapeEarly,
+    active: window.designKit.tools.active,
+    wantsText: window.designKit.tools.wantsText,
+    selection: window.designKit.inspect.selection.length,
     target: window.focusEscapeTarget,
     threads: document.querySelectorAll('[data-testid="design-comment-thread"]').length,
     drafts: document.querySelectorAll('[data-testid="design-comment-draft"]').length,
