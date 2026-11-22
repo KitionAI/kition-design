@@ -322,13 +322,19 @@ pub fn specs() -> Vec<CommandSpec> {
         }),
         spec!("effect.copy", "Copy effect", "{id?, ids? (the first layer), index? (default the top effect)}", false, effect_copy),
         spec!("effect.paste", "Paste effect", "{ids?, index? (replace the effect there; without: add one)}", true, effect_paste),
-        spec!("grid.add", "Add layout grid", "{ids?, grid? {kind: grid|columns|rows, ..}}", true, |s, p| {
-            let g: LayoutGrid = parse("grid.add", p, "grid")?.unwrap_or_default();
-            for id in req_targets("grid.add", s, p)? {
-                s.doc_mut()?.get_mut(id)?.grids.push(g.clone());
+        spec!(
+            "grid.add",
+            "Add layout grid",
+            "{ids?, grid?: {kind?: grid|columns|rows, size?: px, count?: u32, gutter?: px, offset?: px, align?: stretch|min|center|max, color?: {r: f64, g: f64, b: f64, a?: f64}, visible?: bool}}",
+            true,
+            |s, p| {
+                let g: LayoutGrid = parse("grid.add", p, "grid")?.unwrap_or_default();
+                for id in req_targets("grid.add", s, p)? {
+                    s.doc_mut()?.get_mut(id)?.grids.push(g.clone());
+                }
+                ok()
             }
-            ok()
-        }),
+        ),
         spec!("grid.remove", "Remove layout grid", "{ids?, index}", true, |s, p| {
             let i = req_index("grid.remove", p, "index")?;
             for id in req_targets("grid.remove", s, p)? {

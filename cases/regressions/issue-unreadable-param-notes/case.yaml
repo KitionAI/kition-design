@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-unreadable-param-notes
+feature: design.agent.recover
+intent: >-
+  Every entry of a command's parameter notation is one the schema parser reads, so the command's
+  schema names each parameter its handler takes. `grid.add` wrote `grid? {kind: ..}` (no `:`
+  before the type): the parser read no key there, the schema had only `ids`, and a call passing
+  the grid to add was refused as unknown. kition-sdk's `check_commands` now names such entries.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: kition-sdk check_commands at the pinned revision (bindings/wasm/tests/commands.rs)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: commands
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-22"
