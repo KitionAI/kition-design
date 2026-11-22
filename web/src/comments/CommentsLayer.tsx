@@ -49,6 +49,14 @@ export function openThread(id: number | null) {
   setState({ open: id, draft: null })
 }
 
+/**
+ * Closes thread `id` if it is still the open one: for an answer that arrives after the person may
+ * have opened another thread or started a draft, which it must leave alone.
+ */
+function closeThread(id: number) {
+  if (state.open === id) openThread(null)
+}
+
 const EMOJI = ['👍', '❤️', '😂', '🎉', '👀', '🙏', '🔥', '✅']
 const PIN = 28
 const POPOVER_W = 300
@@ -191,7 +199,7 @@ function MessageView({ thread, message, index, people, me, colors }: { thread: T
   const mine = message.author === me
   const items: MenuEntry[] = [
     { label: t('Edit'), onSelect: () => setEditing(true) },
-    { label: t(index === 0 ? 'Delete thread' : 'Delete'), onSelect: () => void run('comment.delete', { id: thread.id, ...reply }).then(() => index === 0 && openThread(null)) },
+    { label: t(index === 0 ? 'Delete thread' : 'Delete'), onSelect: () => void run('comment.delete', { id: thread.id, ...reply }).then(() => index === 0 && closeThread(thread.id)) },
   ]
   return (
     <div className="design-comment-message" data-testid="design-comment-message">
@@ -309,7 +317,7 @@ export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex }
     await refresh()
   }
   const moreItems: MenuEntry[] = [
-    { label: t('Mark as unread'), onSelect: () => void after(run('comment.markRead', { id: thread.id, read: false })).then(() => openThread(null)) },
+    { label: t('Mark as unread'), onSelect: () => void after(run('comment.markRead', { id: thread.id, read: false })).then(() => closeThread(thread.id)) },
     {
       label: t('Copy link'),
       onSelect: () =>
@@ -319,7 +327,7 @@ export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex }
           .catch(() => undefined),
     },
     { label: t(thread.resolved ? 'Mark as unresolved' : 'Mark as resolved'), onSelect: () => void after(run('comment.resolve', { id: thread.id, resolved: !thread.resolved })) },
-    ...(thread.author === me ? [{ label: t('Delete thread'), onSelect: () => void after(run('comment.delete', { id: thread.id })).then(() => openThread(null)) }] : []),
+    ...(thread.author === me ? [{ label: t('Delete thread'), onSelect: () => void after(run('comment.delete', { id: thread.id })).then(() => closeThread(thread.id)) }] : []),
   ]
   return (
     <Popover spot={spot} rect={rect} testId="design-comment-thread" zIndex={zIndex}>
@@ -542,12 +550,17 @@ export function CommentsLayer() {
             placeholder={t('Add a comment')}
             people={names}
             me={me}
-            onPost={(text) =>
-              void run<{ id?: number }>('comment.add', { x: draft.x, y: draft.y, text, anchor: true }).then(async (answer) => {
+            onPost={(text) => {
+              // The post closes its draft and opens its thread only if the person has not acted
+              // since: every press on the canvas, pin click, Escape, Close, opened thread or new
+              // draft replaces `state.draft`, so this draft's object still being there means
+              // nothing happened (no timing involved).
+              const posting = draft
+              void run<{ id?: number }>('comment.add', { x: posting.x, y: posting.y, text, anchor: true }).then(async (answer) => {
                 await refresh()
-                setState({ draft: null, open: typeof answer?.id === 'number' ? answer.id : null })
+                if (state.draft === posting) setState({ draft: null, open: typeof answer?.id === 'number' ? answer.id : null })
               })
-            }
+            }}
             testId="design-comment-draft-text"
           />
         </Popover>
