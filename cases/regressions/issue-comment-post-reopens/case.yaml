@@ -7,7 +7,8 @@ intent: >-
   thread, so a press on the canvas made meanwhile (which closes the draft, and with the Comment
   tool starts a new one) was undone, the new draft vanished, the thread popped open, and the next
   Escape closed that thread instead of doing what the person meant. The browser test holds the
-  engine's answer to comment.add until the press is done, so the order is the same on every run.
+  editor's refresh after comment.add until the press is done, so the order is the same on every
+  run.
 layer: gate
 dimension: function
 source:

@@ -364,57 +364,64 @@ try {
   await page.keyboard.press('Enter')
   await until(async () => (await count()) === had + 1)
   step('Enter posts the draft as a thread', (await count()) === had + 1)
-  // The post opens its thread once the editor has refreshed after the engine took it; until then a
-  // press on the canvas cannot close it, and the Escape below would close it instead of leaving Focus.
+  // With nothing else done, the post opens its thread once the editor has refreshed after the
+  // engine took it.
   await until(async () => (await kit.getByTestId('design-comment-thread').count()) === 1)
   step('the posted thread opens', (await kit.getByTestId('design-comment-thread').count()) === 1)
-  // A press on the canvas while a post is on its way wins: the posted thread stays closed
-  // (regressions/issue-comment-post-reopens). The engine's answer to `comment.add` is held until
-  // the press is done, so the order is the same on every run.
+  // A press on the canvas while a post is on its way wins: the posted thread stays closed and the
+  // press's own result stays (regressions/issue-comment-post-reopens). The editor's refresh after
+  // the engine took the comment is held until the press is done, so the order is the same on
+  // every run.
   await page.keyboard.press('Escape')
   await page.mouse.click(spot.x + 60, spot.y + 40)
   await until(async () => (await kit.getByTestId('design-comment-draft').count()) === 1)
   await kit.getByTestId('design-comment-draft-text').fill('Another note')
   await designKit(() => {
     const doc = window.designKit.doc
-    const execute = doc.execute
-    const hold = { held: false }
+    const { execute, tool } = doc
+    const hold = { added: false, held: false }
     hold.gate = new Promise((resolve) => {
       hold.release = resolve
     })
     doc.execute = async function (command, ...rest) {
-      if (command !== 'comment.add') return execute.call(this, command, ...rest)
-      doc.execute = execute
-      hold.held = true
-      await hold.gate
-      return execute.call(this, command, ...rest)
+      const answer = await execute.call(this, command, ...rest)
+      if (command === 'comment.add') {
+        doc.execute = execute
+        hold.added = true
+      }
+      return answer
+    }
+    // The editor's refresh is the settled `tool` call with no arguments (DesignKit.refresh).
+    doc.tool = async function (name, args, ...rest) {
+      if (hold.added && name === 'tool' && Array.isArray(args) && args.length === 0) {
+        doc.tool = tool
+        hold.held = true
+        await hold.gate
+      }
+      return tool.call(this, name, args, ...rest)
     }
     window.commentPostHold = hold
   })
   await page.keyboard.press('Enter')
   await until(async () => (await designKit(() => window.commentPostHold.held)) === true)
-  step('the post waits for the engine', (await designKit(() => window.commentPostHold.held)) === true)
+  step('the post waits for the editor to refresh', (await designKit(() => window.commentPostHold.held)) === true && (await count()) === had + 2)
   // The person presses elsewhere on the canvas: the Comment tool starts a new draft there.
   await page.mouse.click(spot.x - 120, spot.y + 80)
   const newDraft = async () => (await kit.getByTestId('design-comment-draft').count()) === 1 && (await kit.getByTestId('design-comment-draft-text').inputValue()) === ''
   await until(newDraft)
   step('a press while the post is on its way starts a new draft', await newDraft())
+  // Release the refresh and wait until it has settled (the editor's local revision moves when it
+  // does; the post acts right after it, before React draws), then two frames for React to draw.
+  const settled = () => Number(String(window.designKit.revision).split('.').pop())
+  const refreshes = await designKit(settled)
   await designKit(() => window.commentPostHold.release())
-  await until(async () => (await count()) === had + 2)
-  // The editor's refresh after the post began before this one, so once this one has settled the
-  // post has done all it does; two frames let React draw it.
-  await designKit(async () => {
-    await window.designKit.refresh()
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-  })
+  await until(async () => (await designKit(settled)) > refreshes)
+  await designKit(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  step('the post leaves the new draft open and its thread closed', (await kit.getByTestId('design-comment-draft').count()) === 1 && (await kit.getByTestId('design-comment-thread').count()) === 0, `drafts ${await kit.getByTestId('design-comment-draft').count()}, threads ${await kit.getByTestId('design-comment-thread').count()}`)
   const posted = (await designKit(async () => (await window.designKit.query('comments', { page: 'all' })).comments))?.find((c) => c.text === 'Another note')?.id
   const postedPin = kit.getByTestId(`design-comment-pin-${posted}`)
   await until(async () => (await postedPin.count()) === 1)
-  step(
-    'the post leaves its thread closed and the new draft open',
-    typeof posted === 'number' && (await postedPin.count()) === 1 && (await postedPin.getAttribute('data-open')) === null && (await kit.getByTestId('design-comment-thread').count()) === 0 && (await kit.getByTestId('design-comment-draft').count()) === 1,
-    `pin ${posted} open=${await postedPin.getAttribute('data-open').catch(() => 'none')}, threads ${await kit.getByTestId('design-comment-thread').count()}, drafts ${await kit.getByTestId('design-comment-draft').count()}`,
-  )
+  step('its pin shows, not open', typeof posted === 'number' && (await postedPin.count()) === 1 && (await postedPin.getAttribute('data-open')) === null, `pin ${posted}`)
   await page.keyboard.press('Escape')
   await until(async () => (await kit.getByTestId('design-comment-draft').count()) === 0)
   step('Escape then closes the new draft and opens nothing', (await kit.getByTestId('design-comment-draft').count()) === 0 && (await kit.getByTestId('design-comment-thread').count()) === 0)
