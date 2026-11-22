@@ -425,8 +425,10 @@ try {
   await page.keyboard.press('Escape')
   await until(async () => (await kit.getByTestId('design-comment-draft').count()) === 0)
   step('Escape then closes the new draft and opens nothing', (await kit.getByTestId('design-comment-draft').count()) === 0 && (await kit.getByTestId('design-comment-thread').count()) === 0)
+  // The engine takes the tool change after the editor's next render: until then a press on the
+  // canvas is still the Comment tool's and starts a draft (which the Escape below would close).
   await designKit(() => window.designKit.tools.select('move'))
-  console.log(`NOTE after the comments: ${JSON.stringify(await designKit(() => ({ active: window.designKit.tools.active, tool: window.designKit.inspect.tool, selection: window.designKit.inspect.selection.length, focus: document.activeElement?.tagName })))}`)
+  await until(async () => (await inspect()).tool === 'move')
 
   // View > Panels > Show/Hide UI is kit-editor's Focus display (designKit.platform.display-modes/show-hide-ui);
   // with nothing selected, Escape leaves it.
@@ -457,6 +459,9 @@ try {
     // Who stops it: the stack of the first stopPropagation on an Escape key.
     const stop = Event.prototype.stopPropagation
     window.focusEscapeStopper = 'none'
+    window.focusEscapeRestore = () => {
+      Event.prototype.stopPropagation = stop
+    }
     Event.prototype.stopPropagation = function () {
       if (this.type === 'keydown' && this.key === 'Escape' && window.focusEscapeStopper === 'none') {
         window.focusEscapeStopper = (new Error().stack ?? '').split("\n").slice(1, 9).map((line) => line.trim().replace(/https?:\/\/[^/]+/, '').replace(/\?[^:]*/, '')).join(' < ')
@@ -469,6 +474,7 @@ try {
   })
   await page.keyboard.press('Escape')
   const focusLeft = await until(async () => (await frameApp.getAttribute('data-mode')) === modeBefore)
+  await designKit(() => window.focusEscapeRestore())
   const where = await designKit(() => ({
     escape: window.focusEscape,
     early: window.focusEscapeEarly,
