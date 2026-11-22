@@ -10,7 +10,7 @@
 | `kit.json` | The kit manifest (KHP) |
 | `agent/` | The agent guide and checks (KHP) |
 | `conformance/` | KHP conformance fixtures |
-| `features.yaml`, `cases/` | The feature catalogue and its gate cases ([quality.md](quality.md)) |
+| `features.yaml`, `cases/` | The feature catalogue and its gating tests ([quality.md](quality.md)) |
 | `README.md`, `CHANGELOG.md`, `AGENTS.md` | Overview, release notes, rules for agents and contributors |
 | `docs/` | This guide, [architecture](architecture.md), [gaps](gaps.md), [roadmap](roadmap.md), [quality](quality.md), [attribution](attribution.md), [writing format](writing-format.md); target-app parity in `parity/`, feature notes in `features/` |
 | `examples/` | Sample `.kdesign` documents (the binding tests open some of them) |
