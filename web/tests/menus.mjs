@@ -364,6 +364,10 @@ try {
   await page.keyboard.press('Enter')
   await until(async () => (await count()) === had + 1)
   step('Enter posts the draft as a thread', (await count()) === had + 1)
+  // The post opens its thread once the editor has refreshed after the engine took it; until then a
+  // press on the canvas cannot close it, and the Escape below would close it instead of leaving Focus.
+  await until(async () => (await kit.getByTestId('design-comment-thread').count()) === 1)
+  step('the posted thread opens', (await kit.getByTestId('design-comment-thread').count()) === 1)
   await designKit(() => window.designKit.tools.select('move'))
 
   // View > Panels > Show/Hide UI is kit-editor's Focus display (designKit.platform.display-modes/show-hide-ui);
