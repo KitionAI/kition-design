@@ -7,11 +7,10 @@ use kition_kit::kdm::Schema;
 use kition_kit_server::{ErrorReason, RpcError};
 
 /// Where a `.kdesign` file keeps the design's replica (`docs/features/kdm.md` section 3): its
-/// `kdm/` entries, `snapshot.bin` and the change entries `meta.json` lists. A fork's file holds the
-/// SDK's copy as `snapshot.bin` alone, with `meta.json`'s copy of the docId the copy's
-/// (`kition_design_kdm::file::fork_entries`), no version history or branches, and only the images
-/// its state, its `document.json` and its published library use
-/// (`kition_design_format::replace_replica`).
+/// `kdm/` entries, `content.bin` (the sealed content snapshot: no history) and `meta.json` naming
+/// the document. A fork's file holds the copy's content, with `meta.json`'s docId the copy's
+/// (`kition_design_kdm::file::fork_entries`), no branches, and only the images its state and its
+/// published library use (`kition_design_format::replace_replica`).
 pub struct DesignFiles(Arc<Schema>);
 
 impl DesignFiles {
@@ -30,8 +29,8 @@ impl kition_headless::EmbeddedReplica for DesignFiles {
         Arc::clone(&self.0)
     }
 
-    /// The snapshot with the listed changes imported, or `None` for a file without replica entries
-    /// (an empty file, a `.kdesign` written without the bridge, a bare `document.json`, an import).
+    /// The file's content snapshot, or `None` for a file without replica entries (an empty file,
+    /// an import).
     fn replica(&self, file: &[u8]) -> Result<Option<Vec<u8>>, RpcError> {
         let entries = kition_design_format::replica_entries(file).map_err(unsupported)?;
         kition_design_kdm::file::embedded_replica(&entries).map_err(unsupported)

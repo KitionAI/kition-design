@@ -113,9 +113,9 @@ async fn library_point_writes_hold_an_existing_local_main() {
             .unwrap();
             let basis = f.basis().await;
             if necessary {
-                let mut file = kition_design_format::load_bytes_with_versions(&f.bytes()).unwrap();
+                let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
                 file.doc.get_mut(kition_design_doc::NodeId(local)).unwrap().width += 50.0;
-                let bytes = kition_design_format::save_bytes_with_history(&file.doc, None, &file.versions, &file.branches).unwrap();
+                let bytes = kition_design_format::save_edited(&file, None).unwrap();
                 std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
             } else {
                 f.colleague(&[("node.set", json!({"id":f.b,"props":{"opacity":0.5}}))]);
@@ -369,16 +369,16 @@ async fn normalization_search_and_layout_dependencies_are_held() {
 #[tokio::test(flavor = "multi_thread")]
 async fn stored_resources_and_nested_setters_hold_their_inputs() {
     let mut failures = Vec::new();
-    for family in ["mode-copy", "default-mode", "style-name", "folder", "nested-action", "history", "new-child"] {
+    // (No "history" family: saved versions are a session's, never in the file a colleague writes.)
+    for family in ["mode-copy", "default-mode", "style-name", "folder", "nested-action", "new-child"] {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
             let setup = rewrite(&f, |d| {
                 let c = d.execute("variable.createCollection", json!({"name":"Counts","modes":["Day","Night"]})).unwrap()["id"].clone();
                 let v = d.execute("variable.create", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
                 let dest = d.execute("variable.create", json!({"collection":c,"name":"result","type":"number","value":0})).unwrap()["id"].clone();
-                let version = d.execute("file.saveVersion", json!({"name":"Original"})).unwrap()["id"].clone();
                 d.execute("style.update", json!({"style":f.style,"name":"Folder/Accent"})).unwrap();
-                json!({"collection":c,"variable":v,"dest":dest,"version":version})
+                json!({"collection":c,"variable":v,"dest":dest})
             });
             let basis = f.basis().await;
             if necessary {
@@ -393,7 +393,6 @@ async fn stored_resources_and_nested_setters_hold_their_inputs() {
                         ("variable.update", json!({"variable":setup["variable"],"name":"away"})),
                         ("variable.create", json!({"collection":setup["collection"],"name":"count","type":"number","value":9})),
                     ]),
-                    "history" => f.colleague(&[("version.rename", json!({"id":setup["version"],"name":"Colleague"}))]),
                     _ => f.colleague(&[("node.create", json!({"parent":f.frame,"type":"rectangle","width":10,"height":10}))]),
                 }
             } else {
@@ -408,7 +407,6 @@ async fn stored_resources_and_nested_setters_hold_their_inputs() {
                     "node.set",
                     json!({"id":f.a,"props":{"interactions":[{"trigger":{"type":"onClick"},"actions":[{"type":"setVariable","variable":setup["dest"],"value":0,"expr":{"value":{"type":"alias","value":"count"}}}]}]}}),
                 ),
-                "history" => ("version.rename", json!({"id":setup["version"],"name":"Agent"})),
                 _ => ("node.set", json!({"id":f.frame,"props":{"width":900}})),
             };
             let answer = f.write(&basis, command, params).await;
@@ -517,44 +515,6 @@ async fn pinned_sdk_root_position_hold_also_conflicts_with_parent_size() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn restoring_a_version_holds_its_snapshot_not_just_its_label() {
-    for necessary in [true, false] {
-        let f = Fixture::new(Guard::Premise);
-        let version = rewrite(&f, |d| d.execute("file.saveVersion", json!({"name":"Original"})).unwrap())["id"].clone();
-        let basis = f.basis().await;
-        if necessary {
-            let mut file = kition_design_format::load_bytes_with_versions(&f.bytes()).unwrap();
-            let old = &file.versions[0];
-            let mut snapshot = (*old.document().unwrap()).clone();
-            snapshot.get_mut(kition_design_doc::NodeId(f.a)).unwrap().name = "Replaced snapshot".into();
-            file.versions[0] = kition_design_format::Version::new(&old.id, &old.name, &old.description, old.time, std::sync::Arc::new(snapshot));
-            let bytes = kition_design_format::save_bytes_with_replica(&file.doc, None, &file.versions, &file.branches, &file.replica).unwrap();
-            std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
-        } else {
-            f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
-        }
-        outcome(&f, &basis, "version.restore", json!({"id":version}), necessary).await;
-        f.shutdown().await;
-    }
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn restoring_a_version_holds_the_styles_it_replaces() {
-    for necessary in [true, false] {
-        let f = Fixture::new(Guard::Premise);
-        let version = rewrite(&f, |d| d.execute("file.saveVersion", json!({"name":"Original"})).unwrap())["id"].clone();
-        let basis = f.basis().await;
-        if necessary {
-            f.colleague(&[("style.update", json!({"style":f.style,"description":"Colleague"}))]);
-        } else {
-            f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
-        }
-        outcome(&f, &basis, "version.restore", json!({"id":version}), necessary).await;
-        f.shutdown().await;
-    }
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn publishing_holds_the_previous_asset_snapshot_not_only_its_manifest() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
@@ -564,11 +524,11 @@ async fn publishing_holds_the_previous_asset_snapshot_not_only_its_manifest() {
         });
         let basis = f.basis().await;
         if necessary {
-            let mut file = kition_design_format::load_bytes_with_versions(&f.bytes()).unwrap();
+            let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
             let publication = std::sync::Arc::make_mut(file.doc.published.as_mut().unwrap());
             let snapshot = std::sync::Arc::make_mut(&mut publication.doc);
             snapshot.styles.iter_mut().find(|s| json!(s.id) == f.style).unwrap().name = "Replaced snapshot".into();
-            let bytes = kition_design_format::save_bytes_with_replica(&file.doc, None, &file.versions, &file.branches, &file.replica).unwrap();
+            let bytes = kition_design_format::save_edited(&file, None).unwrap();
             std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
         } else {
             f.colleague(&[("node.set", json!({"id":f.b,"props":{"opacity":0.5}}))]);

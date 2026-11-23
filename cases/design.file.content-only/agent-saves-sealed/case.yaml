@@ -1,0 +1,18 @@
+format: 1
+id: design.file.content-only/agent-saves-sealed
+feature: design.file.content-only
+intent: >-
+  The headless kit seals a design before it saves it, so the file an agent's batches write holds the content and, of the history, only the seal (an overwritten name is in no file), and its document id and forks follow the content.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/identity.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: identity }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-22"

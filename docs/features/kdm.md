@@ -27,7 +27,7 @@ Schema version 1 is the first release's (task schema-freeze, 2026-11-22): every 
 person edits piece by piece is a container from the start (a text, a list of objects, a map),
 since an object type can never gain a container field later. A replica of an earlier schema
 (the development versions 1 to 4, which kept a text and the paint lists as registers) does not
-open: a file that holds one opens from its `document.json` with a new replica (no migration).
+open (no migration).
 
 `crates/kdm/kdm-model/model/schema.json`:
 
@@ -322,50 +322,57 @@ different fields both apply; a paragraph split or merge concurrent with typing k
 
 ## 3. The `.kdesign` file under the KDM
 
-The convention (kition-layout `.klayout`, kition-board `.kboard`): a kit's own format carries
-its replica, so identity and history travel with the file and a headless agent opens the same
-replica a person edits. `.kdesign` does so, inside its zip:
+A `.kdesign` holds the design's **content**, not its history (kition-sdk data model 7.3, rule
+M16b; task schema-freeze section 4): the replica's sealed content snapshot is the one authority
+for what the design holds. The history (every change, deleted content, who did what) is the
+replica the host stores (`.kition/docs/<docId>/`, the Kit UI protocol's `host/replicaRead` and
+`host/replicaWrite`), never the file. Inside its zip:
 
 | Entry | Content |
 | --- | --- |
-| `document.json`, `images/<sha256>`, `versions/`, `branches/`, the published library, `thumbnail.png` | the document as `crates/formats/format` writes it |
-| `kdm/meta.json` | `{ "format": "kition.design-replica", "formatVersion": 1, "kdm": 1, "schemaVersion": 1, "docId", "changes": [entry names] }` |
-| `kdm/snapshot.bin` | a KDM snapshot envelope (M16, M17) at the last compaction |
-| `kdm/changes/<seq>.bin` | KDM change envelopes in replay order (`000001`, …) |
+| `kdm/meta.json` | `{ "format": "kition.design-content", "formatVersion": 1, "kit": "kit.design", "kdm": 1, "schemaVersion": 1, "docId" }`: what identifies the content, nothing else |
+| `kdm/content.bin` | the replica's sealed content snapshot (`Replica::sealed_content_snapshot`): its state, and of its history one `system` change labelled `content-seal` |
+| `images/<sha256>` | the blobs the content's `Image` objects name (and those the branches and the published library use) |
+| `thumbnail.png` | a picture of the first page, rendered on save (left as it was; the owner has not decided whether files keep one) |
+| `branches/` | the file's branches as document JSON (left as they were; the owner has not decided whether branches stay) |
+| `library/` | the published library (manifest, snapshot, images), when the file was published |
 
-- The blobs are the file's own `images/<sha256>` entries: the KDM blob hash is the same SHA-256.
-- **Open**: load the snapshot, import the listed changes in order, repair once; then the
-  file's `document.json` is recorded on top as one `import` transaction (not an undo step), which
-  writes nothing when the replica already holds it. So a file edited by a tool that does not know
-  the replica opens as its `document.json` says, under the replica's identity.
-  A file without `kdm/` entries (the examples, `.fig` and REST imports, files written by tools
-  without the bridge) gets a new replica written in its creating transaction (P2).
-- **Save** re-emits the snapshot and the change entries it read or wrote, appends one entry with
-  the changes since (P5), and compacts (a fresh snapshot, no entries) when the entries exceed 200
-  or their bytes pass a quarter of the snapshot's size (kition-layout's thresholds), never for a
-  log under 64 KiB. `document.json` is still
-  written in full: it is what other readers of `.kdesign` read (library consumers, Kition's file
-  previews), and versions, branches and the published library live beside it.
-  This is the one place a save writes the whole document (P5 gap, section 10).
-- `openWithReplica(name, bytes, snapshot, blobs)`: a `.kdesign` that carries `kdm/` entries opens
-  with its own replica (the file wins, as `.klayout`); otherwise the host's stored replica opens
-  and the file is recorded on top as one `import` transaction (as kition-vector); empty `bytes`
-  open the replica alone (a sync room's snapshot) and fail rather than fall back.
+There is no `document.json`, no change log, no compaction and no `versions/`: saved versions are
+the session's (`DocState::versions`) until the host offers kits a store for labelled checkpoints
+(section 10).
+
+- **Open**: load `content.bin` (refused as damaged when it is missing or `meta.json` names
+  another docId), repair once, read the document from it. The engine's bridge opens the same
+  content as the document's replica: the same docId and object ids, of the history only the seal.
+- **Save**: hosts call `prepareSave` first (engine contract E4): the session's committed edits are
+  written and the replica is sealed, a `system` change that is no undo step (an undo after it takes
+  back the last person's or agent's step). The save writes the replica's sealed content snapshot,
+  the same bytes while the design is at the file's version. One fallback, until the kit editor's
+  release that calls `prepareSave` is in `web/pnpm-lock.yaml`: a save nobody sealed for writes the
+  content of a copy sealed under an actor derived from the version, and `markSaved` imports that
+  seal (`kition_design_kdm::file::save`). A document the bridge never held (the engine's own tests,
+  `kition_design_format::save_bytes`) is written as a new replica of it, sealed.
+- `openWithReplica(name, bytes, snapshot, blobs)`: a `.kdesign` of the same document as the
+  host's stored replica is taken into it (`kition_kit::session::take_file`): nothing when the
+  replica has the file's version, the file's changes when its history starts at a version the
+  replica has, else its state as one `system` transaction keyed by object id. The stored history
+  stays. A `.kdesign` of another document opens with its own content; a file that does not open
+  gives way to the stored replica; any other file opens on the stored replica, recorded on top as
+  one `import` transaction; empty `bytes` open the replica alone (a sync room's snapshot).
 - **Identity and forks** (Kit Process Protocol 5.6, KitModel M7a; `kition_design_kdm::file::embedded_replica`
   and `fork_entries`, `kition_design_format::replica_entries` and `replace_replica`, served as
-  `document.identity` and `document.fork`): the file embeds its replica, so a byte copy is the
-  same document. Its identity is the docId of the snapshot with the listed changes imported
-  (`meta.json`'s copy must agree, or the file is damaged); a file without `kdm/` entries has none.
-  A fork writes the SDK's copy under a new docId (no history) as `snapshot.bin`, no change
-  entries, `meta.json`'s `docId` the copy's, no `versions/` or `branches/` (earlier versions of
-  the document), and only the images the copy's state, `document.json` and the published library
-  use; `document.json`, the thumbnail, the published library and unknown entries are copied as
-  they are.
+  `document.identity` and `document.fork`): a byte copy of a file is the same document; its
+  identity is the content's docId. A fork writes the copy's content under a new docId, no
+  `branches/`, only the images the copy's state and the published library use; the thumbnail, the
+  published library and unknown entries are copied as they are.
+- **Another program's edit**: `kition_design_format::save_edited` writes a `.kdesign` read and
+  edited as a document as the same document, its replica taking the edit as one `import`
+  transaction (`kition_design_kdm::file::rewrite`).
 - **Read again after another program saved it** (kition-sdk `reconcile_reread`): a clean design
   keeps its replica, its undo histories and its editor state. What the file holds differently is
   written as one `import` transaction (`file reread`), outside both undo scopes, so each undo step
-  still takes back only its own change; versions, branches and the published library are the
-  file's. The editor state saved before the reread must resolve on the file as read again: a
+  still takes back only its own change; branches and the published library are the file's, the
+  saved versions the session's. The editor state saved before the reread must resolve on the file as read again: a
   deleted page, selected layer, edit-mode layer, Dev Mode focus or guide holder is refused with
   its reason (`deleted active target <id>`) and the previous session stays.
 
@@ -537,7 +544,7 @@ session's random id space, so the layers a seed picks differ from run to run.
 | F3 | A text layer's characters are `Node.text`, a KDM `text` with one mark per style field (absolute values) and the list mark on each paragraph's break, the final break included (section 2.4); `kind` keeps the box settings. Superseded: the characters, runs and paragraphs in the `kind` register (two people typing kept one text) | kition-layout (`Story.text` with marks, the final break) |
 | F4 | Engine ids are data, minted in a per-session id space; no translation of references | deviation from kition-vector (which translates ids); the engine's own collaboration ids (`set_client_id`) make it safe, and a missed reference site cannot point at the wrong layer on another replica |
 | F5 | Comments on M23's reserved types | M23, kition-layout (comments declared up front) |
-| F6 | The replica lives in the `.kdesign` file under `kdm/`, beside `document.json`, sharing `images/` as blobs | kition-layout `.klayout` (replica in the file), kition-photo `.kphoto` (`kdm.bin` beside the document) |
+| F6 | The `.kdesign` file holds the replica's sealed content snapshot under `kdm/` (no `document.json`, no history), sharing `images/` as blobs; the history is the host's stored replica. Superseded: the full snapshot and a change log beside `document.json` | kition-board `.kboard` (content file, 4a37af5), kition-sdk data model 7.3 (M16b) |
 | F7 | Derived edits (auto layout, text fit, group fit, instance propagation, bindings) only in local commands | design note 4.4 (autoflow never after a merge) |
 | F8 | Undo steps carry their scope; an undo of one scope keeps the other's later work | M12a |
 | F9 | The bridge is off in the engine's own tests and on in the bindings | kition-vector (replica made by the binding's calls) |
@@ -558,7 +565,12 @@ session's random id space, so the layers a seed picks differ from run to run.
 - A paint's value (and an effect's) is one register: two people changing one paint's colour and
   its opacity at once keep one of the two (the paint is a property bag, split later without a
   container).
-- A save rewrites `document.json` (P5 for the replica, not for the file's readable copy).
+- Saved versions (`file.saveVersion`, autosaves) live in the session only: the file holds no
+  history, and the host's history store (`history.json` in `.kition/docs/<docId>/`) records its
+  own unlabelled checkpoints on `host/replicaWrite` but offers a kit no way to record a labelled
+  checkpoint or to list and read them. Until it does, a design's versions are gone once it closes.
+- `current_page` (the page the editor shows) is not in the file either: a reopened design opens on
+  its first page (the host has no place for a kit's view state yet).
 - The blob store keeps every image added in the session (no collection of blobs only old undo
   steps need, unlike kition-vector's `blob_gc`).
 - The engine's own live session (`sharing/live`, its server protocol) is separate from the KDM and

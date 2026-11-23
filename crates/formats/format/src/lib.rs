@@ -1,18 +1,16 @@
 //! The native `.kdesign` format.
 //!
-//! A zip archive holding `document.json` (the [`Document`] as JSON, with a `format`/`version`
-//! header; layer fields at their default values are left out and read back as those defaults),
-//! `images/<sha256>` for every image the document (or a saved version) uses, an optional
-//! `thumbnail.png` and an optional version history: `versions/index.json` (`{"versions": [{id,
-//! name, description, time, images}]}`, oldest first) plus one `versions/<id>.json` snapshot per
-//! version (a `document.json` of its own). Branches are kept the same way: `branches/index.json`
-//! (`{"branches": [{id, name, time, client, state, baseImages, headImages}]}`) plus
-//! `branches/<id>/base.json` and `branches/<id>/head.json`; a branch's own version history is
-//! kept like the file's, under `branches/<id>/versions/`. A published file also holds its
-//! library (see [`library`]). Readers that don't know about versions, branches or libraries
-//! ignore those entries. Plain
-//! JSON (the `document.json` alone) also opens. Reading is lenient: structural problems are
-//! repaired (see [`Document::repair`]) and reported, damaged versions and libraries are skipped.
+//! A zip archive holding the document's **content** (kition-sdk data model 7.3, rule M16b): its
+//! `kit.design` replica's sealed content snapshot (`kdm/content.bin`, with `kdm/meta.json`
+//! naming the document; [`kition_design_kdm::file`]), `images/<sha256>` for every image the
+//! content (or a branch, or the published library) uses, and an optional `thumbnail.png`. No
+//! history: no change log, no saved versions (the host's history store keeps checkpoints). Branches
+//! are kept as JSON documents: `branches/index.json` (`{"branches": [{id, name, time, client,
+//! state, baseImages, headImages}]}`) plus `branches/<id>/base.json` and `branches/<id>/head.json`;
+//! a branch's own version history is kept under `branches/<id>/versions/` (`index.json` and one
+//! `<id>.json` per version). A published file also holds its library (see [`library`]). Reading
+//! is lenient: damaged branches and libraries are skipped and reported; a file without its content
+//! is damaged.
 //!
 //! [`rest`] imports the public REST API file JSON; [`fig`] imports `.fig` files (best effort).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -30,6 +28,7 @@ use std::io::{Read, Seek, Write};
 use std::sync::Arc;
 
 use kition_design_doc::{Document, ImageData};
+use kition_design_kdm::kition_kit::session::MemoryBlobs;
 use serde::de::{Deserializer, IgnoredAny, MapAccess, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{Value, json};
@@ -40,16 +39,7 @@ pub const FORMAT: &str = "kdesign";
 pub const VERSION: u32 = 1;
 /// Largest archive member we read (guards against zip bombs).
 const MAX_MEMBER: u64 = 512 * 1024 * 1024;
-/// `document.json` may unpack to [`DOCUMENT_RATIO`] times what it takes in the archive, within
-/// [`MAX_MEMBER`] and [`MAX_DOCUMENT`]: a large document saved by us (a 900 000-layer file packs
-/// 1.48 GB into 244 MB) opens again, while a small archive still can't unpack into gigabytes.
-/// 32-bit targets (wasm32) have a 4 GB address space in all, so their ceiling is lower.
-const DOCUMENT_RATIO: u64 = 16;
-#[cfg(not(target_pointer_width = "32"))]
-const MAX_DOCUMENT: u64 = 4 * 1024 * 1024 * 1024;
-#[cfg(target_pointer_width = "32")]
-const MAX_DOCUMENT: u64 = 1024 * 1024 * 1024;
-/// Most versions a file keeps: saving more is refused, extra entries in a file are skipped.
+/// Most versions a document (and a branch) keeps: more are refused, extra entries in a file skipped.
 pub const MAX_VERSIONS: usize = 100;
 /// Longest version name and description kept (chars).
 pub const MAX_VERSION_NAME: usize = 200;
@@ -183,23 +173,22 @@ pub fn clip(s: &str, max: usize) -> String {
     s.chars().take(max).collect()
 }
 
-/// A file as read: the document, the repairs made (and versions skipped), and its version
-/// history, oldest first.
+/// A file as read: the document, the repairs made (and branches skipped), its branches and its
+/// replica entries.
 #[derive(Debug)]
 pub struct Loaded {
     pub doc: Document,
     pub issues: Vec<String>,
-    pub versions: Vec<Version>,
     pub branches: Vec<Branch>,
     pub images_past_budget: usize,
-    /// The file's Kition KDM replica entries (`kdm/…`, name and bytes), as saved beside the
-    /// document; this crate only carries them (the engine's bridge reads them).
+    /// The file's Kition KDM replica entries (`kdm/meta.json`, `kdm/content.bin`): the content
+    /// the document was read from, which the engine's bridge opens as the document's replica.
     pub replica: Vec<(String, Vec<u8>)>,
 }
 
 impl From<Document> for Loaded {
     fn from(doc: Document) -> Self {
-        Self { doc, issues: Vec::new(), versions: Vec::new(), branches: Vec::new(), images_past_budget: 0, replica: Vec::new() }
+        Self { doc, issues: Vec::new(), branches: Vec::new(), images_past_budget: 0, replica: Vec::new() }
     }
 }
 
@@ -561,44 +550,59 @@ pub(crate) fn json_options() -> zip::write::SimpleFileOptions {
     zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Some(JSON_LEVEL))
 }
 
-/// Write a `.kdesign` archive to bytes.
+/// Write a `.kdesign` archive to bytes: `doc`'s content in a new replica (a new document id; the
+/// engine saves its own replica's content with [`save_bytes_with_replica`]).
 pub fn save_bytes(doc: &Document, thumbnail_png: Option<&[u8]>) -> Result<Vec<u8>, FormatError> {
-    save_bytes_with_versions(doc, thumbnail_png, &[])
+    save_bytes_with_branches(doc, thumbnail_png, &[])
 }
 
-/// Write a `.kdesign` archive with a version history (oldest first) to bytes.
-pub fn save_bytes_with_versions(doc: &Document, thumbnail_png: Option<&[u8]>, versions: &[Version]) -> Result<Vec<u8>, FormatError> {
-    save_bytes_with_history(doc, thumbnail_png, versions, &[])
+/// Write a `.kdesign` archive with branches to bytes ([`save_bytes`]).
+pub fn save_bytes_with_branches(doc: &Document, thumbnail_png: Option<&[u8]>, branches: &[Branch]) -> Result<Vec<u8>, FormatError> {
+    save_bytes_with_replica(doc, thumbnail_png, branches, &[])
 }
 
-/// Write a `.kdesign` archive with a version history (oldest first) and branches to bytes.
-pub fn save_bytes_with_history(
-    doc: &Document,
-    thumbnail_png: Option<&[u8]>,
-    versions: &[Version],
-    branches: &[Branch],
-) -> Result<Vec<u8>, FormatError> {
-    save_bytes_with_replica(doc, thumbnail_png, versions, branches, &[])
+/// The content entries of `doc` when no replica holds it: a new replica of it, sealed. Numbers
+/// that are not finite are written as 0, as `document.json` used to write them.
+fn content_of(doc: &Document) -> Result<Vec<(String, Vec<u8>)>, FormatError> {
+    let mut json = Vec::new();
+    write_json(doc, &mut json)?;
+    let (mut clean, _) = from_json(std::str::from_utf8(&json).map_err(io_err)?)?;
+    clean.images.clone_from(&doc.images);
+    clean.published.clone_from(&doc.published);
+    kition_design_kdm::file::content_entries(&Arc::new(clean)).map_err(io_err)
 }
 
-/// [`save_bytes_with_history`] with the document's Kition KDM replica entries (`kdm/…`), written
-/// stored as they are.
+/// [`save_bytes_with_branches`] holding `replica` (the entries of the document's replica,
+/// `kition_design_kdm::file::save`) as its content; with none, `doc`'s content in a new replica.
+/// Of the images, those of `doc` (the content's), of the branches and of the published library.
 pub fn save_bytes_with_replica(
     doc: &Document,
     thumbnail_png: Option<&[u8]>,
-    versions: &[Version],
     branches: &[Branch],
     replica: &[(String, Vec<u8>)],
 ) -> Result<Vec<u8>, FormatError> {
+    let made;
+    let replica = if replica.is_empty() {
+        made = content_of(doc)?;
+        &made[..]
+    } else {
+        replica
+    };
     let mut buf = std::io::Cursor::new(Vec::new());
     {
         let mut z = zip::ZipWriter::new(&mut buf);
         let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        put_json(&mut z, "document.json", doc)?;
-        // Every image once, whether the document, a version or a branch uses it.
+        for (name, bytes) in replica {
+            if !is_replica_entry(name) {
+                return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
+            }
+            let opts = if name.ends_with(".json") { json_options() } else { stored };
+            put(&mut z, name, opts, bytes)?;
+        }
+        // Every image once, whether the content or a branch uses it.
         let mut written = BTreeSet::new();
         let branch_images = branches.iter().flat_map(|b| [&b.base.images, &b.head.images].into_iter().chain(b.versions.iter().map(Version::images)));
-        for (hash, img) in std::iter::once(&doc.images).chain(versions.iter().map(Version::images)).chain(branch_images).flatten() {
+        for (hash, img) in std::iter::once(&doc.images).chain(branch_images).flatten() {
             if written.insert(hash) {
                 put(&mut z, &format!("images/{hash}"), stored, &img.bytes)?;
             }
@@ -606,7 +610,6 @@ pub fn save_bytes_with_replica(
         if let Some(t) = thumbnail_png {
             put(&mut z, "thumbnail.png", stored, t)?;
         }
-        put_versions(&mut z, "versions", versions)?;
         if !branches.is_empty() {
             let mut ids = BTreeSet::new();
             let mut index = Vec::with_capacity(branches.len());
@@ -626,19 +629,24 @@ pub fn save_bytes_with_replica(
         if let Some(lib) = &doc.published {
             library::write(&mut z, lib, &written)?;
         }
-        for (name, bytes) in replica {
-            if !is_replica_entry(name) {
-                return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
-            }
-            put(&mut z, name, stored, bytes)?;
-        }
         z.finish().map_err(io_err)?;
     }
     Ok(buf.into_inner())
 }
 
-/// Write version history `versions` (oldest first) under `dir`: `<dir>/index.json` and one
-/// `<dir>/<id>.json` snapshot per version. Nothing when there are none.
+/// The file `loaded` (as read) holding its document as it is now (`loaded.doc`, edited by
+/// another program): the same document, its replica taking the edit as one `import` transaction
+/// ([`kition_design_kdm::file::rewrite`]), with its branches.
+pub fn save_edited(loaded: &Loaded, thumbnail_png: Option<&[u8]>) -> Result<Vec<u8>, FormatError> {
+    if loaded.replica.is_empty() {
+        return save_bytes_with_branches(&loaded.doc, thumbnail_png, &loaded.branches);
+    }
+    let entries = kition_design_kdm::file::rewrite(&loaded.replica, &Arc::new(loaded.doc.clone())).map_err(io_err)?;
+    save_bytes_with_replica(&loaded.doc, thumbnail_png, &loaded.branches, &entries)
+}
+
+/// Write a branch's version history `versions` (oldest first) under `dir`: `<dir>/index.json`
+/// and one `<dir>/<id>.json` snapshot per version. Nothing when there are none.
 fn put_versions<W: Write + Seek>(z: &mut zip::ZipWriter<W>, dir: &str, versions: &[Version]) -> Result<(), FormatError> {
     if versions.is_empty() {
         return Ok(());
@@ -665,9 +673,9 @@ fn put_versions<W: Write + Seek>(z: &mut zip::ZipWriter<W>, dir: &str, versions:
     Ok(())
 }
 
-/// Read a `.kdesign` archive (or bare JSON) from bytes. Returns the document and any repairs made.
+/// Read a `.kdesign` archive from bytes. Returns the document and any repairs made.
 pub fn load_bytes(bytes: &[u8]) -> Result<(Document, Vec<String>), FormatError> {
-    load_bytes_with_versions(bytes).map(|l| (l.doc, l.issues))
+    load_bytes_with_branches(bytes).map(|l| (l.doc, l.issues))
 }
 
 /// Read archive member `name`, refusing members larger than `limit` bytes.
@@ -685,11 +693,6 @@ pub(crate) fn read_member<R: Read + Seek>(z: &mut zip::ZipArchive<R>, name: &str
     Ok(data)
 }
 
-/// Largest `document.json` read from an archive of `len` bytes in which it takes `packed`.
-pub(crate) fn document_limit(packed: u64, len: u64) -> u64 {
-    packed.min(len).saturating_mul(DOCUMENT_RATIO).clamp(MAX_MEMBER, MAX_DOCUMENT)
-}
-
 /// How many images, and how many bytes of them together, one file may give.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ImageBudget {
@@ -697,46 +700,43 @@ pub(crate) struct ImageBudget {
     pub bytes: u64,
 }
 
-/// Read a `.kdesign` archive (or bare JSON) with its version history.
-pub fn load_bytes_with_versions(bytes: &[u8]) -> Result<Loaded, FormatError> {
+/// Read a `.kdesign` archive with its branches and replica entries.
+pub fn load_bytes_with_branches(bytes: &[u8]) -> Result<Loaded, FormatError> {
     load_within(bytes, IMAGE_BUDGET)
 }
 
-/// [`load_bytes_with_versions`] reading at most `budget` of images.
+/// [`load_bytes_with_branches`] reading at most `budget` of images.
 pub(crate) fn load_within(bytes: &[u8], budget: ImageBudget) -> Result<Loaded, FormatError> {
-    let trimmed = bytes.iter().position(|b| !b.is_ascii_whitespace()).and_then(|i| bytes.get(i));
-    if trimmed == Some(&b'{') {
-        let text = std::str::from_utf8(bytes).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-        let (doc, issues) = from_json(text)?;
-        return Ok(Loaded { issues, ..Loaded::from(doc) });
-    }
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-    let packed = z.by_name("document.json").map(|f| f.compressed_size()).unwrap_or(0);
-    let limit = document_limit(packed, bytes.len() as u64);
-    let text = String::from_utf8(read_member(&mut z, "document.json", limit)?).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-    let (mut doc, mut issues, own_images) = parse_json(&text)?;
-    let ImagesRead { images, unread, past_budget } = read_images(&mut z, own_images.as_ref(), budget);
-    report_lost_images(&mut issues, &unread, &past_budget, own_images.as_ref(), &images);
+    let mut issues = Vec::new();
+    let replica = read_replica(&mut z, &mut issues);
+    if !replica.iter().any(|(name, _)| name == kition_design_kdm::file::CONTENT) {
+        return Err(FormatError::Corrupt("damaged: the file holds no content (kdm/content.bin)".into()));
+    }
+    let listed = kition_design_kdm::file::image_keys(&replica).map_err(|e| content_error(&e))?;
+    let ImagesRead { images, unread, past_budget } = read_images(&mut z, Some(&listed), budget);
+    let blobs = MemoryBlobs(images.iter().map(|(hash, img)| (hash.clone(), Arc::from(img.bytes.as_slice()))).collect());
+    let mut doc = kition_design_kdm::file::read_content(&replica, blobs).map_err(|e| content_error(&e))?;
+    // New ids continue after the highest one the document holds.
+    doc.set_client_id(0);
+    report_lost_images(&mut issues, &unread, &past_budget, Some(&listed), &doc.images);
     let images_past_budget = past_budget.len();
     match library::read(&mut z, &images, u64::MAX) {
         Ok(lib) => doc.published = lib.map(Arc::new),
         Err(e) => issues.push(format!("the published library was skipped: {e}")),
     }
-    let mut budget = MAX_VERSION_BYTES;
-    let versions = read_versions(&mut z, "versions", &images, &mut issues, &mut budget);
     let branches = read_branches(&mut z, &images, &mut issues);
-    // Images only the version history or branches use stay with them.
-    let branch_images =
-        branches.iter().flat_map(|b| b.base.images.keys().chain(b.head.images.keys()).chain(b.versions.iter().flat_map(|v| v.images().keys())));
-    let history_only: BTreeSet<&String> = versions
-        .iter()
-        .flat_map(|v| v.images().keys())
-        .chain(branch_images)
-        .filter(|h| own_images.as_ref().is_some_and(|o| !o.contains(*h)))
-        .collect();
-    doc.images = images.into_iter().filter(|(h, _)| !history_only.contains(h)).collect();
-    let replica = read_replica(&mut z, &mut issues);
-    Ok(Loaded { doc, issues, versions, branches, images_past_budget, replica })
+    Ok(Loaded { doc, issues, branches, images_past_budget, replica })
+}
+
+/// A content that does not open, as a format error.
+fn content_error(e: &impl std::fmt::Display) -> FormatError {
+    let m = e.to_string();
+    if m.starts_with("newer-version") || m.contains("newer Kition Design") {
+        FormatError::Corrupt(format!("this file was saved by a newer Kition Design ({m})"))
+    } else {
+        FormatError::Corrupt(m)
+    }
 }
 
 /// A safe replica entry name: under `kdm/`, no `..`, no backslash, no empty part.
@@ -759,38 +759,34 @@ pub fn replica_entries(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, FormatErr
 }
 
 /// `bytes` (a `.kdesign` archive) as the file of a new document (`document.fork`): `replica` as
-/// its `kdm/` entries in place of the archive's, no version history and no branches (earlier
-/// versions of the document), and of `images/` only those in `images` (the replica's), those
-/// `document.json` lists as its own and those the published library uses. Every other entry (`document.json`, `thumbnail.png`, the published library,
+/// its `kdm/` entries (the new document's content) in place of the archive's, no branches
+/// (earlier states of the document), and of `images/` only those in `images` (the content's) and
+/// those the published library uses. Every other entry (`thumbnail.png`, the published library,
 /// entries this build does not know) is copied as it is, compressed as it was.
 pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTreeSet<String>) -> Result<Vec<u8>, FormatError> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| FormatError::Corrupt(e.to_string()))?;
     let mut keep = library::used(&mut z)?;
     keep.extend(images.iter().cloned());
-    if z.index_for_name("document.json").is_some() {
-        let text = read_member(&mut z, "document.json", MAX_DOCUMENT)?;
-        let header: Header = serde_json::from_slice(&text).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-        keep.extend(header.images.unwrap_or_default());
-    }
     let mut buf = std::io::Cursor::new(Vec::new());
     {
         let mut out = zip::ZipWriter::new(&mut buf);
-        for index in 0..z.len() {
-            let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-            let name = file.name();
-            let history = name == "versions" || name.starts_with("versions/") || name == "branches" || name.starts_with("branches/");
-            let unused = name.strip_prefix("images/").is_some_and(|hash| !keep.contains(hash));
-            if history || unused || is_replica_entry(name) {
-                continue;
-            }
-            out.raw_copy_file(file).map_err(io_err)?;
-        }
         let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
         for (name, data) in replica {
             if !is_replica_entry(name) {
                 return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
             }
-            put(&mut out, name, stored, data)?;
+            let opts = if name.ends_with(".json") { json_options() } else { stored };
+            put(&mut out, name, opts, data)?;
+        }
+        for index in 0..z.len() {
+            let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
+            let name = file.name();
+            let history = name == "branches" || name.starts_with("branches/");
+            let unused = name.strip_prefix("images/").is_some_and(|hash| !keep.contains(hash));
+            if history || unused || is_replica_entry(name) {
+                continue;
+            }
+            out.raw_copy_file(file).map_err(io_err)?;
         }
         out.finish().map_err(io_err)?;
     }
@@ -1088,8 +1084,6 @@ mod large_tests;
 mod staging_tests;
 #[cfg(test)]
 mod thumbnail_tests;
-#[cfg(test)]
-mod version_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1116,9 +1110,31 @@ mod tests {
         assert_eq!(back.name, "My file");
         assert_eq!(back.node_count(), d.node_count());
         assert!(back.images.contains_key(&hash));
-        // Bare JSON opens too.
+        // The file is the content and its images: no `document.json`, no history.
+        let z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
+        let mut names: Vec<&str> = z.file_names().collect();
+        names.sort_unstable();
+        let image = format!("images/{hash}");
+        assert_eq!(names, [image.as_str(), kition_design_kdm::file::CONTENT, kition_design_kdm::file::META]);
+        // A bare document JSON is not a `.kdesign`.
         let json = serde_json::to_vec(&to_json(&d).unwrap()).unwrap();
-        assert!(load_bytes(&json).is_ok());
+        assert!(load_bytes(&json).is_err());
+    }
+
+    #[test]
+    fn a_file_without_its_content_is_damaged() {
+        let bytes = save_bytes(&Document::new("x"), None).unwrap();
+        let mut z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
+        let meta = read_member(&mut z, kition_design_kdm::file::META, u64::MAX).unwrap();
+        let only_meta = zip_files([(kition_design_kdm::file::META, meta.as_slice())]).unwrap();
+        assert!(matches!(load_bytes(&only_meta), Err(FormatError::Corrupt(m)) if m.contains("content")));
+        // A content of a newer format is refused with what to do.
+        let mut newer: Value = serde_json::from_slice(&meta).unwrap();
+        newer["formatVersion"] = json!(99);
+        let newer = serde_json::to_vec(&newer).unwrap();
+        let content = read_member(&mut z, kition_design_kdm::file::CONTENT, u64::MAX).unwrap();
+        let file = zip_files([(kition_design_kdm::file::META, newer.as_slice()), (kition_design_kdm::file::CONTENT, content.as_slice())]).unwrap();
+        assert!(matches!(load_bytes(&file), Err(FormatError::Corrupt(m)) if m.contains("newer")));
     }
 
     #[test]
@@ -1156,7 +1172,7 @@ mod tests {
     fn garbage_is_an_error() {
         assert!(load_bytes(b"not a zip").is_err());
         assert!(load_bytes(b"{\"nope\":1}").is_err());
-        assert!(matches!(load_bytes(b"{\"version\":999}"), Err(FormatError::Newer(999))));
+        assert!(matches!(from_json("{\"version\":999}"), Err(FormatError::Newer(999))));
         assert!(add_image(&mut Document::new("x"), b"zzz".to_vec()).is_err());
     }
 }

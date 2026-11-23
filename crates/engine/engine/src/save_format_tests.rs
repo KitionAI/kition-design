@@ -172,9 +172,10 @@ fn fig_save_as_keeps_native_path_dirty_state_and_history() {
     s.execute("file.save", &json!({})).unwrap();
     assert!(!s.ds().unwrap().is_dirty());
     assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-    let persisted = kition_design_format::load_bytes_with_versions(&std::fs::read(&native).unwrap()).unwrap();
+    let persisted = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
     assert!(persisted.doc.nodes().any(|n| n.name == "New rectangle"));
-    assert_eq!(persisted.versions[0].name, "Before copy");
+    // The saved version is the session's: the file holds content, no history.
+    assert_eq!(s.ds().unwrap().versions[0].name, "Before copy");
     assert_eq!(std::fs::read(&copy).unwrap().len(), result["bytes"].as_u64().unwrap() as usize);
 }
 
@@ -249,7 +250,7 @@ fn fig_copy_from_branch_exports_active_document_without_saving_main() {
     assert_eq!(std::fs::read(&native).unwrap(), saved);
 
     s.execute("file.save", &json!({})).unwrap();
-    let persisted = kition_design_format::load_bytes_with_versions(&std::fs::read(&native).unwrap()).unwrap();
+    let persisted = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
     assert!(!persisted.doc.nodes().any(|n| n.name == "Branch rectangle"));
     assert!(persisted.branches[0].head.nodes().any(|n| n.name == "Branch rectangle"));
     assert_eq!(persisted.branches[0].versions.last().unwrap().name, "Branch version");
@@ -362,10 +363,10 @@ fn native_save_from_version_preview_writes_current_document() {
         assert!(!s.ds().unwrap().is_dirty());
         assert_eq!(s.ds().unwrap().history.undo.len(), undo);
         assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-        let loaded = kition_design_format::load_bytes_with_versions(&std::fs::read(&native).unwrap()).unwrap();
+        let loaded = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
         assert!(loaded.doc.nodes().any(|n| n.name == "A"));
         assert!(loaded.doc.nodes().any(|n| n.name == "B"));
-        assert!(!loaded.versions[0].document().unwrap().nodes().any(|n| n.name == "B"));
+        assert!(!s.ds().unwrap().versions[0].document().unwrap().nodes().any(|n| n.name == "B"));
     }
 }
 
@@ -397,10 +398,10 @@ fn implicit_save_protects_legacy_fig_destination() {
         assert!(s.ds().unwrap().preview.is_none());
         assert!(!s.ds().unwrap().is_dirty());
         assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-        let loaded = kition_design_format::load_bytes_with_versions(&std::fs::read(&native).unwrap()).unwrap();
+        let loaded = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
         assert!(loaded.doc.nodes().any(|n| n.name == "A"));
         assert!(loaded.doc.nodes().any(|n| n.name == "B"));
-        assert_eq!(loaded.versions[0].name, "A only");
+        assert_eq!(s.ds().unwrap().versions[0].name, "A only");
         rect(&mut s, "C");
         s.execute("file.save", &json!({})).unwrap();
         let loaded = kition_design_format::load_bytes(&std::fs::read(&native).unwrap()).unwrap();

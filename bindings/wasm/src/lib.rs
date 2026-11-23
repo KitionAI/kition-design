@@ -516,8 +516,11 @@ impl KitDocument for DesignDocument {
         rests::resolve::carried(self, ids, changes)
     }
 
-    /// The design as `.kdesign` bytes (content, thumbnail, version history and branches). Other
-    /// extensions are exports (`file.export`), not saves.
+    /// The design as `.kdesign` bytes: its content (the replica's sealed content snapshot: no
+    /// history, rule M16b), thumbnail and branches. Hosts call [`KitDocument::prepare_save`]
+    /// first; a session nobody sealed saves the content of a sealed copy, whose seal
+    /// [`KitDocument::mark_saved`] takes in (`kition_design_kdm::file::save`). Other extensions
+    /// are exports (`file.export`), not saves.
     fn save(&self, name: Option<&str>) -> Result<Vec<u8>, String> {
         if let Some(name) = name {
             let ext = extension(name);
@@ -527,6 +530,13 @@ impl KitDocument for DesignDocument {
         }
         let ds = self.ds()?;
         kition_design_engine::cmd::file::file_bytes(ds).map_err(engine_error)
+    }
+
+    /// Seals the design's replica (engine contract E4, rule M16b) so `save` writes its content
+    /// snapshot and the seal is in the replica the host stores: no edit, no undo step.
+    fn prepare_save(&mut self) -> Result<(), String> {
+        let origin = self.session.origin();
+        self.session.ds_mut().map_err(engine_error)?.prepare_save(&origin).map_err(engine_error)
     }
 
     fn mark_saved(&mut self) {

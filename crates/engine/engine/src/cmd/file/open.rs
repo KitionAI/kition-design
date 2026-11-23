@@ -84,7 +84,6 @@ pub(super) fn open(s: &mut Session, p: &Value) -> Result<Value> {
     let summary = import_summary(&loaded.doc);
     let images_left_out = if native { loaded.images_past_budget } else { 0 };
     let mut ds = DocState::new(loaded.doc, native.then(|| path.clone()))
-        .with_versions(loaded.versions)
         .with_branches(loaded.branches)
         .with_replica(loaded.replica)
         .with_images_left_in_file(&path, images_left_out);
@@ -105,7 +104,7 @@ fn open_data(s: &mut Session, data: &str, p: &Value, variables: Option<&Value>) 
     let (loaded, rest) = load_with(&bytes, &name, variables, &kition_design_format::rest::no_images)?;
     let warnings = rest || ext(&name) == "svg";
     let summary = import_summary(&loaded.doc);
-    s.docs.push(DocState::new(loaded.doc, None).with_versions(loaded.versions).with_branches(loaded.branches).with_replica(loaded.replica));
+    s.docs.push(DocState::new(loaded.doc, None).with_branches(loaded.branches).with_replica(loaded.replica));
     s.active = s.docs.len() - 1;
     let mut out = json!({"index": s.active, "summary": summary});
     out[if warnings { "warnings" } else { "repairs" }] = json!(loaded.issues);

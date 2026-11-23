@@ -1,4 +1,4 @@
-//! Branches in `.kdesign` files: round trips, files from before branches, damaged entries.
+//! Branches in `.kdesign` files: round trips, files without branches, damaged entries.
 
 use std::io::Write;
 use std::sync::Arc;
@@ -35,8 +35,8 @@ fn branch(base: &Document) -> Branch {
 fn branches_round_trip_with_their_images() {
     let doc = Document::new("File");
     let b = branch(&doc);
-    let bytes = save_bytes_with_history(&doc, None, &[], std::slice::from_ref(&b)).unwrap();
-    let l = load_bytes_with_versions(&bytes).unwrap();
+    let bytes = save_bytes_with_branches(&doc, None, std::slice::from_ref(&b)).unwrap();
+    let l = load_bytes_with_branches(&bytes).unwrap();
     assert!(l.issues.is_empty(), "{:?}", l.issues);
     let got = l.branches.first().unwrap();
     assert_eq!((got.id.as_str(), got.name.as_str(), got.time, got.client, got.state), ("b1", "Explore", 7, 3, BranchState::Merged));
@@ -46,31 +46,35 @@ fn branches_round_trip_with_their_images() {
     let v = got.versions.first().unwrap();
     assert_eq!((got.versions.len(), v.id.as_str(), v.name.as_str(), v.time), (1, "v1", "On its own", 9));
     assert_eq!(*v.document().unwrap(), *b.base);
-    assert!(l.versions.is_empty(), "the branch's versions aren't the file's");
     // The image only the branch uses stays out of the document.
     assert!(l.doc.images.is_empty() && got.head.images.len() == 1);
     // Duplicate ids are refused when saving.
-    assert!(save_bytes_with_history(&doc, None, &[], &[b.clone(), b]).is_err());
+    assert!(save_bytes_with_branches(&doc, None, &[b.clone(), b]).is_err());
 }
 
 #[test]
 fn files_without_branches_and_damaged_branches_load() {
     let doc = Document::new("Old");
-    // A file from before branches (and one saved without any) has none.
-    let l = load_bytes_with_versions(&save_bytes(&doc, None).unwrap()).unwrap();
+    // A file saved without any has none.
+    let l = load_bytes_with_branches(&save_bytes(&doc, None).unwrap()).unwrap();
     assert!(l.branches.is_empty() && l.issues.is_empty());
     // A branch whose snapshot is missing is skipped and reported; the file still opens.
+    let saved = save_bytes(&doc, None).unwrap();
+    let mut from = zip::ZipArchive::new(std::io::Cursor::new(&saved)).unwrap();
     let mut buf = std::io::Cursor::new(Vec::new());
     {
         let mut z = zip::ZipWriter::new(&mut buf);
         let opts = zip::write::SimpleFileOptions::default();
-        z.start_file("document.json", opts).unwrap();
-        z.write_all(&serde_json::to_vec(&to_json(&doc).unwrap()).unwrap()).unwrap();
+        for name in [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT] {
+            let data = read_member(&mut from, name, u64::MAX).unwrap();
+            z.start_file(name, opts).unwrap();
+            z.write_all(&data).unwrap();
+        }
         z.start_file(BRANCH_INDEX, opts).unwrap();
         z.write_all(br#"{"branches": [{"id": "gone", "name": "x"}, {"id": "../bad"}]}"#).unwrap();
         z.finish().unwrap();
     }
-    let l = load_bytes_with_versions(&buf.into_inner()).unwrap();
+    let l = load_bytes_with_branches(&buf.into_inner()).unwrap();
     assert!(l.branches.is_empty());
     assert_eq!(l.issues.len(), 2, "{:?}", l.issues);
     assert_eq!(l.doc.name, "Old");

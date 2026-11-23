@@ -3,6 +3,11 @@
 Changes to Kition Design, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## Unreleased
+
+- A `.kdesign` holds the design's content, not its history (task schema-freeze, kition-sdk rule M16b): `kdm/content.bin` (the replica's sealed content snapshot), `kdm/meta.json` naming the document, and the images the content uses. `document.json`, the change log and saved versions (`versions/`) are gone; branches, the thumbnail and the published library stay as they were. Hosts seal before saving (`prepareSave`); the history is the replica the host stores. Saved versions live in the session until the host offers kits a checkpoint store. kition-sdk 82a3224.
+- Schema 1 (task schema-freeze): a text layer's characters are `Node.text` (a KDM text with marks), paints and effects are `Paint` and `Effect` objects with their bindings, each voter's ballot is its own settings key, and who has read a comment thread is no longer replicated. Files and stored replicas of earlier schemas do not open as such (no migration).
+
 ## 0.1.3
 
 - The same kit as 0.1.2, built on kition-sdk 6672663 (the replica's undo passes over an undo group whose changes came to nothing): the 0.1.2 package was built on kition-sdk 6b4d471.

@@ -228,9 +228,26 @@ fn truncated(doc: &mut DesignDocument) -> Result<(), String> {
     Ok(())
 }
 
-/// Rewrites a `.kdesign` file: `document.json` through `damage`, members `keep` refuses dropped.
+/// Rewrites a `.kdesign` file: its document through `damage` (on the document's JSON, then saved
+/// as the same document, as another program's edit), members `keep` refuses dropped.
 fn rewrite(bytes: &[u8], damage: Option<Damage>, keep: fn(&str) -> bool) -> Vec<u8> {
-    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
+    let bytes = match damage {
+        Some(damage) => {
+            let mut file = kition_design_format::load_bytes_with_branches(bytes).unwrap();
+            let mut json = kition_design_format::to_json(&file.doc).unwrap();
+            damage(&mut json);
+            let (mut doc, _) = kition_design_format::from_json(&json.to_string()).unwrap();
+            doc.images = std::mem::take(&mut file.doc.images);
+            doc.published = file.doc.published.take();
+            file.doc = doc;
+            let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
+            let mut thumbnail = Vec::new();
+            let has_thumbnail = archive.by_name("thumbnail.png").map(|mut f| f.read_to_end(&mut thumbnail).is_ok()).unwrap_or(false);
+            kition_design_format::save_edited(&file, has_thumbnail.then_some(thumbnail.as_slice())).unwrap()
+        }
+        None => bytes.to_vec(),
+    };
+    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
     let mut out = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     for index in 0..archive.len() {
@@ -241,13 +258,6 @@ fn rewrite(bytes: &[u8], damage: Option<Damage>, keep: fn(&str) -> bool) -> Vec<
         }
         let mut data = Vec::new();
         member.read_to_end(&mut data).unwrap();
-        if name == "document.json"
-            && let Some(damage) = damage
-        {
-            let mut json: Value = serde_json::from_slice(&data).unwrap();
-            damage(&mut json);
-            data = serde_json::to_vec(&json).unwrap();
-        }
         out.start_file(name, options).unwrap();
         out.write_all(&data).unwrap();
     }
@@ -258,6 +268,7 @@ fn fixture(name: &str, build: Build, damage: Option<Damage>, drop_images: bool) 
     let mut doc = DesignDocument::create(name, 400, 300)?;
     build(&mut doc)?;
     run(&mut doc, "select.none", json!({}))?;
+    doc.prepare_save()?;
     let bytes = doc.save(None)?;
     Ok(if damage.is_some() || drop_images {
         rewrite(&bytes, damage, if drop_images { |name: &str| !name.starts_with("images/") } else { |_: &str| true })

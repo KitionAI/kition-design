@@ -141,7 +141,7 @@ fn doc_on(rgb: [f32; 3]) -> Document {
 fn previews_carry_the_first_pages_colour() {
     use crate::thumbnail::{Preview, archive_preview, file_preview};
     let thumb = png(8, 4);
-    // `.kdesign`: the first page's background from document.json.
+    // `.kdesign`: the first page's background from its content.
     let bytes = crate::save_bytes(&doc_on([0.1, 0.2, 0.3]), Some(&thumb)).unwrap();
     let p = archive_preview(Cursor::new(&bytes), 640);
     assert_eq!(p.page, Some([0.1, 0.2, 0.3, 1.0]));
@@ -163,17 +163,11 @@ fn previews_carry_the_first_pages_colour() {
     for meta in [&b"{"[..], b"{\"client_meta\":{\"background_color\":{\"r\":\"x\",\"g\":0,\"b\":0}}}", b"[]", b"{\"client_meta\":7}"] {
         assert_eq!(archive_preview(Cursor::new(zip(&[("meta.json", meta)])), 640).page, None, "{}", String::from_utf8_lossy(meta));
     }
-    for doc in [
-        &b"{\"pages\":[5],\"nodes\":{}}"[..],
-        b"{\"pages\":[],\"nodes\":{}}",
-        b"{\"pages\":\"x\"}",
-        b"{\"pages\":[1],\"nodes\":{\"1\":{\"background\":[1,2]}}}",
-    ] {
-        assert_eq!(archive_preview(Cursor::new(zip(&[("document.json", doc)])), 640).page, None, "{}", String::from_utf8_lossy(doc));
+    // Damaged content: no colour, never a panic.
+    for content in [&b"junk"[..], b""] {
+        let entries = [(kition_design_kdm::file::META, &b"{}"[..]), (kition_design_kdm::file::CONTENT, content)];
+        assert_eq!(archive_preview(Cursor::new(zip(&entries)), 640).page, None, "{}", String::from_utf8_lossy(content));
     }
-    // Out-of-range channels are clamped; alpha defaults to opaque.
-    let doc = b"{\"pages\":[1],\"nodes\":{\"1\":{\"background\":{\"r\":2,\"g\":-1,\"b\":0.5}}}}";
-    assert_eq!(archive_preview(Cursor::new(zip(&[("document.json", doc)])), 640).page, Some([1.0, 0.0, 0.5, 1.0]));
     // Not an archive, or no file at all.
     assert_eq!(archive_preview(Cursor::new(b"junk".to_vec()), 640), Preview::default());
     assert_eq!(file_preview(std::path::Path::new("/nonexistent/x.kdesign"), 640), Preview::default());

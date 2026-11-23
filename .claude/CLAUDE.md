@@ -44,7 +44,9 @@ and inspection. It is built to WebAssembly for Kition's in-page editor and serve
 Kition's agent. Siblings:
 `../kition-vector`, `../kition-photo`, `../kition-layout`; same conventions.
 
-Kition reads and writes native `.kdesign` files tagged `"format": "kdesign"`. `.fig` files and the
+Kition reads and writes native `.kdesign` files: the design's content (its replica's sealed
+content snapshot, `kdm/content.bin`, and the images it uses), never its history, which is the
+replica the host stores (`docs/features/kdm.md` section 3). `.fig` files and the
 public REST API file JSON open as imports (best effort).
 
 ## Start every session here

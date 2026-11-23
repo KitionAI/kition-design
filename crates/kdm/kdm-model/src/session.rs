@@ -100,6 +100,21 @@ impl DesignSession {
         Ok(Self { replica, view: Arc::new(doc), ids, blobs, blob_log: Vec::new() })
     }
 
+    /// Seals the replica (rule M16b) so its content snapshot holds no history: a `system` change
+    /// labelled `content-seal`, no edit, never an undo step (an undo after it takes back the last
+    /// person's or agent's step as before). Answers whether it committed one (none when the last
+    /// change already is a seal).
+    pub fn seal(&mut self) -> Result<bool> {
+        let sealed = self.replica.seal().map_err(kit_err)?;
+        self.replica.take_changed();
+        Ok(sealed)
+    }
+
+    /// Whether the replica's last change is a seal (its content snapshot is ready to save).
+    pub fn is_sealed(&self) -> bool {
+        self.replica.is_sealed()
+    }
+
     /// The view: the document as of the last record, undo, redo or import.
     pub fn document(&self) -> &Arc<Document> {
         &self.view

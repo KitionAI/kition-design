@@ -92,22 +92,6 @@ async fn a_local_paste_reads_its_copied_main_and_not_unrelated_library_links() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn deleting_a_version_reads_the_indexed_identity_and_not_its_label() {
-    case(
-        |f| {
-            prepare(f, |d| {
-                d.execute("file.saveVersion", json!({"name":"First"})).unwrap();
-                d.execute("file.saveVersion", json!({"name":"Second"})).unwrap()
-            })
-        },
-        |_, _| vec![step("version.delete", json!({"index":1}))],
-        |_, _| vec![("version.delete", json!({"index":0}))],
-        |_, _| vec![("version.rename", json!({"index":0,"name":"Colleague"}))],
-    )
-    .await;
-}
-
 fn fitted_text(f: &Fixture) -> Value {
     prepare(f, |d| {
         d.execute("layout.add", json!({"ids":[f.destination],"direction":"vertical"})).unwrap();

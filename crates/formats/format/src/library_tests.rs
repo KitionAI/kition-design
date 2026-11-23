@@ -123,21 +123,16 @@ fn oversized_members_are_refused() {
 }
 
 #[test]
-fn library_survives_a_save_with_versions() {
+fn library_survives_a_save_and_reopen() {
     let (d, tile, hash) = published();
-    let mut old = d.clone();
-    old.published = None;
-    let versions = [crate::Version::new("v1", "Before", "", 1, Arc::new(old))];
-    let bytes = crate::save_bytes_with_versions(&d, None, &versions).unwrap();
-    let loaded = crate::load_bytes_with_versions(&bytes).unwrap();
+    let bytes = crate::save_bytes(&d, None).unwrap();
+    let loaded = crate::load_bytes_with_branches(&bytes).unwrap();
     assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
-    assert_eq!(loaded.versions.len(), 1);
     let lib = loaded.doc.published.clone().unwrap();
     assert_eq!((lib.manifest.id.as_str(), lib.manifest.version), ("kit-1", 3));
     assert!(lib.doc.images.contains_key(&hash) && lib.manifest.component(tile).is_some());
     assert!(read_library(std::io::Cursor::new(&bytes)).unwrap().unwrap().doc.images.contains_key(&hash));
-    // Saved again with its versions, it is still a library.
-    let again = crate::save_bytes_with_versions(&loaded.doc, None, &loaded.versions).unwrap();
+    // Saved again, it is still a library.
+    let again = crate::save_bytes(&loaded.doc, None).unwrap();
     assert_eq!(read_library(std::io::Cursor::new(&again)).unwrap().unwrap().manifest, lib.manifest);
-    assert_eq!(crate::load_bytes_with_versions(&again).unwrap().versions.len(), 1);
 }

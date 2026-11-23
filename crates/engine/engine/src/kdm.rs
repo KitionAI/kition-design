@@ -90,8 +90,9 @@ pub struct Link {
     pub(crate) file: Option<Entries>,
     /// What the file holds of the replica (the last open or completed save).
     pub(crate) base: Option<FileBase>,
-    /// What the last [`DocState::replica_entries`] produced, until the save is marked written.
-    pub(crate) pending: Arc<Mutex<Option<FileBase>>>,
+    /// What the last [`DocState::replica_entries`] produced (and the seal its fallback made),
+    /// until the save is marked written.
+    pub(crate) pending: Arc<Mutex<Option<(FileBase, Option<Vec<u8>>)>>>,
     /// The document the replica last refused to hold: no retry until it changes.
     pub(crate) refused: Option<Arc<Document>>,
     /// The session's id high-water mark: no id below it in its space is handed out again, though
@@ -195,9 +196,10 @@ impl DocState {
         }
     }
 
-    /// Makes the replica if there is none: from the file's replica entries (the document's
-    /// `document.json` recorded on top as one `import` transaction, which writes nothing when the
-    /// replica holds it), else a new one holding the document. Answers whether there is one.
+    /// Makes the replica if there is none: from the file's replica entries (its content; the
+    /// document as read from it is recorded on top as one `import` transaction, which writes
+    /// nothing when the replica holds it), else a new one holding the document. Answers whether
+    /// there is one.
     pub(crate) fn ensure_kdm(&mut self) -> bool {
         if self.link.kdm.is_some() {
             return true;
@@ -410,22 +412,40 @@ impl DocState {
         self.revision += 1;
     }
 
-    /// The replica entries a save writes into the file (none without a replica), remembered until
-    /// [`DocState::mark_saved`].
+    /// The replica entries a save writes into the file: the replica's sealed content (none
+    /// without a replica), remembered until [`DocState::mark_saved`].
     pub fn replica_entries(&self) -> Result<Entries> {
         let Some(kdm) = self.link.kdm.as_ref() else { return Ok(Vec::new()) };
-        let (entries, base) = file::save(kdm, self.link.base.as_ref()).map_err(kdm_error)?;
+        let saved = file::save(kdm).map_err(kdm_error)?;
         if let Ok(mut pending) = self.link.pending.lock() {
-            *pending = Some(base);
+            *pending = Some((saved.base, saved.seal));
         }
-        Ok(entries)
+        Ok(saved.entries)
     }
 
-    /// The last save's replica entries are now what the file holds.
+    /// Gets the document ready for a save (engine contract E4): what is committed is written, and
+    /// the replica is sealed, so the save writes its content snapshot and the seal is in the
+    /// replica the host stores. No edit, no undo step, no revision.
+    pub fn prepare_save(&mut self, origin: &Origin) -> Result<()> {
+        self.sync_kdm(origin);
+        if let Some(kdm) = self.link.kdm.as_mut() {
+            kdm.seal().map_err(kdm_error)?;
+        }
+        Ok(())
+    }
+
+    /// The last save's replica entries are now what the file holds; the seal the save made on a
+    /// copy (its fallback) is taken into the replica.
     pub(crate) fn saved_replica(&mut self) {
-        let base = self.link.pending.lock().ok().and_then(|mut p| p.take());
-        if base.is_some() {
-            self.link.base = base;
+        let pending = self.link.pending.lock().ok().and_then(|mut p| p.take());
+        if let Some((base, seal)) = pending {
+            // The fallback's seal (see `kition_design_kdm::file::save`; delete with it once a
+            // kit-editor release that calls prepareSave is in web/pnpm-lock.yaml). One that does
+            // not import leaves the replica as it was.
+            if let (Some(seal), Some(kdm)) = (seal, self.link.kdm.as_mut()) {
+                let _ = kdm.import_changes(&seal);
+            }
+            self.link.base = Some(base);
         }
     }
 }

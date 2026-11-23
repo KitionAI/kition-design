@@ -12,7 +12,7 @@ pub const MAX_THUMBNAIL_BYTES: u64 = 8 * 1024 * 1024;
 pub const MAX_IMAGE_FILE_BYTES: u64 = 32 * 1024 * 1024;
 /// Widest or tallest picture decoded (pixels); a larger one gives none.
 pub const MAX_THUMBNAIL_SIDE: u32 = 8192;
-/// Largest `document.json` read for its page colour, and `.fig` `meta.json`.
+/// Largest `.kdesign` content read for its page colour, and `.fig` `meta.json`.
 const MAX_DOCUMENT_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_META_BYTES: u64 = 1024 * 1024;
 /// Most memory one decode may take.
@@ -142,37 +142,35 @@ pub fn file_preview(path: &Path, fit: u32) -> Preview {
 }
 
 /// The [`Preview`] of a `.kdesign` or `.fig` archive: `thumbnail.png`, and the first page's colour
-/// from `document.json` (`.kdesign`) or `meta.json` (`.fig`).
+/// from the content (`.kdesign`) or `meta.json` (`.fig`).
 pub fn archive_preview<R: Read + Seek>(archive: R, fit: u32) -> Preview {
     let Ok(mut z) = zip::ZipArchive::new(archive) else { return Preview::default() };
     let picture = crate::read_member(&mut z, "thumbnail.png", MAX_THUMBNAIL_BYTES).ok().and_then(|png| decode_thumbnail(&png, fit));
-    let (page, kind) = if z.file_names().any(|n| n == "document.json") {
-        crate::read_member(&mut z, "document.json", MAX_DOCUMENT_BYTES).ok().map(|json| kition_design_page(&json)).unwrap_or_default()
+    let (page, kind) = if z.file_names().any(|n| n == kition_design_kdm::file::CONTENT) {
+        kition_design_page(&mut z)
     } else {
         (crate::read_member(&mut z, "meta.json", MAX_META_BYTES).ok().and_then(|json| fig_page(&json)), kition_design_doc::FileKind::Design)
     };
     Preview { page, picture, kind }
 }
 
-/// The first page's background in a `.kdesign` `document.json`, and the file's kind.
-fn kition_design_page(json: &[u8]) -> (Option<[f32; 4]>, kition_design_doc::FileKind) {
-    #[derive(serde::Deserialize)]
-    struct Head {
-        #[serde(default)]
-        pages: Vec<u64>,
-        #[serde(default)]
-        nodes: std::collections::BTreeMap<String, Node>,
-        #[serde(default)]
-        kind: kition_design_doc::FileKind,
+/// The first page's background in a `.kdesign`'s content, and the file's kind.
+fn kition_design_page<R: Read + Seek>(z: &mut zip::ZipArchive<R>) -> (Option<[f32; 4]>, kition_design_doc::FileKind) {
+    let mut entries = Vec::new();
+    for name in [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT] {
+        match crate::read_member(z, name, MAX_DOCUMENT_BYTES) {
+            Ok(data) => entries.push((name.to_owned(), data)),
+            Err(_) => return (None, kition_design_doc::FileKind::Design),
+        }
     }
-    #[derive(serde::Deserialize)]
-    struct Node {
-        #[serde(default)]
-        background: Option<serde_json::Value>,
-    }
-    let Ok(head) = serde_json::from_slice::<Head>(json) else { return (None, kition_design_doc::FileKind::Design) };
-    let page = head.pages.first().and_then(|first| head.nodes.get(&first.to_string())).and_then(|n| n.background.as_ref()).and_then(rgba);
-    (page, head.kind)
+    let Ok(doc) = kition_design_kdm::file::read_content(&entries, Default::default()) else { return (None, kition_design_doc::FileKind::Design) };
+    let page = doc.first_page().and_then(|p| doc.node(p)).and_then(|n| match &n.kind {
+        kition_design_doc::NodeKind::Page { background, .. } => {
+            Some([background.r, background.g, background.b, background.a].map(|c| c.clamp(0.0, 1.0)))
+        }
+        _ => None,
+    });
+    (page, doc.kind)
 }
 
 /// The canvas colour a `.fig` file's `meta.json` gives (`client_meta.background_color`).

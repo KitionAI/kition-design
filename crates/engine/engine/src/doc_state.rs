@@ -95,14 +95,15 @@ pub struct DocState {
     /// Vector edit mode: the vector being edited, its selected points and the edit tool.
     pub vector_edit: Option<vectoredit::VectorEdit>,
     pub uid: u64,
-    /// The file's version history, oldest first (saved in the `.kdesign` file; not undoable).
+    /// The document's saved versions, oldest first: this session's (a `.kdesign` holds content,
+    /// not history, and the host offers kits no store for labelled checkpoints yet); not undoable.
     pub versions: Vec<kition_design_format::Version>,
     /// The file's branches (saved in the `.kdesign` file; not undoable).
     pub branches: Vec<kition_design_format::Branch>,
     /// This tab shows a branch: the `uid` of its main file's tab and the branch id. Its edits go
     /// into the main file's branch (and are saved with the main file).
     pub branch_of: Option<(u64, String)>,
-    /// The version history or the branches changed since the last save.
+    /// The branches (a branch tab's versions among them) changed since the last save.
     pub(crate) versions_changed: bool,
     /// A version shown in place of the document (read-only).
     pub preview: Option<VersionPreview>,
@@ -227,7 +228,7 @@ impl DocState {
         (on_page && guides::keeps_guides(&self.doc, owner) && self.doc.node(owner).is_some_and(|n| i < n.guides().len())).then_some((owner, i))
     }
 
-    /// With the version history read from its file.
+    /// With these saved versions (a file holds none: a reverted tab keeps its session's).
     pub fn with_versions(mut self, versions: Vec<kition_design_format::Version>) -> Self {
         self.versions = versions;
         self
@@ -250,9 +251,12 @@ impl DocState {
         self.preview.as_ref().map(|p| &p.doc).or(self.text_preview.as_ref()).unwrap_or(&self.doc)
     }
 
-    /// The version history, for editing (the file then has unsaved changes).
+    /// The saved versions, for editing. A branch tab's are its branch's, saved with the main file
+    /// (which then has unsaved changes); the main file's are no file change (it holds no history).
     pub fn versions_mut(&mut self) -> &mut Vec<kition_design_format::Version> {
-        self.versions_changed = true;
+        if self.branch_of.is_some() {
+            self.versions_changed = true;
+        }
         &mut self.versions
     }
 
@@ -269,11 +273,9 @@ impl DocState {
     }
 
     /// Takes the parts of the file that are not the replica's from `fresh`, the same file read
-    /// again: the version history and its checkpoint, the branches and the file stamp.
+    /// again: the branches and the file stamp (the saved versions are this session's).
     pub(crate) fn take_file_parts(&mut self, fresh: &Self) {
-        self.versions.clone_from(&fresh.versions);
         self.branches.clone_from(&fresh.branches);
-        self.checkpoint.clone_from(&fresh.checkpoint);
         self.on_disk.clone_from(&fresh.on_disk);
         self.versions_changed = false;
     }

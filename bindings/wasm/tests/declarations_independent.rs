@@ -6694,10 +6694,10 @@ fn review_noop_text_paths_do_not_reflow_the_parent() {
         if command == "text.fit" {
             doc.execute("node.set", json!({"id":text.0,"props":{"width":200}})).unwrap();
         }
-        let mut file = kition_design_format::load_bytes_with_versions(&doc.save(None).unwrap()).unwrap();
+        let mut file = kition_design_format::load_bytes_with_branches(&doc.save(None).unwrap()).unwrap();
         let width = file.doc.node(parent).unwrap().width;
         file.doc.get_mut(parent).unwrap().child_layout.min_w = Some(width + 100.0);
-        let bytes = kition_design_format::save_bytes_with_history(&file.doc, None, &file.versions, &file.branches).unwrap();
+        let bytes = kition_design_format::save_edited(&file, None).unwrap();
         let mut doc = open(&bytes);
         let before = doc.session().doc().unwrap().node(text).unwrap().kind.clone();
         let params = if command == "text.fit" { json!({"ids":[text.0],"maxLines":1,"minSize":4}) } else { json!({"ids":[text.0]}) };

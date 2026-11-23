@@ -421,22 +421,24 @@ fn library_variants_swaps_and_undo() {
 }
 
 #[test]
-fn library_survives_saving_with_versions() {
+fn library_survives_restoring_a_version_and_saving() {
     let d = dir("versions");
     let path = path_str(&d.join("kit.kdesign"));
     let mut lib = Session::new();
     kit(&mut lib);
     let r = ex(&mut lib, "library.publish", json!({}));
     ex(&mut lib, "file.saveVersion", json!({"name": "Published"}));
+    // Restoring a version keeps what the file published.
+    ex(&mut lib, "version.restore", json!({"index": 0}));
+    assert!(lib.doc().unwrap().published.is_some());
     ex(&mut lib, "file.saveAs", json!({"path": path}));
-    // Reopened: both the version history and the library are there.
+    // Reopened: the library is there; the saved versions were the session's (a file holds no
+    // history).
     let mut back = Session::empty();
     ex(&mut back, "file.open", json!({"path": path}));
-    assert_eq!(ex(&mut back, "version.list", json!({})).as_array().map(Vec::len), Some(1));
+    assert_eq!(ex(&mut back, "version.list", json!({})).as_array().map(Vec::len), Some(0));
     assert_eq!(back.doc().unwrap().published.as_ref().map(|p| p.manifest.id.clone()), r["id"].as_str().map(str::to_string));
-    // Restoring a version keeps what the file published; saved again, other files can use it.
-    ex(&mut back, "version.restore", json!({"index": 0}));
-    assert!(back.doc().unwrap().published.is_some());
+    // Saved again, other files can use it.
     ex(&mut back, "file.save", json!({}));
     let mut user = Session::new();
     let added = ex(&mut user, "library.add", json!({"path": path}));

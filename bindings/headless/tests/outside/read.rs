@@ -526,7 +526,7 @@ async fn a_branch_combination_holds_comments_it_merges() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
         let comment = prepare(&f, |d| id(&d.execute("comment.add", json!({"x":0,"y":0,"text":"Observed"})).unwrap()));
-        let mut file = kition_design_format::load_bytes_with_versions(&f.bytes()).unwrap();
+        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
         file.branches.push(kition_design_format::Branch {
             id: "comments".into(),
             name: "Comments".into(),
@@ -537,11 +537,7 @@ async fn a_branch_combination_holds_comments_it_merges() {
             head: std::sync::Arc::new(file.doc.clone()),
             versions: Vec::new(),
         });
-        std::fs::write(
-            f.workspace.path().join(FILE),
-            kition_design_format::save_bytes_with_history(&file.doc, None, &file.versions, &file.branches).unwrap(),
-        )
-        .unwrap();
+        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
         let basis = f.basis().await;
         if necessary {
             f.colleague(&[("comment.edit", json!({"id":comment,"text":"Colleague"}))]);

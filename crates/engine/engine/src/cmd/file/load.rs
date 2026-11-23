@@ -2,8 +2,8 @@ use super::*;
 
 /// The recovery copy at `path` as a document with unsaved changes and no path.
 pub(crate) fn recovered(path: &str) -> Result<DocState> {
-    let loaded = read(path).and_then(|b| kition_design_format::load_bytes_with_versions(&b).map_err(|e| EngineError::Other(e.to_string())))?;
-    Ok(DocState::new(loaded.doc, None).with_versions(loaded.versions).with_branches(loaded.branches).unsaved())
+    let loaded = read(path).and_then(|b| kition_design_format::load_bytes_with_branches(&b).map_err(|e| EngineError::Other(e.to_string())))?;
+    Ok(DocState::new(loaded.doc, None).with_branches(loaded.branches).unsaved())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -103,7 +103,7 @@ pub(super) fn load_with(
                 link_instances(&mut doc);
                 return Ok((kition_design_format::Loaded { issues: warnings, ..doc.into() }, true));
             }
-            let mut loaded = kition_design_format::load_bytes_with_versions(bytes).map_err(|e| EngineError::Other(e.to_string()))?;
+            let mut loaded = kition_design_format::load_bytes_with_branches(bytes).map_err(|e| EngineError::Other(e.to_string()))?;
             // Older files saved an untouched default title even after the user chose a filename.
             if loaded.doc.name.is_empty() || loaded.doc.name == "Untitled" {
                 loaded.doc.name = file_stem(name_hint);

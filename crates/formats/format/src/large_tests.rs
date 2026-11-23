@@ -1,6 +1,7 @@
-//! `document.json` at scale: a large document round-trips exactly, layer fields at their defaults
-//! are left out (and come back), files that spell every field out still open, and the header is
-//! read without building the document.
+//! A large document round-trips exactly through a `.kdesign` (its content) and through the
+//! document JSON branches keep; layer fields at their defaults are left out of the JSON (and come
+//! back), JSON that spells every field out still reads, and its header is read without building
+//! the document.
 
 use kition_design_doc::color::{BlendMode, Color, Paint};
 use kition_design_doc::geom::Affine;
@@ -83,13 +84,21 @@ fn large(screens: usize) -> Document {
     d
 }
 
-/// Every layer of `a` is in `b`, identical, and vice versa; the document-level fields too.
-fn assert_same_doc(a: &Document, b: &Document) {
+/// Every layer of `a` is in `b`, identical, and vice versa; the document-level fields too (the
+/// page the editor shows only when `page`: a file holds content, not the editor's view).
+fn assert_same(a: &Document, b: &Document, page: bool) {
     assert_eq!(a.node_count(), b.node_count());
     for n in a.nodes() {
         assert_eq!(Some(n), b.node(n.id), "layer {} `{}`", n.id.0, n.name);
     }
-    assert_eq!((&a.name, &a.pages, &a.styles, &a.variables, &a.current_page), (&b.name, &b.pages, &b.styles, &b.variables, &b.current_page));
+    assert_eq!((&a.name, &a.pages, &a.styles, &a.variables), (&b.name, &b.pages, &b.styles, &b.variables));
+    if page {
+        assert_eq!(a.current_page, b.current_page);
+    }
+}
+
+fn assert_same_doc(a: &Document, b: &Document) {
+    assert_same(a, b, true);
 }
 
 #[test]
@@ -99,14 +108,11 @@ fn large_document_roundtrips() {
     let bytes = save_bytes(&d, None).unwrap();
     let (back, issues) = load_bytes(&bytes).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
-    assert_same_doc(&d, &back);
+    assert_same(&d, &back, false);
     // Saving what was read writes the same document again.
     let again = save_bytes(&back, None).unwrap();
-    let json = |b: &[u8]| {
-        let mut z = zip::ZipArchive::new(std::io::Cursor::new(b)).unwrap();
-        read_member(&mut z, "document.json", MAX_MEMBER).unwrap()
-    };
-    assert_eq!(json(&bytes), json(&again));
+    let (twice, _) = load_bytes(&again).unwrap();
+    assert_same(&back, &twice, false);
     // The streamed JSON and the JSON value the document converts to hold the same document (the
     // value spells `f32`s out at `f64` precision).
     let mut streamed = Vec::new();
@@ -176,7 +182,7 @@ fn files_with_every_field_spelled_out_still_open() {
           "1":{"id":1,"name":"Page 1","type":"page","parent":null,"children":[2],"visible":true,"locked":false,"opacity":1.0,"blend":"passThrough","transform":[1.0,0.0,0.0,1.0,0.0,0.0],"width":0.0,"height":0.0,"fills":[],"strokes":[],"effects":[]},
           "2":{"id":2,"name":"Card background","type":"rectangle","parent":1,"children":[],"visible":true,"locked":false,"opacity":1.0,"blend":"normal","transform":[1.0,0.0,0.0,1.0,0.0,0.0],"width":160.0,"height":64.0,"fills":[{"type":"solid","color":{"r":0.93333334,"g":0.95686275,"b":1.0,"a":1.0},"opacity":1.0,"visible":true,"blend":"normal"}],"strokes":[],"stroke":{"weight":1.0,"align":"inside","sides":null,"cap_start":"none","cap_end":"none","join":"miter","miter_limit":4.0,"dashes":[]},"effects":[],"corners":{"radii":[0.0,0.0,0.0,0.0],"smoothing":0.0},"constraints":{"horizontal":"left","vertical":"top"},"layout":null,"child_layout":{"sizing_h":"fixed","sizing_v":"fixed","absolute":false,"min_w":null,"max_w":null,"min_h":null,"max_h":null,"grid_column":null,"grid_row":null,"grid_column_span":0,"grid_row_span":0},"clip":false,"is_mask":false,"grids":[],"exports":[],"interactions":[],"overflow":"none","scroll_position":"scrolls","styles":{"fill":null,"stroke":null,"effect":null,"grid":null,"text":null},"bound":{},"var_modes":{},"constrain_proportions":false,"source":null,"overrides":[],"prop_refs":{},"plugin_data":{}}
         }}"#;
-    let (d, issues) = load_bytes(old.as_bytes()).unwrap();
+    let (d, issues) = from_json(old).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
     let n: &Node = d.node(kition_design_doc::NodeId(2)).unwrap();
     assert_eq!((n.name.as_str(), n.width, n.height, n.visible, n.opacity), ("Card background", 160.0, 64.0, true, 1.0));
@@ -201,21 +207,4 @@ fn the_header_is_read_on_its_own() {
     // The image index is read from the header too.
     let (_, _, index) = parse_json(&d.replacen("\"imageIndex\":[]", "\"imageIndex\":[{\"hash\":\"ab\"},{\"nope\":1}]", 1)).unwrap();
     assert_eq!(index, Some(["ab".to_string()].into_iter().collect()));
-}
-
-#[test]
-fn document_json_may_unpack_in_proportion_to_its_packed_size() {
-    const MB: u64 = 1024 * 1024;
-    // A small archive keeps the member cap: it can't unpack into gigabytes.
-    assert_eq!(document_limit(0, 0), MAX_MEMBER);
-    assert_eq!(document_limit(MB, 2 * MB), MAX_MEMBER);
-    // A real 900 000-layer document saved by us packs 1 477 139 810 bytes into 244 362 923, and
-    // didn't open again under the 512 MB cap.
-    if cfg!(not(target_pointer_width = "32")) {
-        assert!(document_limit(244_362_923, 260 * MB) > 1_477_139_810);
-    }
-    // The packed size an archive claims counts only up to the archive's own size.
-    assert_eq!(document_limit(u64::MAX, MB), MAX_MEMBER);
-    // Never more than the ceiling.
-    assert_eq!(document_limit(u64::MAX, u64::MAX), MAX_DOCUMENT);
 }

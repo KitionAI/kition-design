@@ -123,9 +123,9 @@ fn setup(f: &Fixture, form: &str) -> Value {
 
 fn change_file(f: &Fixture, s: &Value, form: &str, change: &str, side: usize) {
     fn raw(d: &mut DesignDocument, edit: impl FnOnce(&mut kition_design_doc::Document)) {
-        let mut file = kition_design_format::load_bytes_with_versions(&d.save(None).unwrap()).unwrap();
+        let mut file = kition_design_format::load_bytes_with_branches(&d.save(None).unwrap()).unwrap();
         edit(&mut file.doc);
-        let bytes = kition_design_format::save_bytes_with_replica(&file.doc, None, &file.versions, &file.branches, &file.replica).unwrap();
+        let bytes = kition_design_format::save_edited(&file, None).unwrap();
         *d = DesignDocument::open(FILE, &bytes).unwrap();
     }
     rewrite(f, |d| {

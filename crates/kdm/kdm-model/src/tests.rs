@@ -99,20 +99,22 @@ fn structure_edits_round_trip_and_undo_keeps_the_other_scope() {
 fn the_file_entries_reopen_the_replica() {
     let doc = Arc::new(sample());
     let mut s = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let (entries, base) = crate::file::save(&s, None).unwrap();
     let mut d = (**s.document()).clone();
     let page = d.first_page().unwrap();
     d.get_mut(page).unwrap().name = "Edited".into();
     s.record(&person(), &Arc::new(d)).unwrap();
-    let (entries2, base2) = crate::file::save(&s, Some(&base)).unwrap();
-    assert_eq!(base2.change_entries(), 1, "one appended change");
-    assert_eq!(
-        entries2.iter().find(|(n, _)| n == crate::file::SNAPSHOT).map(|(_, b)| b),
-        entries.iter().find(|(n, _)| n == crate::file::SNAPSHOT).map(|(_, b)| b)
-    );
-    let (back, _) = crate::file::open(&entries2, s.blobs().clone()).unwrap();
+    s.seal().unwrap();
+    let saved = crate::file::save(&s).unwrap();
+    assert!(saved.seal.is_none(), "a sealed session saves its own content");
+    let names: Vec<&str> = saved.entries.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(names, [crate::file::META, crate::file::CONTENT], "the content and what identifies it, no change log");
+    // An unchanged save writes the same bytes.
+    assert_eq!(crate::file::save(&s).unwrap().entries, saved.entries);
+    let (back, base) = crate::file::open(&saved.entries, s.blobs().clone()).unwrap();
     assert_eq!(back.doc_id(), s.doc_id());
+    assert_eq!(base.doc_id(), s.doc_id().to_string());
     assert_eq!(back.state_hash().unwrap(), s.state_hash().unwrap());
+    assert!(same_content(back.document(), s.document()));
 }
 
 /// V7 (KDM M10b): A creates a layer and undoes it; B, not having seen the undo, moves the layer

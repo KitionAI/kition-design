@@ -7,8 +7,8 @@
 //! names and shapes of kition-sdk's `session::web`, as Kition Vector and Design do, so Kition's
 //! host code is the same for every kit. The wasm bindings are in [`web`].
 //!
-//! A `.kdesign` file carries its replica (`kdm/` entries): opening one opens its replica and saving
-//! one appends to it. The members below still answer `replica/*` so a host can relay changes
+//! A `.kdesign` file carries its replica's content (`kdm/` entries: the sealed content snapshot,
+//! no history); the history is the replica the host stores (`snapshot`), never the file. The members below still answer `replica/*` so a host can relay changes
 //! between people editing the same design. Images are blobs, encoded for transfer as
 //! `(64-char ASCII-hex sha256, u64 LE length, bytes) * N`, as every kit does.
 //!
@@ -33,12 +33,17 @@ fn decode_version(bytes: &[u8]) -> Result<Version, String> {
 
 impl DesignDocument {
     /// Opens a file with the replica a host stored for it (the Kit UI protocol's `replica`
-    /// capability). A `.kdesign` that holds its own replica opens with that one (when its replica
-    /// entries open; a file merely naming them is not one): the file is what the person saved. Any other file opens on the stored replica, with the file recorded on top
-    /// as one `import` transaction when the replica does not hold it; a stored replica that does
-    /// not open is ignored and the file opens as [`KitDocument::open`] opens it. Empty `bytes`
-    /// mean there is no file yet, only the replica (a sync room's snapshot): the design is the
-    /// replica's alone, and a replica that does not open is an error.
+    /// capability: the document's history). A `.kdesign` of the same document is taken into the
+    /// stored replica (`kition_kit::session::take_file`): nothing when the replica has the file's
+    /// version; the changes the file holds beyond it when its history starts at a version the
+    /// replica has; otherwise (it was saved from changes the store never saw) its state, as one
+    /// `system` transaction keyed by object id. A `.kdesign` of another document opens with its
+    /// own content. Any other file opens on the stored replica, with the file recorded on top as
+    /// one `import` transaction when the replica does not hold it; a stored replica that does not
+    /// open is ignored and the file opens as [`KitDocument::open`] opens it; a file that does not
+    /// open gives way to the stored replica. Empty `bytes` mean there is no file yet, only the
+    /// replica (a sync room's snapshot): the design is the replica's alone, and a replica that
+    /// does not open is an error.
     pub fn open_with_replica(name: &str, bytes: &[u8], snapshot: &[u8], blobs: &[u8]) -> Result<Self, String> {
         if bytes.is_empty() {
             let mut session = Session::empty();
@@ -48,11 +53,34 @@ impl DesignDocument {
         if snapshot.is_empty() {
             return Self::open(name, bytes);
         }
-        let mut session = crate::open_session(name, bytes)?;
+        let mut session = match crate::open_session(name, bytes) {
+            Ok(session) => session,
+            // A file that does not open (its content is damaged) gives way to the stored replica.
+            Err(error) => {
+                let mut session = Session::empty();
+                return match decode_blobs(blobs).and_then(|blobs| session.open_snapshot(snapshot, blobs).map_err(engine_error)) {
+                    Ok(_) => Self::from_session(session),
+                    Err(_) => Err(error),
+                };
+            }
+        };
         if session.ds().is_ok_and(kition_design_engine::DocState::has_file_replica) {
             let doc = Self::from_session(session)?;
             if doc.session.ds().is_ok_and(kition_design_engine::DocState::on_file_replica) {
-                return Ok(doc);
+                let stored = kition_design_kdm::schema().ok().and_then(|schema| {
+                    kition_design_kdm::kition_kit::kdm::Replica::load(schema, snapshot, kition_design_kdm::kition_kit::kdm::ActorId::random()).ok()
+                });
+                let file = doc.session.kdm().map(kition_design_kdm::DesignSession::replica);
+                let (Some(mut stored), Some(file)) = (stored, file) else { return Ok(doc) };
+                if stored.doc_id() != file.doc_id() {
+                    // Another document's file: its own content.
+                    return Ok(doc);
+                }
+                kition_design_kdm::kition_kit::session::take_file(&mut stored, file).map_err(|error| format!("damaged: {error}"))?;
+                let merged = stored.snapshot().map_err(engine_error)?;
+                let mut session = crate::open_session(name, bytes)?;
+                session.attach_replica(&merged, decode_blobs(blobs)?).map_err(engine_error)?;
+                return Self::from_session(session);
             }
             // The file's replica entries do not open: the stored replica is the design's.
             session = crate::open_session(name, bytes)?;

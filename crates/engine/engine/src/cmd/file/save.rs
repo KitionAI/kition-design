@@ -18,7 +18,7 @@ pub fn thumbnail(doc: &Document) -> Option<Vec<u8>> {
     kition_design_render::encode_png(&pix).ok()
 }
 
-/// The `.kdesign` file for a document: content, thumbnail and version history.
+/// The `.kdesign` file for a document: its content, thumbnail and branches (no history).
 pub fn file_bytes(ds: &DocState) -> Result<Vec<u8>> {
     FileSnapshot::of(ds).encode()
 }
@@ -33,8 +33,6 @@ pub struct FileSnapshot {
     doc: Arc<Document>,
     /// The document as last saved when the snapshot was taken: another save since makes it stale.
     saved: Arc<Document>,
-    page: NodeId,
-    versions: Vec<Version>,
     branches: Vec<kition_design_format::Branch>,
     /// The document's KDM replica entries (`kdm/…`), when it has a replica.
     replica: Vec<(String, Vec<u8>)>,
@@ -48,8 +46,6 @@ impl FileSnapshot {
             revision: ds.revision,
             doc: ds.doc.clone(),
             saved: ds.saved_doc.clone(),
-            page: ds.page,
-            versions: ds.versions.clone(),
             branches: ds.branches.clone(),
             replica: ds.replica_entries().unwrap_or_else(|e| {
                 log::warn!("the replica is not saved with the file: {e}");
@@ -58,12 +54,10 @@ impl FileSnapshot {
         }
     }
 
-    /// The file's bytes: content, thumbnail and version history.
+    /// The file's bytes: the content, the thumbnail and the branches.
     pub fn encode(&self) -> Result<Vec<u8>> {
-        let mut doc = (*self.doc).clone();
-        doc.current_page = Some(self.page);
-        let thumb = thumbnail(&doc);
-        kition_design_format::save_bytes_with_replica(&doc, thumb.as_deref(), &self.versions, &self.branches, &self.replica)
+        let thumb = thumbnail(&self.doc);
+        kition_design_format::save_bytes_with_replica(&self.doc, thumb.as_deref(), &self.branches, &self.replica)
             .map_err(|e| EngineError::Other(e.to_string()))
     }
 
@@ -79,7 +73,7 @@ impl FileSnapshot {
         refuse_overwriting_changes(ds, path)?;
         write(path, bytes)?;
         ds.note_on_disk();
-        // The history or branches may have changed since: then they still count as unsaved.
+        // The branches may have changed since: then they still count as unsaved.
         if ds.revision == self.revision {
             ds.versions_changed = false;
         }

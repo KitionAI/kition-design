@@ -201,8 +201,10 @@ pub fn specs() -> Vec<CommandSpec> {
             let i = s.active;
             let uid = s.ds()?.uid;
             if let Some(slot) = s.docs.get_mut(i) {
+                // The saved versions are this session's (a file holds no history): they stay.
+                let versions = std::mem::take(&mut slot.versions);
                 *slot = DocState::new(loaded.doc, Some(path.clone()))
-                    .with_versions(loaded.versions)
+                    .with_versions(versions)
                     .with_branches(loaded.branches)
                     .with_replica(loaded.replica)
                     .with_images_left_in_file(&path, loaded.images_past_budget);

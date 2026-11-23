@@ -117,7 +117,7 @@ fn two_sessions_converge_and_keep_each_others_edits() {
 }
 
 #[test]
-fn a_kdesign_carries_its_replica() {
+fn a_kdesign_carries_its_replicas_content() {
     let mut s = session();
     rect(&mut s, 0.0, "Saved");
     let id = s.doc_id().unwrap();
@@ -134,12 +134,13 @@ fn a_kdesign_carries_its_replica() {
     assert_eq!(t.version().unwrap(), version);
     view_matches(&mut t);
 
-    // A second save appends the changes since.
+    // A second save holds the content as it is now, and still no history.
     rect(&mut s, 100.0, "Later");
     let again = cmd::file::file_bytes(s.ds().unwrap()).unwrap();
-    let loaded = kition_design_format::load_bytes_with_versions(&again).unwrap();
+    let loaded = kition_design_format::load_bytes_with_branches(&again).unwrap();
     let names: Vec<&str> = loaded.replica.iter().map(|(n, _)| n.as_str()).collect();
-    assert!(names.contains(&"kdm/changes/000001.bin"), "{names:?}");
+    assert_eq!(names, [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT]);
+    assert!(loaded.doc.nodes().any(|n| n.name == "Later"));
     let _ = Version::empty();
 }
 

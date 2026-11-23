@@ -100,7 +100,7 @@ fn the_documents_own_images_are_read_before_others() {
 #[test]
 fn a_file_within_the_shipped_budget_loads_as_before() {
     let (bytes, hashes, _) = file_with_images(3);
-    let loaded = load_bytes_with_versions(&bytes).unwrap();
+    let loaded = load_bytes_with_branches(&bytes).unwrap();
     assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
     assert!(hashes.iter().all(|h| loaded.doc.images.contains_key(h)));
 }
