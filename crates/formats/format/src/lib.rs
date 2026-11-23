@@ -550,6 +550,13 @@ pub(crate) fn json_options() -> zip::write::SimpleFileOptions {
     zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Some(JSON_LEVEL))
 }
 
+/// How the content entries are compressed: Deflate at the default level. The KDM's snapshot is
+/// compressed already in part, so it deflates about in half; level 6 is 1% smaller than level 3
+/// and as small as 9 (measured on `examples/ridgeline-app.kdesign`).
+pub(crate) fn content_options() -> zip::write::SimpleFileOptions {
+    zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Some(6))
+}
+
 /// Write a `.kdesign` archive to bytes: `doc`'s content in a new replica (a new document id; the
 /// engine saves its own replica's content with [`save_bytes_with_replica`]).
 pub fn save_bytes(doc: &Document, thumbnail_png: Option<&[u8]>) -> Result<Vec<u8>, FormatError> {
@@ -596,8 +603,7 @@ pub fn save_bytes_with_replica(
             if !is_replica_entry(name) {
                 return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
             }
-            // The content compresses about in half (JSON values, ids, text).
-            put(&mut z, name, json_options(), bytes)?;
+            put(&mut z, name, content_options(), bytes)?;
         }
         // Every image once, whether the content or a branch uses it.
         let mut written = BTreeSet::new();
@@ -774,7 +780,7 @@ pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTr
             if !is_replica_entry(name) {
                 return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
             }
-            put(&mut out, name, json_options(), data)?;
+            put(&mut out, name, content_options(), data)?;
         }
         for index in 0..z.len() {
             let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
