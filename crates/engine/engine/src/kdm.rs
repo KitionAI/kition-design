@@ -36,6 +36,10 @@ use kition_design_kdm::kition_kit::session::MemoryBlobs;
 
 use super::*;
 
+/// What a save produced, until it is marked written: what the file then holds, and the seal the
+/// save's fallback made on a copy.
+pub(crate) type Pending = (FileBase, Option<Vec<u8>>);
+
 /// The origin of the local person's commands (when nothing else was set with
 /// [`Session::execute_as`]).
 pub fn local_person() -> Origin {
@@ -92,7 +96,7 @@ pub struct Link {
     pub(crate) base: Option<FileBase>,
     /// What the last [`DocState::replica_entries`] produced (and the seal its fallback made),
     /// until the save is marked written.
-    pub(crate) pending: Arc<Mutex<Option<(FileBase, Option<Vec<u8>>)>>>,
+    pub(crate) pending: Arc<Mutex<Option<Pending>>>,
     /// The document the replica last refused to hold: no retry until it changes.
     pub(crate) refused: Option<Arc<Document>>,
     /// The session's id high-water mark: no id below it in its space is handed out again, though

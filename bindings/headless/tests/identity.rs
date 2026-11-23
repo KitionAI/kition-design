@@ -258,7 +258,7 @@ async fn an_agents_batches_save_sealed_content() {
         let ran = kit
             .request(
                 "model.batch",
-                json!({ "documentId": document, "ops": [{ "op": "set", "target": kept, "field": "name", "value": name }] }),
+                json!({ "documentId": document, "ops": [{ "op": "set", "target": kept.to_string(), "field": "name", "value": name }] }),
                 LIMIT,
             )
             .await

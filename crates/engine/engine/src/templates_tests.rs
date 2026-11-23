@@ -95,7 +95,10 @@ fn templates_save_and_reopen_losslessly() {
         let bytes = kition_design_format::save_bytes(&doc, None).unwrap();
         let (back, notes) = kition_design_format::load_bytes(&bytes).unwrap();
         assert_eq!(notes, Vec::<String>::new(), "{}: nothing to repair", t.id);
-        assert_eq!(json_of(&back), json_of(&doc), "{}", t.id);
+        // The page the editor shows is no content: a file opens on its first page.
+        let mut shown = doc.clone();
+        shown.current_page = None;
+        assert_eq!(json_of(&back), json_of(&shown), "{}", t.id);
     }
 }
 

@@ -466,7 +466,7 @@ fn read_comments(replica: &Replica, ids: &mut Ids) -> KdmResult<Vec<Comment>> {
         let mut messages = Vec::new();
         let mut objects = Vec::new();
         for m in replica.list(&object, "comments")? {
-            let regs = registers(replica, &m, &["author", "created", "edited", "reactions"])?;
+            let regs = registers(replica, &m, &["author", "created", "edited", "reactions", "key"])?;
             let body = replica.text(&m, "body")?;
             messages.push(fields::message_from(&regs, body));
             objects.push(m);

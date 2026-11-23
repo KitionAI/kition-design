@@ -385,7 +385,18 @@ fn comments_survive_saving_and_stay_put_on_copy_paste() {
     ex(&mut s, "file.save", json!({"path": path}));
     let mut t = Session::empty();
     ex(&mut t, "file.open", json!({"path": path}));
-    assert_eq!(t.doc().unwrap().comments, before, "threads, replies, reactions, resolved state and pins are saved in the file");
+    // Who has read a thread is each person's own, not the file's.
+    let unread = |comments: &[kition_design_doc::Comment]| {
+        comments
+            .iter()
+            .cloned()
+            .map(|mut c| {
+                c.read_by = None;
+                c
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(unread(&t.doc().unwrap().comments), unread(&before), "threads, replies, reactions, resolved state and pins are saved in the file");
     assert_eq!(comment(&t, c).anchor, Some(k.f));
     // A pin reopened still follows its frame.
     ex(&mut t, "transform.move", json!({"ids": [k.f], "dx": 10, "dy": 0}));
@@ -511,7 +522,7 @@ fn duplicating_and_viewing_versions() {
 }
 
 #[test]
-fn versions_survive_saving() {
+fn versions_stay_in_the_session_and_out_of_the_file() {
     let mut s = Session::new();
     rect(&mut s, 0.0, 0.0, None);
     ex(&mut s, "version.autosave", json!({}));
@@ -523,17 +534,18 @@ fn versions_survive_saving() {
     let before = versions(&mut s);
     let (dir, path) = temp_path("versions");
     ex(&mut s, "file.save", json!({"path": path}));
-    let mut t = Session::empty();
-    ex(&mut t, "file.open", json!({"path": path}));
-    assert_eq!(versions(&mut t), before, "names, descriptions, times, order and the autosave flag are saved in the file");
-    // Save as keeps the history too.
+    assert_eq!(versions(&mut s), before, "names, descriptions, times, order and the autosave flag stay in the session");
+    // Save as keeps the session's history too.
     let (dir2, path2) = temp_path("versions-as");
-    ex(&mut t, "file.saveAs", json!({"path": path2}));
-    let mut u = Session::empty();
-    ex(&mut u, "file.open", json!({"path": path2}));
-    assert_eq!(versions(&mut u), before);
-    ex(&mut u, "version.restore", json!({"index": 0}));
-    assert_eq!(u.doc().unwrap().node_count(), t.doc().unwrap().node_count() - 2, "a version read from the file restores");
+    ex(&mut s, "file.saveAs", json!({"path": path2}));
+    assert_eq!(versions(&mut s), before);
+    ex(&mut s, "version.restore", json!({"index": 0}));
+    // A file holds content, not history: reopened, it has no versions.
+    for path in [&path, &path2] {
+        let mut t = Session::empty();
+        ex(&mut t, "file.open", json!({"path": path}));
+        assert!(versions(&mut t).is_empty(), "no saved versions in {path}");
+    }
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&dir2);
 }

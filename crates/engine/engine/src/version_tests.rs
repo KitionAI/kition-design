@@ -141,7 +141,7 @@ fn history_is_capped() {
 }
 
 #[test]
-fn versions_persist_in_the_file() {
+fn versions_stay_in_the_session_not_in_the_file() {
     let dir = std::env::temp_dir().join(format!("kition-design-versions-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("history.kdesign").to_string_lossy().to_string();
@@ -153,22 +153,22 @@ fn versions_persist_in_the_file() {
     s.execute("file.save", &json!({"path": path})).unwrap();
     assert!(!s.ds().unwrap().is_dirty());
 
-    // Reopen in a fresh session: the history is there and restores.
+    // A file holds content, not history: reopened in a fresh session, it has no versions.
     let mut t = Session::empty();
     t.execute("file.open", &json!({"path": path})).unwrap();
-    let l = list(&mut t);
+    assert!(list(&mut t).is_empty());
+    assert!(!t.ds().unwrap().is_dirty());
+
+    // The session keeps them: the version restores there.
+    let l = list(&mut s);
     assert_eq!(l.len(), 1);
     assert_eq!((l[0]["name"].as_str(), l[0]["description"].as_str()), (Some("Start"), Some("a box")));
-    assert!(!t.ds().unwrap().is_dirty());
-    t.execute("version.restore", &json!({"index": 0})).unwrap();
-    assert_eq!(count(&t), one);
-    // Deleting a version is an unsaved change; saving drops it from the file.
-    t.execute("edit.undo", &json!({})).unwrap();
-    t.execute("version.delete", &json!({"index": 0})).unwrap();
-    assert!(t.ds().unwrap().is_dirty());
-    t.execute("file.save", &json!({})).unwrap();
-    t.execute("file.revert", &json!({})).unwrap();
-    // Only the checkpoint the restore made of the file as opened is left.
-    assert_eq!(list(&mut t).iter().map(|v| v["auto"] == true).collect::<Vec<_>>(), vec![true]);
+    s.execute("version.restore", &json!({"index": 0})).unwrap();
+    assert_eq!(count(&s), one);
+    // Deleting a version changes no file: the file stays saved as it was.
+    s.execute("edit.undo", &json!({})).unwrap();
+    s.execute("file.save", &json!({})).unwrap();
+    s.execute("version.delete", &json!({"index": 0})).unwrap();
+    assert!(!s.ds().unwrap().is_dirty());
     let _ = std::fs::remove_dir_all(&dir);
 }

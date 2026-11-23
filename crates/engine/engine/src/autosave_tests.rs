@@ -54,7 +54,7 @@ fn oldest_autosaves_make_room_and_user_versions_stay() {
 }
 
 #[test]
-fn autosaves_keep_their_flag_in_the_file() {
+fn autosaves_keep_their_flag_in_the_session_and_stay_out_of_the_file() {
     let dir = std::env::temp_dir().join(format!("kition-design-autosave-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("auto.kdesign").to_string_lossy().to_string();
@@ -63,12 +63,14 @@ fn autosaves_keep_their_flag_in_the_file() {
     assert!(autosave(&mut s));
     s.execute("file.saveVersion", &json!({"name": "Named"})).unwrap();
     s.execute("file.save", &json!({"path": path})).unwrap();
-    let mut t = Session::empty();
-    t.execute("file.open", &json!({"path": path})).unwrap();
-    let l = list(&mut t);
+    let l = list(&mut s);
     assert_eq!(l.len(), 2);
     assert_eq!(l[0]["auto"], true);
     assert!(l[1].get("auto").is_none());
+    // A file holds content, not history: reopened, it has no versions.
+    let mut t = Session::empty();
+    t.execute("file.open", &json!({"path": path})).unwrap();
+    assert!(list(&mut t).is_empty());
     // Just opened: nothing to autosave.
     assert!(!autosave(&mut t));
     let _ = std::fs::remove_dir_all(&dir);

@@ -75,7 +75,9 @@ fn branch_versions_save_with_the_file_and_survive_merging() {
     ok(&mut s, "file.saveAs", json!({"path": path}));
     let mut t = Session::empty();
     ok(&mut t, "file.open", json!({"path": path}));
-    assert_eq!(names(&mut t), ["Main v1"]);
+    // The main file's versions are the session's (a file holds no history); a branch's stay with
+    // the branch in `branches/`.
+    assert!(names(&mut t).is_empty());
     ok(&mut t, "branch.open", json!({"id": id}));
     assert_eq!(names(&mut t), ["Branch created", "Branch v1", "Autosave"]);
     // Merging adds a version to the main file's history; the branch keeps its own.

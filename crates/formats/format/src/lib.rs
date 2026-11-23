@@ -596,8 +596,8 @@ pub fn save_bytes_with_replica(
             if !is_replica_entry(name) {
                 return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
             }
-            let opts = if name.ends_with(".json") { json_options() } else { stored };
-            put(&mut z, name, opts, bytes)?;
+            // The content compresses about in half (JSON values, ids, text).
+            put(&mut z, name, json_options(), bytes)?;
         }
         // Every image once, whether the content or a branch uses it.
         let mut written = BTreeSet::new();
@@ -770,13 +770,11 @@ pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTr
     let mut buf = std::io::Cursor::new(Vec::new());
     {
         let mut out = zip::ZipWriter::new(&mut buf);
-        let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
         for (name, data) in replica {
             if !is_replica_entry(name) {
                 return Err(FormatError::Io(format!("`{name}` is not a replica entry")));
             }
-            let opts = if name.ends_with(".json") { json_options() } else { stored };
-            put(&mut out, name, opts, data)?;
+            put(&mut out, name, json_options(), data)?;
         }
         for index in 0..z.len() {
             let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
