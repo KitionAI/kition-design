@@ -1283,8 +1283,28 @@ fn item_before(fields: &mut BTreeMap<&str, Value>, key: &str, value: &Value) -> 
     let of_item = |item: &Value| item.get(*value_field).cloned().unwrap_or_else(|| item.clone());
     let rest = key.strip_prefix(*list).and_then(|r| r.strip_prefix('.'));
     let Some(rest) = rest else {
+        // The guard gives the list as it is now (each item its object's id) with the edits since
+        // the basis written over it: an item's edited fields (`{paint: {color: {r}}}`) go over its
+        // value now, `null` is an item made since (it was not there), an id an item as it is.
         let Some(items) = value.as_array() else { return Some(false) };
-        fields.insert(*list, Value::Array(items.iter().map(of_item).collect()));
+        let Some(Value::Array(now)) = fields.get(*list).cloned() else { return Some(false) };
+        let mut then = Vec::with_capacity(items.len());
+        for (index, item) in items.iter().enumerate() {
+            let current = now.get(index).cloned();
+            match (item, current) {
+                (Value::Null, _) => {}
+                (Value::String(_), Some(current)) => then.push(current),
+                (Value::Object(_), current) => {
+                    let mut value = current.unwrap_or(Value::Null);
+                    if let Some(patch) = item.get(*value_field) {
+                        merge_over(&mut value, patch);
+                    }
+                    then.push(value);
+                }
+                _ => return Some(false),
+            }
+        }
+        fields.insert(*list, Value::Array(then));
         return Some(true);
     };
     let mut parts = rest.split('.');
@@ -1325,6 +1345,18 @@ fn item_before(fields: &mut BTreeMap<&str, Value>, key: &str, value: &Value) -> 
     }
 }
 
+/// Writes `patch` over `value`: objects field by field, anything else whole.
+fn merge_over(value: &mut Value, patch: &Value) {
+    match (value, patch) {
+        (Value::Object(into), Value::Object(fields)) => {
+            for (key, field) in fields {
+                merge_over(into.entry(key.clone()).or_insert(Value::Null), field);
+            }
+        }
+        (value, patch) => *value = patch.clone(),
+    }
+}
+
 /// Replay the engine picker with all known prior registers installed together. Tree moves and
 /// deleted nodes lack enough hierarchy in CoveredAsk; refuse those instead of guessing.
 pub(crate) fn covered(
@@ -1362,7 +1394,6 @@ pub(crate) fn covered(
             continue;
         }
         if !ask.unknown.is_empty() || (!ask.created && ask.before.is_empty()) {
-            eprintln!("DEBUG covered: ask {} unknown {:?} before {:?}", ask.id, ask.unknown, ask.before);
             return Ok(None);
         }
         if ask.deleted {
@@ -1403,13 +1434,11 @@ pub(crate) fn covered(
             }
             if let Some(restored) = item_before(&mut fields, key, value) {
                 if !restored {
-                    eprintln!("DEBUG covered: cannot put back {key} = {value}");
                     return Ok(None);
                 }
                 continue;
             }
             if !kition_design_kdm::fields::NODE_REGISTERS.contains(&key.as_str()) {
-                eprintln!("DEBUG covered: not a register {key} = {value} (unknown {:?})", ask.unknown);
                 return Ok(None);
             }
             fields.insert(key, value.clone());

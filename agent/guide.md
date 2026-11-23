@@ -106,9 +106,9 @@ the call. A command that falls back to those inputs needs the corresponding cont
 
 - **Receipts.** A successful `design_run` or `design_batch` answers `changes`: `created`, `changed`
   (with `edits`, each field `before` and `after`), `moved` and `deleted`, naming layers by their
-  ids. Edits use leaf paths: text is `text` (the characters, with a final paragraph break), colour channels can be
-  `fills.0.paint.color.r` (a paint is an object of the layer's `fills`), and translation can be `frame.transform.4`. A
-  move to another parent or place is in `moved` (`from` and `to`: the parent's id and the index);
+  ids. Edits use leaf paths: text is `text` (the characters, with a final paragraph break),
+  colour channels can be `fills.0.paint.color.r` (a paint is an object of the layer's `fills`),
+  and translation can be `frame.transform.4`. A move to another parent or place is in `moved` (`from` and `to`: the parent's id and the index);
   deleting a frame lists it and every layer in it; an edit of a component's layer lists that layer
   and each instance's copy of it. `diagnostics: {new, resolved}` says what the check found new.
   Large sets can use `footprint` to list ids sharing the same delta; it is not truncation.
