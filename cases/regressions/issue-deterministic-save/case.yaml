@@ -2,9 +2,11 @@ format: 1
 id: regressions/issue-deterministic-save
 feature: design.agent.act
 intent: >-
-  A document built by the same commands saves the same bytes when SOURCE_DATE_EPOCH is set (a
-  showcase sample, a gating test): the document id, the replica's actor and new objects' ids are
-  counted from the epoch, and the replica writes JSON objects in key order (kition-sdk 30f21ec).
+  A document built by the same commands saves the same bytes in a reproducible build (a showcase
+  sample, a gating test): with kition-kit's reproducible-ids feature (dev-dependencies only) and
+  KITION_REPRODUCIBLE_IDS set, the document id, the replica's actor and new objects' ids are
+  counted from that seed (kition-sdk 8d56412; SOURCE_DATE_EPOCH alone no longer changes ids), and
+  the replica writes JSON objects in key order (kition-sdk 30f21ec).
   Before, every build of a sample saved other layer ids, a docId, version and snapshot.
 layer: gate
 source:
