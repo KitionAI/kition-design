@@ -1362,6 +1362,7 @@ pub(crate) fn covered(
             continue;
         }
         if !ask.unknown.is_empty() || (!ask.created && ask.before.is_empty()) {
+            eprintln!("DEBUG covered: ask {} unknown {:?} before {:?}", ask.id, ask.unknown, ask.before);
             return Ok(None);
         }
         if ask.deleted {

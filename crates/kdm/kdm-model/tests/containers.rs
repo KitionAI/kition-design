@@ -203,14 +203,13 @@ fn a_paint_added_to_a_layer_deleted_at_once_goes_with_it() {
     edit(&mut b, |d| d.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0))));
     merged(&mut a, &mut b);
     assert!(a.document().node(rect).is_none());
+    // Every paint left is one a live layer lists (the text layer's own fill): B's paint went with
+    // the box (V13).
     let r = a.replica();
-    let lists: Vec<String> =
-        r.objects_of_type("Node").iter().map(|n| format!("{n} {:?} fills={:?}", r.get(n, "name").unwrap(), r.list(n, "fills").unwrap())).collect();
-    assert!(
-        r.objects_of_type("Paint").is_empty(),
-        "V13 deletes the paints no live layer lists: {:?}; layers: {lists:#?}",
-        r.objects_of_type("Paint")
-    );
+    let listed: Vec<ObjectId> = r.objects_of_type("Node").iter().flat_map(|n| r.list(n, "fills").unwrap()).collect();
+    let paints = r.objects_of_type("Paint");
+    assert!(paints.iter().all(|p| listed.contains(p)), "V13 deletes the paints no live layer lists: {paints:?}, listed {listed:?}");
+    assert_eq!(paints.len(), listed.len());
 }
 
 #[test]
