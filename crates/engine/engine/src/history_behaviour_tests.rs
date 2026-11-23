@@ -366,7 +366,7 @@ fn comments_survive_saving_and_stay_put_on_copy_paste() {
     ex(&mut s, "comment.reply", json!({"id": c, "text": "Agreed @Ada", "author": "Sam"}));
     ex(&mut s, "comment.react", json!({"id": c, "emoji": "🎉", "author": "Lin"}));
     ex(&mut s, "comment.resolve", json!({"id": c}));
-    let loose = add(&mut s, 900.0, 900.0, "Loose", "Ada");
+    add(&mut s, 900.0, 900.0, "Loose", "Ada");
     let before = s.doc().unwrap().comments.clone();
 
     // (command, params, derivation): none of these copies or moves a comment.
