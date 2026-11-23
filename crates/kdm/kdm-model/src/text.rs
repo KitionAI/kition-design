@@ -238,10 +238,8 @@ mod tests {
 
     #[test]
     fn every_style_field_is_one_mark() {
-        let mut s = TextStyle::default();
-        s.fills = Some(Vec::new());
-        s.link = Some("https://example.com".into());
-        s.style_id = Some("S:1".into());
+        let mut s =
+            TextStyle { fills: Some(Vec::new()), link: Some("https://example.com".into()), style_id: Some("S:1".into()), ..TextStyle::default() };
         s.variations.insert("wght".into(), 550.0);
         s.set_look(|l| l.skip_ink = !l.skip_ink);
         let Value::Object(map) = serde_json::to_value(&s).unwrap() else { panic!() };

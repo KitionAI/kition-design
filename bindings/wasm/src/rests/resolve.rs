@@ -1272,6 +1272,59 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
     Ok((!under.premises.is_empty() || !under.objects.is_empty() || !under.within.is_empty() || under.covers.is_some()).then_some(under))
 }
 
+/// Puts back what a layer's paint or effect list held at the basis into `fields` (each list the
+/// array of its items' values, as `node_from` takes it), from one `before` entry: the whole list
+/// (`fills`: the items, each shown as its object's fields or its value), one item (`fills.1`:
+/// its object's fields; `null` when it was not there) or a field inside an item's value
+/// (`fills.1.paint.color.r`). `None` when `key` names no item list; `Some(false)` when the entry
+/// cannot be put back.
+fn item_before(fields: &mut BTreeMap<&str, Value>, key: &str, value: &Value) -> Option<bool> {
+    let (list, _, value_field) = kition_design_kdm::items::LISTS.iter().find(|(list, _, _)| key == *list || key.starts_with(&format!("{list}.")))?;
+    let of_item = |item: &Value| item.get(*value_field).cloned().unwrap_or_else(|| item.clone());
+    let rest = key.strip_prefix(*list).and_then(|r| r.strip_prefix('.'));
+    let Some(rest) = rest else {
+        let Some(items) = value.as_array() else { return Some(false) };
+        fields.insert(*list, Value::Array(items.iter().map(of_item).collect()));
+        return Some(true);
+    };
+    let mut parts = rest.split('.');
+    let Some(index) = parts.next().and_then(|i| i.parse::<usize>().ok()) else { return Some(false) };
+    let Some(Value::Array(items)) = fields.get_mut(*list) else { return Some(false) };
+    match parts.next() {
+        None => {
+            if value.is_null() {
+                if index < items.len() {
+                    items.remove(index);
+                }
+            } else if index < items.len() {
+                items[index] = of_item(value);
+            } else if index == items.len() {
+                items.push(of_item(value));
+            } else {
+                return Some(false);
+            }
+            Some(true)
+        }
+        // An item's bindings do not decide what a point picks.
+        Some("bound") => Some(true),
+        Some(field) if field == *value_field => {
+            let Some(mut at) = items.get_mut(index) else { return Some(false) };
+            for part in parts {
+                let next = match at {
+                    Value::Object(map) => map.get_mut(part),
+                    Value::Array(list) => part.parse::<usize>().ok().and_then(|i| list.get_mut(i)),
+                    _ => None,
+                };
+                let Some(next) = next else { return Some(false) };
+                at = next;
+            }
+            *at = value.clone();
+            Some(true)
+        }
+        Some(_) => Some(false),
+    }
+}
+
 /// Replay the engine picker with all known prior registers installed together. Tree moves and
 /// deleted nodes lack enough hierarchy in CoveredAsk; refuse those instead of guessing.
 pub(crate) fn covered(
@@ -1331,17 +1384,49 @@ pub(crate) fn covered(
         };
         let mut fields: BTreeMap<&str, Value> =
             kition_design_kdm::fields::node_fields(current, None).map_err(crate::engine_error)?.into_iter().collect();
+        // The item lists as `node_from` takes them (each the array of its values), the layer's own.
+        for (list, _, _) in kition_design_kdm::items::LISTS {
+            let values: Vec<Value> =
+                kition_design_kdm::items::items(current, list).map_err(crate::engine_error)?.into_iter().map(|item| item.value).collect();
+            fields.insert(list, Value::Array(values));
+        }
         for (key, value) in &ask.before {
             // Derived facts and the reserved prior list position (`$at`) are put back below.
             if key.starts_with('~') || key == "$at" {
                 continue;
             }
+            // A text's characters never decide what a point picks; a paint list's items are put
+            // back by value (an item's object shows as its fields: `paint` or `effect`).
+            if key == "text" {
+                continue;
+            }
+            if let Some(restored) = item_before(&mut fields, key, value) {
+                if !restored {
+                    eprintln!("DEBUG covered: cannot put back {key} = {value}");
+                    return Ok(None);
+                }
+                continue;
+            }
             if !kition_design_kdm::fields::NODE_REGISTERS.contains(&key.as_str()) {
+                eprintln!("DEBUG covered: not a register {key} = {value} (unknown {:?})", ask.unknown);
                 return Ok(None);
             }
             fields.insert(key, value.clone());
         }
-        let restored = kition_design_kdm::fields::node_from(node, &fields, current.parent, current.children.clone()).map_err(crate::engine_error)?.0;
+        let Ok((mut restored, _)) = kition_design_kdm::fields::node_from(node, &fields, current.parent, current.children.clone()) else {
+            return Ok(None);
+        };
+        // What the registers do not hold: the bindings of the items' fields and the text.
+        for (key, variable) in &current.bound {
+            if kition_design_kdm::items::item_key(current, key).is_some() {
+                restored.bound.entry(key.clone()).or_insert_with(|| variable.clone());
+            }
+        }
+        if let (NodeKind::Text(was), NodeKind::Text(now)) = (&current.kind, &mut restored.kind) {
+            now.characters.clone_from(&was.characters);
+            now.runs.clone_from(&was.runs);
+            now.paragraphs.clone_from(&was.paragraphs);
+        }
         let transform = restored.transform;
         *before.get_mut(node).map_err(crate::engine_error)? = restored;
         if let Some(parent) = ask.before.get("~hierarchy").and_then(|h| h.get("parent")).and_then(id) {
@@ -1379,7 +1464,8 @@ pub(crate) fn covered(
     }
     // A deleted leaf outside the point cannot have affected the pick. For a deleted subtree,
     // overlapping bounds, or incomplete history the journal cannot prove this: return unknown.
-    for ask in asked.iter().filter(|ask| ask.deleted) {
+    // (A layer's paint and effect objects go with it: only layers are asked about here.)
+    for ask in asked.iter().filter(|ask| ask.deleted && id(&ask.id).is_some()) {
         let hierarchy = &ask.before["~hierarchy"];
         if hierarchy["children"].as_u64() != Some(0) {
             return Ok(None);
