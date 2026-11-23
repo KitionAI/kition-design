@@ -64,6 +64,26 @@ fn measure_ridgeline_app() {
     let full = fresh_replica.snapshot().unwrap();
     out.push_str(&format!("fresh full snapshot raw {}\n", full.len()));
 
+    // The same document in one creating transaction: its full snapshot (the one change holds every
+    // value once) against its sealed content (the shallow form).
+    let mut session =
+        kition_design_kdm::DesignSession::create(&Arc::new(doc.clone()), &kition_design_kdm::kition_kit::kdm::Origin::system("create")).unwrap();
+    let one_change = session.snapshot().unwrap();
+    let changes = session.export_changes(&kition_design_kdm::kition_kit::kdm::Version::empty()).unwrap();
+    session.seal().unwrap();
+    let sealed_full = session.snapshot().unwrap();
+    let sealed_content = session.replica().sealed_content_snapshot().unwrap();
+    out.push_str(&format!(
+        "one transaction: full snapshot raw {} deflate6 {}; changes export raw {} deflate6 {}; sealed full raw {}; sealed content raw {} deflate6 {}\n",
+        one_change.len(),
+        deflate(&one_change, 6),
+        changes.len(),
+        deflate(&changes, 6),
+        sealed_full.len(),
+        sealed_content.len(),
+        deflate(&sealed_content, 6)
+    ));
+
     // Objects by type, and the JSON bytes of each field by type.
     let objects = state["objects"].as_object().unwrap();
     let mut count: BTreeMap<String, usize> = BTreeMap::new();
