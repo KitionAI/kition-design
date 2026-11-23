@@ -402,6 +402,8 @@ fn comments_survive_saving_and_stay_put_on_copy_paste() {
     assert_eq!(comment(&t, c).anchor, Some(k.f));
     // A pin reopened still follows its frame.
     ex(&mut t, "transform.move", json!({"ids": [k.f], "dx": 10, "dy": 0}));
+    // (The loose thread's id was a layer's: the reopened file names it anew.)
+    let loose = t.doc().unwrap().comments.iter().find(|x| x.first.text == "Loose").map(|x| x.id).unwrap();
     assert_eq!((at(&t, c), at(&t, loose)), ((110.0, 200.0), (900.0, 900.0)));
     let _ = std::fs::remove_dir_all(&dir);
 }
