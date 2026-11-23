@@ -82,6 +82,26 @@ fn probe(d: &DesignDocument) -> Option<NodeId> {
     named(d, "Probe").or_else(|| layers(d).first().copied())
 }
 
+/// The probe text: the text layer named "Title" and its characters.
+fn title(d: &DesignDocument) -> Option<(NodeId, String)> {
+    let id = named(d, "Title")?;
+    match &doc(d).node(id)?.kind {
+        NodeKind::Text(t) => Some((id, t.characters.clone())),
+        _ => None,
+    }
+}
+
+/// Sets the probe text to `edit` of its characters (as Unicode scalar values) through the
+/// engine's `text.set`; the bridge writes the difference as text edits.
+fn edit_title(d: &mut DesignDocument, edit: impl FnOnce(&mut Vec<char>) -> bool) -> bool {
+    let Some((id, characters)) = title(d) else { return false };
+    let mut chars: Vec<char> = characters.chars().collect();
+    if !edit(&mut chars) {
+        return false;
+    }
+    run(d, "text.set", json!({ "id": id.0, "characters": chars.into_iter().collect::<String>() }))
+}
+
 fn frames(d: &DesignDocument) -> Vec<NodeId> {
     let doc = doc(d);
     let Ok(page) = d.session().page() else { return Vec::new() };
@@ -289,12 +309,42 @@ impl KitAdapter for DesignKit {
                 let (child, parent) = if *which == 0 { (a, b) } else { (b, a) };
                 run(d, "node.reparent", json!({ "ids": [child.0], "parent": parent.0 }))
             }
+            Script::InsertText { at, text } => edit_title(d, |chars| {
+                let at = (*at).min(chars.len());
+                chars.splice(at..at, text.chars());
+                true
+            }),
+            Script::DeleteText { at, len } => edit_title(d, |chars| {
+                let end = at.saturating_add(*len).min(chars.len());
+                if *at >= end {
+                    return false;
+                }
+                chars.drain(*at..end);
+                true
+            }),
+            Script::SplitParagraph { at } => edit_title(d, |chars| {
+                let at = (*at).min(chars.len());
+                chars.insert(at, '\n');
+                true
+            }),
+            Script::MergeParagraph { at } => edit_title(d, |chars| {
+                if chars.get(*at) != Some(&'\n') {
+                    return false;
+                }
+                chars.remove(*at);
+                true
+            }),
             Script::InsertBlob { seed } => {
                 let data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, png(*seed));
                 run(d, "file.placeImage", json!({ "data": data, "x": 400, "y": 400 }))
             }
             _ => false,
         })
+    }
+
+    /// The probe text layer's characters (paragraphs joined by `\n`): `Node.text` is a KDM `text`.
+    fn text(&self, d: &mut DesignDocument) -> Result<Option<String>> {
+        Ok(title(d).map(|(_, characters)| characters))
     }
 
     fn check_view(&self, d: &mut DesignDocument) -> Result<()> {

@@ -1,7 +1,7 @@
 {
   "kdm": 1,
   "kit": "kit.design",
-  "schemaVersion": 4,
+  "schemaVersion": 1,
   "root": "Design",
   "types": {
     "Design": {
@@ -56,10 +56,28 @@
         "opacity": { "kind": "number", "optional": true, "minimum": 0, "maximum": 1 },
         "kind": { "kind": "json", "sample": false },
         "frame": { "kind": "json", "optional": true, "position": true },
-        "fills": { "kind": "json", "optional": true },
-        "strokes": { "kind": "json", "optional": true },
+        "text": {
+          "kind": "text",
+          "marks": {
+            "fontFamily": { "expand": "after" },
+            "fontStyle": { "expand": "after" },
+            "fontSize": { "expand": "after" },
+            "lineHeight": { "expand": "after" },
+            "letterSpacing": { "expand": "after" },
+            "decoration": { "expand": "after" },
+            "decorationLook": { "expand": "after" },
+            "case": { "expand": "after" },
+            "fills": { "expand": "after" },
+            "link": { "expand": "after" },
+            "variations": { "expand": "after" },
+            "styleId": { "expand": "after" },
+            "list": { "expand": "none" }
+          }
+        },
+        "fills": { "kind": "list", "of": "Paint" },
+        "strokes": { "kind": "list", "of": "Paint" },
         "stroke": { "kind": "json", "optional": true },
-        "effects": { "kind": "json", "optional": true },
+        "effects": { "kind": "list", "of": "Effect" },
         "corners": { "kind": "json", "optional": true },
         "layout": { "kind": "json", "optional": true },
         "childLayout": { "kind": "json", "optional": true },
@@ -72,6 +90,20 @@
         "props": { "kind": "json", "optional": true }
       },
       "toolId": { "field": "key" }
+    },
+    "Paint": {
+      "batchOps": { "*": { "direct": true } },
+      "fields": {
+        "paint": { "kind": "json" },
+        "bound": { "kind": "map" }
+      }
+    },
+    "Effect": {
+      "batchOps": { "*": { "direct": true } },
+      "fields": {
+        "effect": { "kind": "json" },
+        "bound": { "kind": "map" }
+      }
     },
     "Style": {
       "batchOps": { "*": { "direct": true } },

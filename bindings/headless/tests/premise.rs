@@ -197,15 +197,19 @@ async fn receipts_name_layers_by_the_ids_inspect_lists_with_before_and_after() {
         f.id("Home", "Card").await,
         f.id("Second", "Panel").await,
     );
-    // A text change: the layer's `kind` (its characters and style), before and after.
+    // A text change: the layer's `text` field (its characters, with the final paragraph break),
+    // before and after.
     let ran = f.ok("run", json!({ "steps": [{ "command": "text.set", "params": { "id": title, "characters": "Welcome" } }] })).await;
-    let characters = edit(&entry(&ran["changes"]["changed"], title), "kind.characters");
-    assert_eq!((characters["before"].clone(), characters["after"].clone()), (json!("Hello"), json!("Welcome")), "{ran}");
-    // A fill change, by `on` into the command's `ids`.
+    let characters = edit(&entry(&ran["changes"]["changed"], title), "text");
+    let shown = |v: &Value| v.to_string();
+    assert!(shown(&characters["before"]).contains("Hello") && !shown(&characters["before"]).contains("Welcome"), "{ran}");
+    assert!(shown(&characters["after"]).contains("Welcome") && !shown(&characters["after"]).contains("Hello"), "{ran}");
+    // A fill change, by `on` into the command's `ids`: the layer's first `Paint` object, told by
+    // the layer.
     let ran = f.ok("run", json!({ "steps": [{ "command": "node.set", "on": [bx], "params": { "props": { "fill": "#C00000" } } }] })).await;
     assert_eq!(ids(&ran["changes"]["changed"]), [bx.to_string()], "exactly that layer: {ran}");
     for channel in ["r", "g", "b"] {
-        let color = edit(&entry(&ran["changes"]["changed"], bx), &format!("fills.0.color.{channel}"));
+        let color = edit(&entry(&ran["changes"]["changed"], bx), &format!("fills.0.paint.color.{channel}"));
         assert_ne!(color["before"], color["after"]);
     }
     // A reparent into a frame of the other page: a move, from and to named by layer ids.

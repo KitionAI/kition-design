@@ -19,7 +19,7 @@ fn whole(under: &kition_kit::Under, id: &Value) -> bool {
         p.id == *id
             && p.fields
                 .as_ref()
-                .is_none_or(|fields| kition_design_kdm::fields::NODE_REGISTERS.iter().all(|field| fields.iter().any(|held| held == field)))
+                .is_none_or(|fields| kition_design_kdm::fields::NODE_FIELDS.iter().all(|field| fields.iter().any(|held| held == field)))
             && p.positions.as_ref().is_none_or(|positions| positions.iter().any(|p| p == "frame"))
     })
 }

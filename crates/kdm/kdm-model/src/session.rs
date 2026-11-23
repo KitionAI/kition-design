@@ -64,7 +64,8 @@ fn transact(replica: &mut Replica, origin: &Origin, f: impl FnOnce(&mut Tx<'_>) 
 /// there is something to repair.
 fn repair(replica: &mut Replica) -> Result<()> {
     let everything = BTreeSet::new();
-    transact(replica, &Origin::system("repair"), |tx| validate(tx, &everything)).map(|_| ())
+    let texts = crate::validate::store_texts(replica);
+    transact(replica, &Origin::system("repair"), |tx| validate(tx, &everything, &texts)).map(|_| ())
 }
 
 /// The images of `doc` as blobs.

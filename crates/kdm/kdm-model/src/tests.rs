@@ -378,7 +378,7 @@ fn deleting_a_reply_keeps_a_concurrent_edit_of_the_next_one() {
     assert_eq!(replies, vec![("cy", "Second reply, edited", 400)]);
 }
 
-/// Limit closed (F18, schema v4): two replies by one author within one second keep their own
+/// Limit closed (F18): two replies by one author within one second keep their own
 /// objects by their message ids. A deletes the first while B edits the second: the second keeps
 /// B's edit and the first is gone, on both replicas.
 #[test]

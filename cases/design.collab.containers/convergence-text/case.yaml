@@ -1,0 +1,18 @@
+format: 1
+id: design.collab.containers/convergence-text
+feature: design.collab.containers
+intent: >-
+  The shared convergence suite types into a design's text layer through the engine's commands: concurrent text at one position (IME composition, CJK, emoji), typing inside a range deleted at once, a paragraph split and a paragraph merge concurrent with typing all keep both sides, and the design passes level 6.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/convergence.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: convergence }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-22"

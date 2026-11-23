@@ -8,7 +8,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use kition_design_doc::{Document, NodeId, NodeKind};
-use kition_kit::kdm::{NodeRef, ObjectId, Tx};
+use kition_kit::kdm::{NodeRef, ObjectId, Replica, Tx};
+use kition_kit::session::TextRun;
 use serde_json::{Value, json};
 
 use crate::store::{self, BY_ASSET, COPIES, STORE_PAGE, STORE_TREE};
@@ -90,12 +91,33 @@ pub(crate) fn live_keys(tx: &Tx<'_>) -> KdmResult<BTreeSet<NodeId>> {
     Ok(keys)
 }
 
-/// Runs the rules; answers whether it wrote anything.
-pub fn validate(tx: &mut Tx<'_>, _changed: &BTreeSet<ObjectId>) -> Result<bool> {
-    repair(tx).map_err(kit_err)
+/// The text fields of the library store's layers (`Node.text`, by object), read before the
+/// repair's transaction: a transaction cannot read a text field, and V12 copies them.
+pub type StoreTexts = HashMap<ObjectId, Vec<TextRun>>;
+
+/// [`StoreTexts`] of `replica`: every live store layer whose text is not empty.
+pub fn store_texts(replica: &Replica) -> StoreTexts {
+    let mut out = StoreTexts::new();
+    for entry in replica.tree(&root_id(), STORE_TREE).unwrap_or_default() {
+        if !replica.exists(&entry.object) {
+            continue;
+        }
+        if let Ok(runs) = replica.text_delta(&entry.object, "text")
+            && !runs.is_empty()
+        {
+            out.insert(entry.object, runs);
+        }
+    }
+    out
 }
 
-fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
+/// Runs the rules; answers whether it wrote anything. `texts` is [`store_texts`] of the state the
+/// transaction starts from.
+pub fn validate(tx: &mut Tx<'_>, _changed: &BTreeSet<ObjectId>, texts: &StoreTexts) -> Result<bool> {
+    repair(tx, texts).map_err(kit_err)
+}
+
+fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     let mut wrote = false;
     let root = root_id();
     if !tx.exists(&root) {
@@ -130,7 +152,7 @@ fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
     wrote |= one_copy_per_asset(tx)?;
     // V12: copies of one library component placed at once become one (after V11, which leaves
     // one record per copy; before V1, V3 and V10, which see the new copy).
-    if crate::merge::one_copy_per_component(tx)? {
+    if crate::merge::one_copy_per_component(tx, texts)? {
         wrote = true;
         store_entries = tx.tree(&root, STORE_TREE)?;
     }
@@ -168,6 +190,10 @@ fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
     // V9: one library added twice (two people added the same library file at once).
     wrote |= unique_libraries(tx)?;
 
+    // V13: paint and effect objects no live layer lists (added to a layer deleted at once), and
+    // list entries naming a deleted item or one item twice.
+    wrote |= items_of_live_layers(tx)?;
+
     // V4: layers under a layer that cannot hold children (a concurrent type change).
     let moved = into_containers(tx, "nodes", &entries)?;
     wrote |= moved;
@@ -181,6 +207,44 @@ fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
     wrote |= roots_into_a_page(tx, (!moved && !added).then_some(&entries[..]))?;
     // V10: the store's layers outlive the setting that names the store's root.
     wrote |= keep_the_store(tx, &store_entries)?;
+    Ok(wrote)
+}
+
+/// V13: every paint and effect object belongs to one live layer. Entries of a layer's `fills`,
+/// `strokes` and `effects` that name a deleted object or an object listed before (by this layer or
+/// an earlier one, in tree order) are dropped; `Paint` and `Effect` objects no live layer lists
+/// are deleted.
+fn items_of_live_layers(tx: &mut Tx<'_>) -> KdmResult<bool> {
+    let root = root_id();
+    let mut wrote = false;
+    let mut listed: HashSet<ObjectId> = HashSet::new();
+    let mut layers: Vec<ObjectId> = Vec::new();
+    for field in ["nodes", STORE_TREE] {
+        for e in tx.tree(&root, field)? {
+            if tx.exists(&e.object) {
+                layers.push(e.object);
+            }
+        }
+    }
+    for layer in &layers {
+        for (field, _, _) in crate::items::LISTS {
+            let entries = tx.list_items(layer, field)?;
+            let drop: Vec<usize> =
+                entries.iter().enumerate().filter(|(_, o)| !tx.exists(o) || !listed.insert((*o).clone())).map(|(i, _)| i).collect();
+            for i in drop.into_iter().rev() {
+                tx.list_remove(layer, field, i)?;
+                wrote = true;
+            }
+        }
+    }
+    for ty in ["Paint", "Effect"] {
+        for object in tx.objects_of_type(ty) {
+            if !listed.contains(&object) {
+                tx.delete(&object)?;
+                wrote = true;
+            }
+        }
+    }
     Ok(wrote)
 }
 

@@ -1,4 +1,4 @@
-# Design on the Kit Data Model: schema `kit.design` v4, the `.kdesign` replica, engine contract 2
+# Design on the Kit Data Model: schema `kit.design` 1, the `.kdesign` replica, engine contract 2
 
 > Status: implemented; the "Decisions taken" list (section 9) names each point and the precedent
 > it follows. Normative text:
@@ -21,14 +21,21 @@ without it), writes each new history step as one transaction, and steps the repl
 redo. The bindings answer engine contract 2 (`contractVersion` 2, the session members,
 `openWithReplica`, the object model) and `kition-design` serves `model.*` headless.
 
-## 2. Schema `kit.design` v4
+## 2. Schema `kit.design` 1
+
+Schema version 1 is the first release's (task schema-freeze, 2026-11-22): every collection a
+person edits piece by piece is a container from the start (a text, a list of objects, a map),
+since an object type can never gain a container field later. A replica of an earlier schema
+(the development versions 1 to 4, which kept a text and the paint lists as registers) does not
+open: a file that holds one opens from its `document.json` with a new replica (no migration).
 
 `crates/kdm/kdm-model/model/schema.json`:
 
 | Type | Fields (kind) | From the engine |
 | --- | --- | --- |
 | `Design` (root, id `design`) | `settings` (map), `nodes` (tree of `Node`), `styles` (list of `Style`), `collections` (list of `Collection`), `variables` (list of `Variable`), `images` (list of `Image`), `comments` (list of `CommentThread`), `libraries` (list of `Library`), `libraryStore` (tree of `Node`), `libraryCopies` (list of `LibraryCopy`) | `Document` |
-| `Node` | `key` (integer, read-only and optional: the layer's tool id, below), `name` (string), `visible`, `locked` (boolean), `opacity` (number), `kind` (json), `frame` (json), `fills`, `strokes`, `stroke`, `effects`, `corners`, `layout`, `childLayout`, `constraints`, `prototype`, `bindings`, `instance`, `dev`, `props` (json), `mirrors` (integer; all but `kind` optional) | `Node` |
+| `Node` | `key` (integer, read-only and optional: the layer's tool id, below), `name` (string), `visible`, `locked` (boolean), `opacity` (number), `kind` (json), `frame` (json), `text` (text with marks, section 2.4), `fills`, `strokes` (lists of `Paint`), `effects` (list of `Effect`), `stroke`, `corners`, `layout`, `childLayout`, `constraints`, `prototype`, `bindings`, `instance`, `dev`, `props` (json), `mirrors` (integer; all registers but `kind` optional) | `Node` |
+| `Paint`, `Effect` | `paint` / `effect` (json: the engine's paint or effect), `bound` (map: the variable bound to a field inside it, by that field: `color`, `stops/1/color`, `radius`) | `Paint`, `Effect` and the `fills/<i>/…`, `strokes/<i>/…`, `effects/<i>/…` keys of `Node.bound` |
 | `Style` | `key`, `name` (string), `value` (json), `props` (json, optional) | `Style` |
 | `Collection` | `key`, `name` (string), `modes` (list of `Mode`), `props` (json, optional) | `Collection` |
 | `Mode` | `key`, `name` (string) | `Mode` |
@@ -59,15 +66,14 @@ existing type later).
   | Register | Holds | Why one register |
   | --- | --- | --- |
   | `frame` | `transform`, `width`, `height` | a rotation, a position and a size are one placement; a split would give a position nobody chose |
-  | `kind` | the node type and its data (a vector's network, a text's characters, runs and paragraph settings, a component's property definitions, an instance's main component and property values, a page's background, flows, prototype settings and guides, a shape's arcs and counts) | the engine's own unit: a type change replaces it whole |
-  | `fills`, `strokes`, `effects` | the paint and effect lists | each list is edited as one by the panels; fills and strokes separate so two people recolouring each win |
+  | `kind` | the node type and its data (a vector's network, a text's box settings, base style and default list style, a component's property definitions, an instance's main component and property values, a page's background, flows, prototype settings and guides, a shape's arcs and counts) | the engine's own unit: a type change replaces it whole |
   | `stroke` | weight, align, caps, joins, dashes, brushes, width profile | one stroke style |
   | `corners` | radius per corner and smoothing | |
   | `layout` | the frame's auto layout (direction, gaps, padding, alignment, grid tracks) | gaps and padding of another direction are meaningless |
   | `childLayout` | how the layer sits in its parent's auto layout (sizing, absolute position, grid cell) | |
   | `constraints` | horizontal and vertical constraints | |
   | `prototype` | `interactions`, `overflow`, `scroll_position` | the prototype panel's unit |
-  | `bindings` | style links (`styles`), variable bindings (`bound`) and chosen modes (`var_modes`) | |
+  | `bindings` | style links (`styles`), variable bindings of the layer's own fields (`bound`: `width`, `fill`, `characters`…; a paint's or an effect's are its object's) and chosen modes (`var_modes`) | |
   | `instance` | `overrides` and `prop_refs` | which fields an instance overrides and which component properties drive them |
   | `mirrors` | `source`: inside an instance, the main component's layer this one mirrors | the one register V12 rewrites, so its repair never takes a person's edit of another register (F18) |
   | `dev` | Dev Mode status, note, annotations, measurements, code links, resources, the ready-for-dev snapshot | the Dev Mode panel's unit |
@@ -76,12 +82,18 @@ existing type later).
   `name`, `visible`, `locked` and `opacity` stand alone: any combination is valid. The engine's
   serde form of a node is the source: a key the bridge does not know goes into `props`, so
   nothing is lost.
-- **Text is a register, not a KDM `text`.** A text layer's characters and style runs are in its
-  `kind` register, as kition-vector keeps a text object's characters in `Node.data`. Two people
-  typing in the same text layer at once keep one of their texts (last writer wins); two people
-  editing different layers, or one layer's text and another field of it, both win. The
-  convergence suite's text scenarios therefore skip (they are required only for kits with text
-  the suite can type into, as for Vector).
+- **Paints and effects are objects** (`crates/kdm/kdm-model/src/items.rs`). `Node.fills` and
+  `Node.strokes` are lists of `Paint` objects and `Node.effects` a list of `Effect` objects, one
+  per item, in the engine's order (bottom first). A variable bound to a field of an item (the
+  engine's `fills/<i>/color`, `fills/<i>/stops/<j>/color`, `effects/<i>/radius`) is a key of the
+  item's `bound` map, so it follows its paint: one person recolouring a paint, another adding,
+  removing or reordering paints, and a third binding a paint's colour all keep their edits. The
+  engine's paints have no ids: the writer tells which object a paint of the new list is by an
+  equal paint first, else the paint at the same place (a recolour keeps its object, an added
+  paint is a new object, a reorder moves objects). A paint or effect object no live layer lists
+  is deleted by the repair (V13).
+- **Ballots are keys.** Each voter's ballot is its own settings key, `votes/<voter>`, so people
+  voting at once all count.
 
 ### 2.2 Identity: engine ids are data
 
@@ -249,8 +261,8 @@ making `Node.kind` optional would misstate the model. All 100 generated tasks ea
   `color_profile`, `document_colors`, `libraries` (the id of the library store's root; not the
   links or the copies' records, below), `libraryStore` (the store root's registers, as a node's),
   `image_presets`,
-  `annotation_categories`, `timer`, `vote`, `votes`, and any document-level key a newer engine
-  writes.
+  `annotation_categories`, `timer`, `vote`, one key per voter's ballot (`votes/<voter>`), and any
+  document-level key a newer engine writes.
 - **Library links**: each library the design uses (the engine's enabled libraries) is a
   `Library` object in `Design.libraries`, in the order the Libraries view lists them: `key` is the
   library's id, `path` the library file as the document names it, a workspace path relative to
@@ -272,7 +284,7 @@ making `Node.kind` optional would misstate the model. All 100 generated tasks ea
   copies have ids derived from the asset (`<library>:<key>`, the engine's), so the same asset copied
   at once is one copy (V11).
 - **Comments** follow M23: each design thread is a `CommentThread` whose `anchor` names the anchor
-  layer's (or the page's) object and adds design's keys (`id`, `page`, `x`, `y`, `node`, `readBy`);
+  layer's (or the page's) object and adds design's keys (`id`, `page`, `x`, `y`, `node`);
   its first message and replies are `Comment`s (`author`, `body`, `created` as ISO 8601 UTC, and
   design's `edited` and `reactions`). Concurrent replies to one thread are both kept. A message
   keeps its `Comment` object by identity, its author and `created` time (among messages of one
@@ -281,7 +293,32 @@ making `Node.kind` optional would misstate the model. All 100 generated tasks ea
 - **Not replicated** (M2 and file-level state): the selection, the current page and the view
   (`current_page` is the editing person's), the id counter (`next_id`), the undo history, the
   file's version history, branches, published library and thumbnail (kept by the file, section 3),
-  and text layout caches.
+  text layout caches, and who has read each comment thread (each person's own: the view keeps its
+  read state through merges, and a thread that gets a message is unread for everyone but its
+  author, as the engine marks it).
+
+### 2.4 Text
+
+A text layer's characters are its `Node.text`, a KDM `text` with marks
+(`crates/kdm/kdm-model/src/text.rs`, after kition-layout's stories):
+
+- The field holds the engine's characters and one final `\n`: every paragraph, the last
+  included, ends with a break that carries its paragraph mark. The bridge writes the final break
+  when the layer becomes a text and computes its edits on the engine's characters, so they never
+  touch it. A field without it (an agent's batch deleted it) reads whole as the characters.
+- **Character marks**: each character carries every set field of its style, one mark per
+  `TextStyle` field (`fontFamily`, `fontStyle`, `fontSize`, `lineHeight`, `letterSpacing`,
+  `decoration`, `decorationLook`, `case`, `fills`, `link`, `variations`, `styleId`), all
+  `expand: "after"` as the engine's typing takes the style before the caret. The values are
+  absolute, never relative to the layer's base style, so a character reads the same whatever
+  happens to the base; a field the engine leaves unset (no fills of its own, no link) is no mark.
+- **Paragraph marks**: a paragraph's list settings other than the plain ones (`ParaList`: list
+  style, level, start) are the `list` mark on its break, `expand: "none"`.
+- `kind` keeps the box settings (resize, alignment, spacing, truncation, features, text on a
+  path), the base style new and empty text takes, and the default list style.
+
+Two people typing in one text layer at once keep both texts; formatting overlapping ranges with
+different fields both apply; a paragraph split or merge concurrent with typing keeps the typing.
 
 ## 3. The `.kdesign` file under the KDM
 
@@ -292,7 +329,7 @@ replica a person edits. `.kdesign` does so, inside its zip:
 | Entry | Content |
 | --- | --- |
 | `document.json`, `images/<sha256>`, `versions/`, `branches/`, the published library, `thumbnail.png` | the document as `crates/formats/format` writes it |
-| `kdm/meta.json` | `{ "format": "kition.design-replica", "formatVersion": 1, "kdm": 1, "schemaVersion": 4, "docId", "changes": [entry names] }` |
+| `kdm/meta.json` | `{ "format": "kition.design-replica", "formatVersion": 1, "kdm": 1, "schemaVersion": 1, "docId", "changes": [entry names] }` |
 | `kdm/snapshot.bin` | a KDM snapshot envelope (M16, M17) at the last compaction |
 | `kdm/changes/<seq>.bin` | KDM change envelopes in replay order (`000001`, …) |
 
@@ -399,6 +436,7 @@ the state (V10). The tree rules (V3, V4, V5, V7) hold for both trees, `Design.no
 | V10 | Layers in `Design.libraryStore` but no store root in the `libraries` setting (the person who made the store undid it after another added a copy to it) | the setting names the root under the key `2^21 - 1` (the repair space) `<< 32` plus the 32-bit FNV-1a hash of `libraryStore`, and a missing `libraryStore` setting gets the engine's new store's registers; the reader reads the same store before the repair |
 | V11 | Copies of one library asset taken at once: two `LibraryCopy` objects of one kind and local id, or two `Style`, `Collection` or `Variable` objects of one key that a `LibraryCopy` names (run before V1 and V3) | records: the one of the lowest library version stays (then the object id that sorts first), so an update is offered when either copy is older; objects: the one whose id sorts first stays (a collection with its modes); the others are deleted and their list entries dropped |
 | V12 | Copies of one library component placed at once: two `LibraryCopy` objects of kind `component` with one library and asset whose root layers are in the store (run after V11, before V1, V3 and V10) | one new copy replaces them (F17): the copy of the lowest library version (then the record whose object id sorts first) is made again under object ids derived from the merged records' sorted ids (`copy-` plus a 64-bit FNV-1a hash; a layer's adds its old object id), with keys in the repair space (probed past live keys and the store root's), as the last root of `Design.libraryStore`, and one record under the derived id at the first merged record's place (`merged` names every merged layer and the aliases the merged records held); the merged copies' layers and records are deleted. Every layer that names a merged copy's layer (main, mirrored layer, instance swap value, preferred component, prototype destination, measurement, pattern source) names the new copy's layer for the same library layer instead, rewriting only those registers (a mirrored layer's is `mirrors`, F18); overrides and the rest stay. A copy left alone points late references to the layers its `merged` names (layers no live layer holds) at its own. When the record's derived id was an object's before (M8 refuses it again), the merge is left out |
+| V13 | Paint and effect objects of a layer deleted at once, or list entries of a layer's `fills`, `strokes` or `effects` naming a deleted object or an object listed before (run after V12) | the entries are dropped (an object listed twice keeps its first entry, in tree order); `Paint` and `Effect` objects no live layer lists are deleted |
 
 Not repaired: references to deleted objects inside registers (section 2.2), a missing blob
 (it may arrive late; the image reads as missing until it does), and a register or setting the
@@ -466,8 +504,10 @@ update reaching every instance), the store's maker undoing it after another pers
 (V10), and V12's: one copy for a component placed at once, with an instance override kept and
 the update counted once; either person undoing (and redoing) their placement after the merge; a
 reference to a merged copy made before hearing of the merge (a duplicated instance); and an edit
-of a mirrored layer crossing the merge, then undone. Every scenario must pass or skip only where Design has no such step
-(text); `level6()` must hold, the report is saved with `save_if_requested()`, and the
+of a mirrored layer crossing the merge, then undone. The text scripts (`InsertText`,
+`DeleteText`, `SplitParagraph`, `MergeParagraph`) type into the text layer `Title` through
+`text.set`, whose characters the bridge writes as text edits. Every scenario must pass, the four
+text scenarios included; `level6()` must hold, the report is saved with `save_if_requested()`, and the
 WebAssembly parity check runs when `KITION_WASM_ENGINE` is set. `bindings/wasm/tests/perf.rs`
 measures the collaboration budgets on the largest example design
 (`examples/ridgeline-studio-dashboard.kdesign`), a keystroke being one edit and the repaint of a
@@ -479,7 +519,8 @@ Measured on an Apple M-series machine (release build, other builds running):
 | --- | --- | --- | --- | --- |
 | 285, 160 KB | 9.2 ms (budget 50) | 2.4 s (budget 10 s) | 4.4 / 6.0 ms (budget p95 50) | 3.4 MB (budget 16) |
 
-The suite passes L6 (13 scenarios pass, the four text scenarios skip), also in long fuzz runs:
+The suite passes L6 with the four text scenarios (schema 1); before schema 1 (13 scenarios
+passing, the text scenarios skipping) it also passed long fuzz runs:
 fifteen runs of 100 seeds × 200 steps on 2, 3 and 5 replicas
 (`KITION_CONVERGENCE_SEEDS=100 KITION_CONVERGENCE_STEPS=200`, `KITION_CONVERGENCE_SEED_BASE` 0 to
 1400 in steps of 100), with library links and `library.place` among the random edits (a run
@@ -493,7 +534,7 @@ session's random id space, so the layers a seed picks differ from run to run.
 | --- | --- | --- |
 | F1 | One document-level node tree, pages as roots (the library store in its own tree, F16) | kition-vector `Drawing.nodes`, kition-layout `Layout.items` |
 | F2 | Registers by coupling as in section 2.1, unknown keys into `props` | kition-vector `Node` registers, design note M3 table |
-| F3 | Text characters in the `kind` register, not a KDM `text`; text scenarios skip | kition-vector (text in `Node.data`) |
+| F3 | A text layer's characters are `Node.text`, a KDM `text` with one mark per style field (absolute values) and the list mark on each paragraph's break, the final break included (section 2.4); `kind` keeps the box settings. Superseded: the characters, runs and paragraphs in the `kind` register (two people typing kept one text) | kition-layout (`Story.text` with marks, the final break) |
 | F4 | Engine ids are data, minted in a per-session id space; no translation of references | deviation from kition-vector (which translates ids); the engine's own collaboration ids (`set_client_id`) make it safe, and a missed reference site cannot point at the wrong layer on another replica |
 | F5 | Comments on M23's reserved types | M23, kition-layout (comments declared up front) |
 | F6 | The replica lives in the `.kdesign` file under `kdm/`, beside `document.json`, sharing `images/` as blobs | kition-layout `.klayout` (replica in the file), kition-photo `.kphoto` (`kdm.bin` beside the document) |
@@ -508,11 +549,15 @@ session's random id space, so the layers a seed picks differ from run to run.
 | F15 | Library links are `Library` objects keyed by library id; a library file is named by a workspace path relative to the document (KitLinks HC-P2, E5) and read through lent files | kition-film (clips as relative lent paths), M5 (a container field means a new schema version) |
 | F16 | The schema declares the library store's layers as their own tree (`Design.libraryStore`) and each copy's record as a `LibraryCopy` object (`Design.libraryCopies`). The store root is no object (its id and registers are settings both writers write alike), so concurrent placements never make two roots, and a root of `Design.nodes` is always a page. Rejected: a store root under an id derived from the state (as V8's page): the KDM refuses to create an object again under the id of one deleted earlier, so placing a component after undoing the first placement would fail; and a store root per person merged by a repair would drop the other copies when its maker undid it | M5 (container fields up front, a new schema version), M8 and M22 (deterministic ids, considered), kition-layout (comments declared up front) |
 | F17 | Copies of one component placed at once become one copy the repair makes under ids derived from the merged records (V12), with no schema change (the record's `merged` aliases are engine data in its `record` json). Rejected: keeping one of the copies (the lowest object id): each copy is one person's placement, and its maker's undo would delete the kept copy and leave the other person's instances without a main (the repair's own objects are no one's undo step, M12); and keeping both with an update count per component only, which leaves two copies in the store | M22 and M8 (objects under ids derived from what they are about, kept once when made concurrently), V8 |
+| F19 | Paints and effects are `Paint` and `Effect` objects in their layer's lists, each with its value and the bindings of its own fields (`bound`, a map); the writer pairs the engine's paints with objects by equality, then place. Superseded: the lists as `json` registers and bindings by index in `Node.bound` (a concurrent reorder moved a binding to another paint) | kition-sheet (cells as objects), kition-slide (`TextBody` lists) |
+| F20 | Who has read a comment thread (`readBy`) is each person's own and never replicated; each voter's ballot is its own settings key (`votes/<voter>`) | M2 (private state stays out of the replica) |
 | F18 | The schema keeps a mirrored layer's pointer (`source`, the main component's layer it mirrors) in its own register `Node.mirrors`, not in `props`, so V12 rewrites only that register and the undo of a person's or agent's earlier `props` edit (a blend mode set before the merge) still reverts it. Rejected: keeping `source` in `props` and accepting the M12 limit (an undo that silently does nothing), and writing the repair's value as a split of `props` keys (registers are last-writer-wins as a whole) | M5 (a register field on an existing type under a new schema version), M12 (a repair's write survives the undo of an earlier step), F2 (registers by coupling) |
 
 ## 10. Known gaps
 
-- Concurrent typing in one text layer keeps one side (F3).
+- A paint's value (and an effect's) is one register: two people changing one paint's colour and
+  its opacity at once keep one of the two (the paint is a property bag, split later without a
+  container).
 - A save rewrites `document.json` (P5 for the replica, not for the file's readable copy).
 - The blob store keeps every image added in the session (no collection of blobs only old undo
   steps need, unlike kition-vector's `blob_gc`).

@@ -26,6 +26,21 @@ mod structure;
 mod text;
 mod vector;
 
+/// What `board.vote` rests on of the design (`cmd/facilitate.rs`): the vote, and the ballots it
+/// reads or replaces, each voter's its own settings key (`settings.votes/<voter>`): every ballot for
+/// a start or a clear, the voter's own for a cast or a retraction; ending reads the vote only.
+pub(crate) fn vote_fields(design: &DesignDocument, doc: &Document, params: &Value) -> Vec<String> {
+    let mut out = vec!["settings.vote".to_owned()];
+    match params.get("action").and_then(Value::as_str).unwrap_or_default() {
+        "start" | "clear" => out.extend(doc.votes.keys().map(|voter| format!("settings.votes/{voter}"))),
+        "cast" | "retract" => {
+            out.push(format!("settings.votes/{}", kition_design_engine::cmd::facilitate::voter(design.session(), params)));
+        }
+        _ => {}
+    }
+    out
+}
+
 /// The premises of one call, by object, as the guard reads them.
 pub(crate) struct Rest<'a> {
     pub(crate) design: &'a DesignDocument,
@@ -102,8 +117,18 @@ impl<'a> Rest<'a> {
     /// The call reads `fields` of `id` (a layer, or a resource's key, or `"design"`), and its place in
     /// the tree when `place`: added to what it already holds.
     pub(crate) fn need(&mut self, id: impl Into<Value>, fields: &[&str], place: bool) {
-        let (fields, positions) = split(fields, place);
-        self.merge(id.into(), Some(fields), Some(positions));
+        let id = id.into();
+        let (mut fields, positions) = split(fields, place);
+        self.texts_too(&id, &mut fields);
+        self.merge(id, Some(fields), Some(positions));
+    }
+
+    /// A text layer's `kind` holds its text too: its characters, styles and paragraphs are its
+    /// `text` field (schema 1), which `kind` held before.
+    fn texts_too(&self, id: &Value, held: &mut BTreeSet<String>) {
+        if held.contains("kind") && id.as_u64().and_then(|n| self.doc.node(NodeId(n))).is_some_and(|n| n.kind.text().is_some()) {
+            held.insert("text".to_owned());
+        }
     }
 
     /// The call reads every field of `id`, and its place when `place`.
@@ -111,8 +136,7 @@ impl<'a> Rest<'a> {
         let id = id.into();
         let layer = id.as_u64().is_some();
         // Every stored register excludes derived hierarchy when sibling order is immaterial.
-        let fields =
-            (!place && layer).then(|| kition_design_kdm::fields::NODE_REGISTERS.iter().copied().chain(["nodes"]).map(str::to_owned).collect());
+        let fields = (!place && layer).then(|| kition_design_kdm::fields::NODE_FIELDS.iter().copied().chain(["nodes"]).map(str::to_owned).collect());
         let positions = if place { None } else { Some(if layer { BTreeSet::from(["frame".to_owned()]) } else { BTreeSet::new() }) };
         self.merge(id, fields, positions);
     }
@@ -121,7 +145,8 @@ impl<'a> Rest<'a> {
     /// call the earlier declarations held more of than it reads.
     pub(crate) fn only(&mut self, id: impl Into<Value>, fields: &[&str], place: bool) {
         let id = id.into();
-        let (fields, positions) = split(fields, place);
+        let (mut fields, positions) = split(fields, place);
+        self.texts_too(&id, &mut fields);
         self.needs.insert(id.to_string(), (id, Some(fields), Some(positions)));
     }
 

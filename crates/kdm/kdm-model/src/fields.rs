@@ -4,7 +4,9 @@
 //! A node's registers group its fields by coupling (`docs/features/kdm.md` section 2.1): what is edited as
 //! one value is one register, so a merge never pairs one writer's position with another's size.
 //! A key of the node's serde form that no register names goes into `props`, so a field a newer
-//! engine adds is kept.
+//! engine adds is kept. A node's containers are not registers: its paints and effects are objects
+//! of its `fills`, `strokes` and `effects` lists ([`crate::items`]), a text layer's characters,
+//! styles and paragraphs its `text` field ([`crate::text`]).
 
 use std::collections::BTreeMap;
 
@@ -22,10 +24,7 @@ const SINGLE: &[(&str, &str)] = &[
     ("visible", "visible"),
     ("locked", "locked"),
     ("opacity", "opacity"),
-    ("fills", "fills"),
-    ("strokes", "strokes"),
     ("stroke", "stroke"),
-    ("effects", "effects"),
     ("corners", "corners"),
     ("layout", "layout"),
     ("childLayout", "child_layout"),
@@ -55,6 +54,29 @@ pub const NODE_REGISTERS: &[&str] = &[
     "opacity",
     "kind",
     "frame",
+    "stroke",
+    "corners",
+    "layout",
+    "childLayout",
+    "constraints",
+    "prototype",
+    "bindings",
+    "instance",
+    "mirrors",
+    "dev",
+    "props",
+];
+
+/// Every field of a node object: its registers, then its containers (`text`, and the item lists
+/// [`crate::items::LISTS`]).
+pub const NODE_FIELDS: &[&str] = &[
+    "name",
+    "visible",
+    "locked",
+    "opacity",
+    "kind",
+    "frame",
+    "text",
     "fills",
     "strokes",
     "stroke",
@@ -70,6 +92,10 @@ pub const NODE_REGISTERS: &[&str] = &[
     "dev",
     "props",
 ];
+
+/// The item lists, which [`node_from`] also takes in `registers` (each as the array of its items'
+/// values) though they are no registers.
+const ITEM_FIELDS: [&str; 3] = ["fills", "strokes", "effects"];
 
 /// Keys that are the tree's, never registers.
 const STRUCTURE: &[&str] = &["id", "parent", "children"];
@@ -88,15 +114,28 @@ fn object_or_null(map: Map<String, Value>) -> Value {
 /// A node's registers (without `key`): the serde form of `n` split by coupling. `snapshot` is its
 /// ready-for-dev snapshot, if the document keeps one.
 pub fn node_fields(n: &Node, snapshot: Option<&Value>) -> KdmResult<Fields> {
-    let kind = serde_json::to_value(&n.kind).map_err(kdm_err)?;
+    let mut kind = serde_json::to_value(&n.kind).map_err(kdm_err)?;
     let mut map = to_map(n)?;
-    if let Value::Object(k) = &kind {
+    if let Value::Object(k) = &mut kind {
         for key in k.keys() {
             map.remove(key);
         }
+        // A text's characters, styles and paragraphs are its `text` field.
+        if matches!(n.kind, kition_design_doc::NodeKind::Text(_)) {
+            for key in crate::text::TEXT_KEYS {
+                k.remove(*key);
+            }
+        }
     }
-    for key in STRUCTURE {
+    for key in STRUCTURE.iter().chain(&ITEM_FIELDS) {
         map.remove(*key);
+    }
+    // Bindings of an item's fields are the item's (`Paint.bound`, `Effect.bound`).
+    if let Some(Value::Object(bound)) = map.get_mut("bound") {
+        bound.retain(|key, _| crate::items::item_key(n, key).is_none());
+        if bound.is_empty() {
+            map.remove("bound");
+        }
     }
     let mut out: Fields = Vec::with_capacity(NODE_REGISTERS.len());
     for (register, key) in SINGLE {
@@ -121,6 +160,27 @@ pub fn node_fields(n: &Node, snapshot: Option<&Value>) -> KdmResult<Fields> {
     Ok(out)
 }
 
+/// The fields of a node object (its registers, its `text` and its item lists) that differ
+/// between `a` and `b`.
+pub fn changed_fields(a: &Node, b: &Node) -> KdmResult<Vec<&'static str>> {
+    let (fa, fb) = (node_fields(a, None)?, node_fields(b, None)?);
+    let mut out: Vec<&'static str> = fa.iter().zip(fb.iter()).filter(|(x, y)| x != y).map(|(x, _)| x.0).collect();
+    let differ = match (&a.kind, &b.kind) {
+        (kition_design_doc::NodeKind::Text(x), kition_design_doc::NodeKind::Text(y)) => !crate::text::same_field(x, y),
+        (kition_design_doc::NodeKind::Text(_), _) | (_, kition_design_doc::NodeKind::Text(_)) => true,
+        _ => false,
+    };
+    if differ {
+        out.push("text");
+    }
+    for (field, _, _) in crate::items::LISTS {
+        if crate::items::items(a, field)? != crate::items::items(b, field)? {
+            out.push(field);
+        }
+    }
+    Ok(out)
+}
+
 /// A node from its key, its registers (by name; a missing one reads as unset) and its place in
 /// the tree. Answers the node and its ready-for-dev snapshot.
 pub fn node_from(key: NodeId, registers: &BTreeMap<&str, Value>, parent: Option<NodeId>, children: Vec<NodeId>) -> KdmResult<(Node, Option<Value>)> {
@@ -128,6 +188,11 @@ pub fn node_from(key: NodeId, registers: &BTreeMap<&str, Value>, parent: Option<
     for (register, key) in SINGLE {
         if let Some(v) = registers.get(register).filter(|v| !v.is_null()) {
             map.insert((*key).to_owned(), v.clone());
+        }
+    }
+    for field in ITEM_FIELDS {
+        if let Some(v) = registers.get(field).filter(|v| !v.is_null()) {
+            map.insert(field.to_owned(), v.clone());
         }
     }
     let mut snapshot = None;
@@ -190,7 +255,7 @@ pub fn node_from_lenient(
         kept.insert("kind", serde_json::to_value(kition_design_doc::NodeKind::Frame).map_err(kdm_err)?);
         dropped.push("kind");
     }
-    for register in NODE_REGISTERS.iter().copied().filter(|r| *r != "kind") {
+    for register in NODE_REGISTERS.iter().chain(&ITEM_FIELDS).copied().filter(|r| *r != "kind") {
         let Some(value) = registers.get(register).filter(|v| !v.is_null()) else { continue };
         kept.insert(register, value.clone());
         if node_from(key, &kept, parent, Vec::new()).is_err() {
@@ -312,15 +377,13 @@ pub fn unix_time(text: &str) -> u64 {
 }
 
 /// A comment thread's anchor (KitModel M23): the object it is about (the anchor layer's, else
-/// the page's) and design's own keys: the thread's `id`, its `page`, the pin's `x` and `y`, the
-/// anchor layer (`node`) and who has read it (`readBy`).
+/// the page's) and design's own keys: the thread's `id`, its `page`, the pin's `x` and `y` and the
+/// anchor layer (`node`). Who has read a thread is each person's own (`Comment.read_by`): never
+/// replicated ([`crate::read`] keeps the view's).
 pub fn thread_anchor(c: &Comment, object: &str) -> Value {
     let mut anchor = json!({ "object": object, "id": c.id, "page": c.page.0, "x": c.x, "y": c.y });
     if let Some(a) = c.anchor {
         anchor["node"] = json!(a.0);
-    }
-    if let Some(read) = &c.read_by {
-        anchor["readBy"] = json!(read);
     }
     anchor
 }
@@ -345,7 +408,8 @@ pub fn message_from(registers: &BTreeMap<&str, Value>, body: String) -> Message 
     }
 }
 
-/// A thread from its anchor, resolved flag and messages (the first one, then the replies).
+/// A thread from its anchor, resolved flag and messages (the first one, then the replies). Its
+/// read state is unknown here (`None`): the reader takes it from the view.
 pub fn comment_from(anchor: &Value, resolved: bool, mut messages: Vec<Message>) -> Option<Comment> {
     if messages.is_empty() {
         return None;
@@ -361,6 +425,6 @@ pub fn comment_from(anchor: &Value, resolved: bool, mut messages: Vec<Message>) 
         first,
         resolved,
         replies: messages,
-        read_by: anchor.get("readBy").and_then(|v| serde_json::from_value(v.clone()).ok()),
+        read_by: None,
     })
 }

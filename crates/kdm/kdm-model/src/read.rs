@@ -3,7 +3,9 @@
 //! [`read_with`] reuses a previous view: a layer whose object did not change and whose place in
 //! the tree is the same keeps its `Arc` (and the caches the renderer hangs on it); one whose
 //! object did not change but moved is the same node with a new parent or children; only changed
-//! objects' registers are read. Images the previous view holds keep their bytes.
+//! objects' registers are read (a layer changed when its object or one of its paint and effect
+//! objects did). Images the previous view holds keep their bytes. Who has read each comment
+//! thread is not replicated: the previous view's read state is kept.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
@@ -15,7 +17,10 @@ use serde_json::{Map, Value, json};
 
 use crate::fields::{self, NODE_REGISTERS};
 use crate::ids::{CollectionIds, Ids, Thread};
+use crate::items::{self, BOUND, Item, LISTS};
 use crate::store::{self, COPIES, STORE_PAGE, STORE_TREE};
+use crate::text;
+use crate::write::VOTES;
 use crate::{KdmResult, MAX_DEPTH, kdm_err, root_id};
 
 /// A previous view and its ids, and which objects changed since it was read.
@@ -34,13 +39,85 @@ fn registers<'f>(replica: &Replica, object: &ObjectId, names: &[&'f str]) -> Kdm
     names.iter().map(|name| Ok((*name, replica.get(object, name)?))).collect()
 }
 
-/// `doc` without what the replica does not hold (the current page, the published library), for
-/// comparing a view with the engine's document.
+/// `doc` without what the replica does not hold (the current page, the published library, who has
+/// read the comments) and with its texts in the one form the replica gives them, for comparing a
+/// view with the engine's document.
 pub(crate) fn comparable(doc: &Document) -> Document {
     let mut d = doc.clone();
     d.current_page = None;
     d.published = None;
+    for c in &mut d.comments {
+        c.read_by = None;
+    }
+    let texts: Vec<Arc<Node>> = d
+        .nodes()
+        .filter_map(|n| match &n.kind {
+            NodeKind::Text(t) => {
+                let mut m = n.clone();
+                m.kind = NodeKind::Text(text::canonical(t));
+                Some(Arc::new(m))
+            }
+            _ => None,
+        })
+        .collect();
+    d.put_nodes_raw(texts);
     d
+}
+
+/// A layer's paint and effect objects and items, list by list ([`LISTS`]): the live objects in
+/// order, each once.
+fn read_items(replica: &Replica, object: &ObjectId) -> KdmResult<[Vec<(ObjectId, Item)>; 3]> {
+    let mut out: [Vec<(ObjectId, Item)>; 3] = Default::default();
+    for (slot, (field, _, value_field)) in LISTS.iter().enumerate() {
+        let mut seen = BTreeSet::new();
+        for o in replica.list(object, field)? {
+            if !replica.exists(&o) || !seen.insert(o.clone()) {
+                continue;
+            }
+            let value = replica.get(&o, value_field)?;
+            let bound: BTreeMap<String, Value> = replica.map_entries(&o, BOUND)?.into_iter().collect();
+            if let Some(list) = out.get_mut(slot) {
+                list.push((o, Item { value, bound }));
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// A layer from its object: its registers, its paints and effects and its text. Answers the
+/// layer, its ready-for-dev snapshot and its item objects (those of a list that did not read are
+/// left out).
+pub(crate) fn read_node(
+    replica: &Replica,
+    object: &ObjectId,
+    key: NodeId,
+    parent: Option<NodeId>,
+    kids: Vec<NodeId>,
+) -> KdmResult<(Node, Option<Value>, [Vec<ObjectId>; 3])> {
+    let mut regs = registers(replica, object, NODE_REGISTERS)?;
+    let lists = read_items(replica, object)?;
+    for ((field, _, _), list) in LISTS.iter().zip(&lists) {
+        if !list.is_empty() {
+            regs.insert(*field, Value::Array(list.iter().map(|(_, item)| item.value.clone()).collect()));
+        }
+    }
+    let (mut node, snapshot, dropped) = fields::node_from_lenient(key, &regs, parent, kids)?;
+    let mut objects: [Vec<ObjectId>; 3] = Default::default();
+    for (slot, ((field, _, _), list)) in LISTS.iter().zip(lists).enumerate() {
+        if list.is_empty() || dropped.contains(field) {
+            continue;
+        }
+        let read: Vec<Item> = list.iter().map(|(_, item)| item.clone()).collect();
+        items::bind(&mut node, field, &read);
+        if let Some(slot) = objects.get_mut(slot) {
+            *slot = list.into_iter().map(|(o, _)| o).collect();
+        }
+    }
+    if let NodeKind::Text(t) = &mut node.kind {
+        let runs = replica.text_delta(object, "text")?;
+        text::apply_runs(t, &runs);
+    }
+    Ok((node, snapshot, objects))
 }
 
 /// Reads the document, reusing `reuse`'s view where its objects did not change.
@@ -48,8 +125,22 @@ pub fn read_with(replica: &Replica, blobs: &dyn BlobSource, reuse: Option<Reuse<
     let root = root_id();
     let mut ids = Ids::default();
 
-    // Settings: the document's own values.
-    let mut shell: Map<String, Value> = replica.map_entries(&root, "settings")?.into_iter().collect();
+    // Settings: the document's own values (the ballots gathered from their keys).
+    let mut shell: Map<String, Value> = Map::new();
+    let mut ballots: Map<String, Value> = Map::new();
+    for (key, value) in replica.map_entries(&root, "settings")? {
+        match key.strip_prefix(VOTES) {
+            Some(voter) => {
+                ballots.insert(voter.to_owned(), value);
+            }
+            None => {
+                shell.insert(key, value);
+            }
+        }
+    }
+    if !ballots.is_empty() {
+        shell.insert("votes".into(), Value::Object(ballots));
+    }
     shell.entry("name").or_insert_with(|| json!("Untitled"));
     shell.insert("pages".into(), json!([]));
     shell.insert("nodes".into(), json!({}));
@@ -57,8 +148,11 @@ pub fn read_with(replica: &Replica, blobs: &dyn BlobSource, reuse: Option<Reuse<
     let store_page = shell.remove(STORE_PAGE);
     let mut doc = settings_from(shell)?;
 
-    // The layer tree, then the library store's.
-    let changed = |o: &ObjectId| reuse.as_ref().is_none_or(|r| r.changed.contains(o));
+    // The layer tree, then the library store's. A layer changed when its object or one of its
+    // paint and effect objects did.
+    let items_changed: BTreeSet<NodeId> =
+        reuse.as_ref().map(|r| r.changed.iter().filter_map(|o| r.ids.item_owner.get(o).copied()).collect()).unwrap_or_default();
+    let changed = |o: &ObjectId| reuse.as_ref().is_none_or(|r| r.changed.contains(o) || r.ids.node_of(o).is_some_and(|k| items_changed.contains(&k)));
     let entries = replica.tree(&root, "nodes")?;
     let store_entries = replica.tree(&root, STORE_TREE)?;
     let mut parent_of: HashMap<NodeId, Option<NodeId>> = HashMap::with_capacity(entries.len() + store_entries.len());
@@ -137,6 +231,9 @@ pub fn read_with(replica: &Replica, blobs: &dyn BlobSource, reuse: Option<Reuse<
         let previous = reuse.as_ref().filter(|_| !changed(object)).and_then(|r| r.view.node_arc(*key).map(|n| (n, r.view)));
         match previous {
             Some((n, view)) => {
+                if let Some(r) = reuse.as_ref() {
+                    ids.set_items(*key, r.ids.items_of(*key));
+                }
                 if n.parent == parent && n.children == kids {
                     nodes.push(n.clone());
                 } else {
@@ -150,8 +247,8 @@ pub fn read_with(replica: &Replica, blobs: &dyn BlobSource, reuse: Option<Reuse<
                 }
             }
             None => {
-                let regs = registers(replica, object, NODE_REGISTERS)?;
-                let (node, snapshot, _) = fields::node_from_lenient(*key, &regs, parent, kids)?;
+                let (node, snapshot, objects) = read_node(replica, object, *key, parent, kids)?;
+                ids.set_items(*key, objects);
                 if let Some(s) = snapshot.and_then(|s| serde_json::from_value::<DevSnapshot>(s).ok()) {
                     doc.dev_snapshots.insert(*key, Arc::new(s));
                 }
@@ -176,6 +273,9 @@ pub fn read_with(replica: &Replica, blobs: &dyn BlobSource, reuse: Option<Reuse<
     doc.variables = read_variables(replica, &mut ids)?;
     doc.images = read_images(replica, blobs, &mut ids, reuse.as_ref().map(|r| r.view))?;
     doc.comments = read_comments(replica, &mut ids)?;
+    if let Some(view) = reuse.as_ref().map(|r| r.view) {
+        keep_read_state(&mut doc.comments, &view.comments);
+    }
     let links = read_libraries(replica, &mut ids)?;
     if links != doc.libraries.enabled {
         doc.libraries_mut().enabled = links;
@@ -338,6 +438,24 @@ fn read_libraries(replica: &Replica, ids: &mut Ids) -> KdmResult<Vec<LibraryLink
         ids.libraries.insert(key, object);
     }
     Ok(out)
+}
+
+/// Who has read each thread, from the previous view (it is each person's own, never replicated).
+/// A thread that got a message since is unread for everyone but its author, as the engine marks
+/// a thread a person writes in ([`Comment::touched_by`]).
+pub(crate) fn keep_read_state(comments: &mut [Comment], view: &[Comment]) {
+    for c in comments {
+        let Some(was) = view.iter().find(|v| v.id == c.id) else { continue };
+        let before = was.messages().count();
+        let now = c.messages().count();
+        if now > before {
+            if let Some(last) = c.messages().last().map(|m| m.author.clone()) {
+                c.touched_by(&last);
+            }
+        } else {
+            c.read_by.clone_from(&was.read_by);
+        }
+    }
 }
 
 fn read_comments(replica: &Replica, ids: &mut Ids) -> KdmResult<Vec<Comment>> {

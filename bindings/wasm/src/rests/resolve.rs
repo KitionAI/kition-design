@@ -440,7 +440,7 @@ fn component_inputs(doc: &Document, roots: impl IntoIterator<Item = NodeId>, und
             continue;
         }
         let root_need =
-            || Premise::on(json!(root.0)).fields(kition_design_kdm::fields::NODE_REGISTERS.iter().copied().chain(["nodes"])).positions(["frame"]);
+            || Premise::on(json!(root.0)).fields(kition_design_kdm::fields::NODE_FIELDS.iter().copied().chain(["nodes"])).positions(["frame"]);
         under.premises.push(root_need());
         for node in doc.subtree(root) {
             let need = Premise::on(json!(node.0));
@@ -523,7 +523,7 @@ fn component_references(doc: &Document, command: &str, params: &Value, ids: &[No
     for node in &roots {
         under
             .premises
-            .push(Premise::on(json!(node.0)).fields(kition_design_kdm::fields::NODE_REGISTERS.iter().copied().chain(["nodes"])).positions(["frame"]));
+            .push(Premise::on(json!(node.0)).fields(kition_design_kdm::fields::NODE_FIELDS.iter().copied().chain(["nodes"])).positions(["frame"]));
     }
     if matches!(command, "component.editProperty" | "component.deleteProperty") {
         let components: BTreeSet<_> = roots.iter().flat_map(|root| doc.subtree(*root)).collect();
@@ -775,7 +775,10 @@ fn audited_inputs(
             });
             whole(doc, table, under);
         }
-        "board.vote" => design_fields(under, &["settings.vote", "settings.votes"]),
+        "board.vote" => {
+            let fields = super::vote_fields(design, doc, params);
+            design_fields(under, &fields.iter().map(String::as_str).collect::<Vec<_>>());
+        }
         "board.timer" => design_fields(under, &["settings.timer"]),
         "devResource.add" | "devResource.edit" | "devResource.remove" => {
             if let Some(&node) = ids.first() {
@@ -975,7 +978,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
                     // Scaling styles and resizing constrained children read the entire subtree.
                     under.objects.extend(doc.subtree(node).into_iter().map(|i| json!(i.0)));
                     if command == "transform.scale" {
-                        holds.fields(node, kition_design_kdm::fields::NODE_REGISTERS, true);
+                        holds.fields(node, kition_design_kdm::fields::NODE_FIELDS, true);
                     }
                 }
             }
@@ -1078,7 +1081,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
             }) {
                 let need = Premise::on(json!(node.0));
                 under.premises.push(if node == target || Some(node) == component {
-                    need.fields(kition_design_kdm::fields::NODE_REGISTERS.iter().copied().chain(["~bounds"])).positions(["frame"])
+                    need.fields(kition_design_kdm::fields::NODE_FIELDS.iter().copied().chain(["~bounds"])).positions(["frame"])
                 } else {
                     need
                 });

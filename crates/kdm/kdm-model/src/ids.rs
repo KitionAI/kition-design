@@ -41,6 +41,11 @@ pub struct Ids {
     pub store: HashSet<NodeId>,
     /// Library copy records (`Design.libraryCopies`) by kind and local id.
     pub copies: HashMap<(String, String), ObjectId>,
+    /// Each layer's paint and effect objects, in the order of its `fills`, `strokes` and
+    /// `effects` (as [`crate::items::LISTS`]), one per item of the view.
+    pub items: HashMap<NodeId, [Vec<ObjectId>; 3]>,
+    /// Item object to its layer, for reads.
+    pub item_owner: HashMap<ObjectId, NodeId>,
 }
 
 impl Ids {
@@ -67,5 +72,26 @@ impl Ids {
             self.objects.remove(&object);
         }
         self.store.remove(&id);
+        self.set_items(id, Default::default());
+    }
+
+    /// A layer's item objects (empty lists when it has none).
+    pub fn items_of(&self, id: NodeId) -> [Vec<ObjectId>; 3] {
+        self.items.get(&id).cloned().unwrap_or_default()
+    }
+
+    pub(crate) fn set_items(&mut self, id: NodeId, items: [Vec<ObjectId>; 3]) {
+        if let Some(old) = self.items.remove(&id) {
+            for o in old.iter().flatten() {
+                self.item_owner.remove(o);
+            }
+        }
+        if items.iter().all(Vec::is_empty) {
+            return;
+        }
+        for o in items.iter().flatten() {
+            self.item_owner.insert(o.clone(), id);
+        }
+        self.items.insert(id, items);
     }
 }

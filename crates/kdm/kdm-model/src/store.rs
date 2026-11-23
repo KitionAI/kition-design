@@ -1,4 +1,4 @@
-//! The library store and the records of library copies (schema v3, `docs/features/kdm.md` section 2.3,
+//! The library store and the records of library copies (`docs/features/kdm.md` section 2.3,
 //! decision F16).
 //!
 //! - The store's layers (the copies of library components) are the nodes of their own tree,

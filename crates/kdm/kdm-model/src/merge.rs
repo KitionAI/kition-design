@@ -11,7 +11,9 @@
 //! inside instances that mirror the copy's, instance swap values, preferred components, the
 //! copies' own nested instances) is pointed at the new copy's layer for the same library layer;
 //! nothing else is written (no instance propagation, no layout: section 4.1). Overrides are
-//! registers of the instances' own layers and stay as they are.
+//! registers of the instances' own layers and stay as they are. The new copy's layers take the
+//! kept copy's paint and effect objects (made again under ids derived from the layer's) and text
+//! (read before the transaction, [`crate::validate::StoreTexts`]).
 //!
 //! Why a new copy rather than keeping one of them: each copy was made by one person's
 //! placement, and that person's undo deletes what it made (KitModel M12). A kept copy would go
@@ -30,8 +32,9 @@ use kition_kit::kdm::{NodeRef, ObjectId, TreeEntry, Tx};
 use serde_json::{Map, Value, json};
 
 use crate::fields::{NODE_REGISTERS, node_fields, node_from_lenient};
+use crate::items::{self, BOUND, LISTS};
 use crate::store::{COMPONENT, COPIES, STORE_TREE};
-use crate::validate::{fnv64, free_repair_key};
+use crate::validate::{StoreTexts, fnv64, free_repair_key};
 use crate::{KdmResult, kdm_err, root_id};
 
 /// A component copy's record and where it is.
@@ -89,14 +92,38 @@ fn mentions(v: &Value, map: &BTreeMap<NodeId, NodeId>) -> bool {
     }
 }
 
-/// A node object's registers, by name (unset: `Null`).
-fn registers(tx: &Tx<'_>, object: &ObjectId) -> BTreeMap<&'static str, Value> {
-    NODE_REGISTERS.iter().map(|r| (*r, tx.get(object, r).unwrap_or(Value::Null))).collect()
+/// A node object's paint and effect objects, list by list ([`LISTS`]): the live ones in order.
+fn item_objects(tx: &Tx<'_>, object: &ObjectId) -> [Vec<ObjectId>; 3] {
+    let mut out: [Vec<ObjectId>; 3] = Default::default();
+    for ((field, _, _), list) in LISTS.iter().zip(out.iter_mut()) {
+        *list = tx.list_items(object, field).unwrap_or_default().into_iter().filter(|o| tx.exists(o)).collect();
+    }
+    out
 }
 
-/// `registers` with every reference `map` names pointed at its entry: the registers that change,
-/// as the writer writes them (`None` when nothing does).
-fn remapped(key: NodeId, registers: &BTreeMap<&'static str, Value>, map: &BTreeMap<NodeId, NodeId>) -> KdmResult<Option<Vec<(&'static str, Value)>>> {
+/// A node object's registers, by name (unset: `Null`), and each item list as the array of its
+/// items' values under the list's name (as [`node_from_lenient`] takes it); `items` is
+/// [`item_objects`].
+fn registers(tx: &Tx<'_>, object: &ObjectId, items: &[Vec<ObjectId>; 3]) -> BTreeMap<&'static str, Value> {
+    let mut out: BTreeMap<&'static str, Value> = NODE_REGISTERS.iter().map(|r| (*r, tx.get(object, r).unwrap_or(Value::Null))).collect();
+    for ((field, _, value_field), list) in LISTS.iter().zip(items) {
+        if !list.is_empty() {
+            out.insert(*field, Value::Array(list.iter().map(|o| tx.get(o, value_field).unwrap_or(Value::Null)).collect()));
+        }
+    }
+    out
+}
+
+/// What a remap changes of one layer: its registers, as the writer writes them, and its items'
+/// values (`(list, index, value)`).
+struct Remapped {
+    registers: Vec<(&'static str, Value)>,
+    items: Vec<(&'static str, usize, Value)>,
+}
+
+/// `registers` (with the item lists, [`registers`]) with every reference `map` names pointed at
+/// its entry: what changes (`None` when nothing does).
+fn remapped(key: NodeId, registers: &BTreeMap<&'static str, Value>, map: &BTreeMap<NodeId, NodeId>) -> KdmResult<Option<Remapped>> {
     if !registers.values().any(|v| mentions(v, map)) {
         return Ok(None);
     }
@@ -109,11 +136,65 @@ fn remapped(key: NodeId, registers: &BTreeMap<&'static str, Value>, map: &BTreeM
         .into_iter()
         .filter(|(field, value)| !unread.contains(field) && registers.get(field).unwrap_or(&Value::Null) != value)
         .collect();
-    Ok(Some(changed))
+    let mut item_values = Vec::new();
+    for (field, _, _) in LISTS {
+        let Some(Value::Array(was)) = registers.get(field) else { continue };
+        if unread.contains(&field) {
+            continue;
+        }
+        for (index, item) in items::items(&node, field)?.into_iter().enumerate() {
+            if was.get(index) != Some(&item.value) {
+                item_values.push((field, index, item.value));
+            }
+        }
+    }
+    Ok(Some(Remapped { registers: changed, items: item_values }))
+}
+
+/// Copies layer `from`'s items (`objects`, [`item_objects`]) into the new layer `to`, under ids
+/// derived from `to`'s, with the values `changed` gives instead of theirs.
+fn copy_items(tx: &mut Tx<'_>, objects: &[Vec<ObjectId>; 3], to: &ObjectId, changed: &[(&'static str, usize, Value)]) -> KdmResult<()> {
+    for ((field, ty, value_field), list) in LISTS.iter().zip(objects) {
+        for (index, item) in list.iter().enumerate() {
+            let value = match changed.iter().find(|(f, i, _)| f == field && *i == index) {
+                Some((_, _, v)) => v.clone(),
+                None => tx.get(item, value_field)?,
+            };
+            let bound = tx.map_entries(item, BOUND)?;
+            let id = ObjectId::from_string(format!("{}-{field}-{index}", to.as_str()));
+            let mut fields = Map::new();
+            fields.insert((*value_field).to_owned(), value);
+            tx.create_with_id(ty, &id, fields)?;
+            for (key, variable) in bound {
+                tx.map_set(&id, BOUND, &key, variable)?;
+            }
+            tx.list_insert(to, field, index, &id)?;
+        }
+    }
+    Ok(())
+}
+
+/// Copies a store layer's text (its runs, read before the transaction) into the new layer `to`.
+fn copy_text(tx: &mut Tx<'_>, runs: Option<&Vec<kition_kit::session::TextRun>>, to: &ObjectId) -> KdmResult<()> {
+    let Some(runs) = runs else { return Ok(()) };
+    let all: String = runs.iter().map(|r| r.insert.as_str()).collect();
+    if all.is_empty() {
+        return Ok(());
+    }
+    tx.text_insert(to, "text", 0, &all)?;
+    let mut at = 0;
+    for run in runs {
+        let len = run.insert.chars().count();
+        for (key, value) in &run.attributes {
+            tx.text_mark(to, "text", at, at + len, key, value.clone())?;
+        }
+        at += len;
+    }
+    Ok(())
 }
 
 /// V12 (run after V11, before V1 and V3). Answers whether it wrote.
-pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>) -> KdmResult<bool> {
+pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     let root = root_id();
     let live = |tx: &Tx<'_>, o: &ObjectId| tx.exists(o);
     let store_entries = tx.tree(&root, STORE_TREE)?;
@@ -262,19 +343,25 @@ pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>) -> KdmResult<bool> {
         // The new copy, as a root of the store.
         let mut nodes: Vec<(&NodeRef, NodeRef)> = Vec::new();
         for (object, node, parent, id, key) in &m.layers {
-            let regs = registers(tx, object);
-            let mut fields: Map<String, Value> = regs.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| ((*k).to_owned(), v.clone())).collect();
+            let objects = item_objects(tx, object);
+            let regs = registers(tx, object, &objects);
+            let mut fields: Map<String, Value> =
+                regs.iter().filter(|(k, v)| !v.is_null() && NODE_REGISTERS.contains(*k)).map(|(k, v)| ((*k).to_owned(), v.clone())).collect();
+            let mut item_values = Vec::new();
             if let Some(changed) = remapped(*key, &regs, &map)? {
-                for (field, value) in changed {
+                for (field, value) in changed.registers {
                     if value.is_null() {
                         fields.remove(field);
                     } else {
                         fields.insert(field.to_owned(), value);
                     }
                 }
+                item_values = changed.items;
             }
             fields.insert("key".into(), json!(key.0));
             tx.create_with_id("Node", id, fields)?;
+            copy_items(tx, &objects, id, &item_values)?;
+            copy_text(tx, texts.get(object), id)?;
             let under = parent.as_ref().and_then(|p| nodes.iter().find(|(n, _)| *n == p).map(|(_, made)| made));
             let created = tx.tree_create(&root, STORE_TREE, under, id)?;
             nodes.push((node, created));
@@ -313,10 +400,17 @@ pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>) -> KdmResult<bool> {
             continue;
         }
         let Some(key) = key_of(tx, &e.object) else { continue };
-        let regs = registers(tx, &e.object);
+        let objects = item_objects(tx, &e.object);
+        let regs = registers(tx, &e.object, &objects);
         if let Some(changed) = remapped(key, &regs, &map)? {
-            for (field, value) in changed {
+            for (field, value) in changed.registers {
                 tx.set(&e.object, field, value)?;
+                wrote = true;
+            }
+            for (field, index, value) in changed.items {
+                let slot = LISTS.iter().position(|(f, _, _)| *f == field);
+                let Some((item, (_, _, value_field))) = slot.and_then(|s| Some((objects.get(s)?.get(index)?, LISTS.get(s)?))) else { continue };
+                tx.set(item, value_field, value)?;
                 wrote = true;
             }
         }

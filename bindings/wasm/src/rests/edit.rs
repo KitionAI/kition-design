@@ -241,11 +241,10 @@ fn history(rest: &mut Rest<'_>, undo: bool) {
     for layer in layers {
         match (now.node(layer), then.node(layer)) {
             (Some(a), Some(b)) => {
-                let (Ok(fa), Ok(fb)) = (kition_design_kdm::fields::node_fields(a, None), kition_design_kdm::fields::node_fields(b, None)) else {
+                let Ok(differ) = kition_design_kdm::fields::changed_fields(a, b) else {
                     rest.whole(layer.0, true);
                     continue;
                 };
-                let differ: Vec<&str> = fa.iter().zip(fb.iter()).filter(|(x, y)| x != y).map(|(x, _)| x.0).collect();
                 let moved = a.parent != b.parent || now.index_in_parent(layer) != then.index_in_parent(layer);
                 rest.need(layer.0, &differ, moved);
             }
@@ -1175,10 +1174,12 @@ fn board(rest: &mut Rest<'_>) {
         // reads the running vote's scope and the voter's ballot; ending touches the vote only.
         "board.vote" => {
             let action = rest.params.get("action").and_then(Value::as_str).unwrap_or_default();
+            let fields = super::vote_fields(rest.design, doc, rest.params);
+            let fields: Vec<&str> = fields.iter().map(String::as_str).collect();
             match action {
                 "end" => rest.only("design", &["settings.vote"], false),
                 "start" => {
-                    rest.only("design", &["settings.vote", "settings.votes"], false);
+                    rest.only("design", &fields, false);
                     let on_selection = rest.params.get("on").and_then(Value::as_str) == Some("selection") || rest.params.get("ids").is_some();
                     if on_selection {
                         for &target in &targets {
@@ -1187,7 +1188,7 @@ fn board(rest: &mut Rest<'_>) {
                     }
                 }
                 "cast" | "retract" => {
-                    rest.only("design", &["settings.vote", "settings.votes"], false);
+                    rest.only("design", &fields, false);
                     let stickies = matches!(doc.vote.as_ref().map(|v| &v.scope), Some(VoteScope::Stickies));
                     if let Some(target) = rest.node("id") {
                         rest.only(target.0, if stickies { &["props.board"] } else { &[] }, true);

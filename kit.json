@@ -95,7 +95,7 @@
   },
   "model": {
     "schema": "crates/kdm/kdm-model/model/schema.json",
-    "schemaVersion": 4
+    "schemaVersion": 1
   },
   "collaboration": {
     "merge": ["structured", "rich-text", "binary"],

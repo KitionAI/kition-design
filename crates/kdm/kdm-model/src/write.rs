@@ -5,12 +5,14 @@
 //! 2. layers: every new layer gets its object, written in full; under each parent whose children
 //!    changed the longest start of the new order that keeps the old order stays and the rest are
 //!    moved (or created) after it in order, since a tree only ever appends; every layer whose `Arc` changed
-//!    gets the registers that differ; layers `after` no longer holds are deleted;
+//!    gets the registers that differ, its text's edits and marks ([`crate::text`]) and its paint and
+//!    effect objects ([`crate::items`]); layers `after` no longer holds are deleted with their items;
 //! 3. styles, collections and their modes, variables (their values a map by mode), comment
 //!    threads and their messages: objects keyed by the engine's ids, lists in `after`'s order;
 //! 4. the libraries the document uses (its library links): one object per library id, in order;
 //!    the records of the copies taken from them: one `LibraryCopy` object each, in order;
-//! 5. the settings map gets the keys that changed (the store root's registers among them).
+//! 5. the settings map gets the keys that changed (the store root's registers among them; each
+//!    voter's ballot is a key of its own, `votes/<voter>`).
 //!
 //! The library store's layers are the nodes of `Design.libraryStore` (its roots: the store's
 //! children); the store root is no object ([`crate::store`]).
@@ -18,20 +20,26 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::sync::Arc;
 
-use kition_design_doc::{Collection, Comment, Document, LibraryLink, Message, Node, NodeId, Style, Variable};
+use kition_design_doc::{Collection, Comment, Document, LibraryLink, Message, Node, NodeId, Style, TextData, Variable};
 use kition_kit::kdm::{NodeRef, ObjectId, Tx};
-use kition_kit::session::{BlobSink, write_text};
+use kition_kit::session::{BlobSink, write_rich_text, write_text};
 use serde_json::{Map, Value, json};
 
 use crate::fields::{self, Fields};
 use crate::ids::{CollectionIds, Ids, Thread};
+use crate::items::{self, BOUND, LISTS};
 use crate::list::sync_list;
 use crate::store::{self, COPIES, STORE_PAGE, STORE_TREE};
+use crate::text;
 use crate::{KdmResult, MAX_DEPTH, kdm_err, root_id};
 
 /// The document-level keys of a serialized `Document` that are objects of their own, the tree's,
 /// or the editing person's (the current page, the id counter): never settings.
 pub(crate) const MODELLED: &[&str] = &["pages", "nodes", "next_id", "styles", "variables", "comments", "current_page", "dev_snapshots"];
+
+/// The settings keys of the ballots: `votes/<voter>`, one per voter, so people voting at once all
+/// count.
+pub(crate) const VOTES: &str = "votes/";
 
 /// The settings map: every key of the document's serde form that is not modelled otherwise.
 pub(crate) fn settings(doc: &Document) -> KdmResult<Map<String, Value>> {
@@ -53,6 +61,11 @@ pub(crate) fn settings(doc: &Document) -> KdmResult<Map<String, Value>> {
     };
     for key in MODELLED {
         map.remove(*key);
+    }
+    if let Some(Value::Object(ballots)) = map.remove("votes") {
+        for (voter, ballot) in ballots {
+            map.insert(format!("{VOTES}{voter}"), ballot);
+        }
     }
     if let Some(n) = doc.library_store().and_then(|s| doc.node(s)) {
         map.insert(STORE_PAGE.to_owned(), store::store_page(n)?);
@@ -216,7 +229,141 @@ impl Writer<'_, '_> {
         let mut fields = fields_map(fields::node_fields(n, snapshot_value(after, n.id)?.as_ref())?);
         fields.insert("key".into(), json!(n.id.0));
         self.wrote = true;
-        self.tx.create("Node", fields)
+        let object = self.tx.create("Node", fields)?;
+        self.ids.set_items(n.id, Default::default());
+        self.containers(&object, n.id, None, n)?;
+        Ok(object)
+    }
+
+    /// Deletes a layer's object and its paint and effect objects.
+    fn delete_node(&mut self, id: NodeId) -> KdmResult<()> {
+        for o in self.ids.items_of(id).iter().flatten() {
+            if self.tx.exists(o) {
+                self.tx.delete(o)?;
+                self.wrote = true;
+            }
+        }
+        if let Some(object) = self.ids.node_object(id).cloned()
+            && self.tx.exists(&object)
+        {
+            self.tx.delete(&object)?;
+            self.wrote = true;
+        }
+        self.ids.remove_node(id);
+        Ok(())
+    }
+
+    /// A layer's containers: its text ([`crate::text`]) and its paint and effect objects
+    /// ([`crate::items`]), from `old` (the layer as the replica holds it; `None` for a new
+    /// object) to `new`.
+    fn containers(&mut self, object: &ObjectId, id: NodeId, old: Option<&Node>, new: &Node) -> KdmResult<()> {
+        match (old.and_then(|o| o.kind.text()), new.kind.text()) {
+            (Some(a), Some(b)) if text::same_field(a, b) => {}
+            (was, Some(now)) => self.write_text(object, was, now)?,
+            (_, None) => {
+                let len = self.tx.text_len(object, "text")?;
+                if len > 0 {
+                    self.tx.text_delete(object, "text", 0, len)?;
+                    self.wrote = true;
+                }
+            }
+        }
+        let mut objects = self.ids.items_of(id);
+        for (slot, (field, ty, value_field)) in LISTS.iter().enumerate() {
+            let new_items = items::items(new, field)?;
+            let current = objects.get(slot).cloned().unwrap_or_default();
+            let mut old_items = match old {
+                Some(o) => items::items(o, field)?,
+                None => Vec::new(),
+            };
+            if old.is_some() && old_items == new_items && old_items.len() == current.len() {
+                continue;
+            }
+            old_items.truncate(current.len());
+            let pairs = items::pair(&old_items, &new_items);
+            let mut used = vec![false; current.len()];
+            let mut desired = Vec::with_capacity(new_items.len());
+            for (item, paired) in new_items.iter().zip(pairs) {
+                let found = paired.and_then(|i| Some((i, current.get(i)?.clone(), old_items.get(i)?)));
+                match found {
+                    Some((i, o, was)) if self.tx.exists(&o) => {
+                        if let Some(u) = used.get_mut(i) {
+                            *u = true;
+                        }
+                        if was.value != item.value {
+                            self.tx.set(&o, value_field, item.value.clone())?;
+                            self.wrote = true;
+                        }
+                        for (key, variable) in &item.bound {
+                            if was.bound.get(key) != Some(variable) {
+                                self.tx.map_set(&o, BOUND, key, variable.clone())?;
+                                self.wrote = true;
+                            }
+                        }
+                        for key in was.bound.keys().filter(|k| !item.bound.contains_key(*k)) {
+                            self.tx.map_delete(&o, BOUND, key)?;
+                            self.wrote = true;
+                        }
+                        desired.push(o);
+                    }
+                    _ => {
+                        let mut fields = Map::new();
+                        fields.insert((*value_field).to_owned(), item.value.clone());
+                        let o = self.tx.create(ty, fields)?;
+                        for (key, variable) in &item.bound {
+                            self.tx.map_set(&o, BOUND, key, variable.clone())?;
+                        }
+                        self.wrote = true;
+                        desired.push(o);
+                    }
+                }
+            }
+            self.wrote |= sync_list(self.tx, object, field, &desired)?;
+            for (o, _) in current.iter().zip(&used).filter(|(_, used)| !**used) {
+                if self.tx.exists(o) {
+                    self.tx.delete(o)?;
+                    self.wrote = true;
+                }
+            }
+            if let Some(slot) = objects.get_mut(slot) {
+                *slot = desired;
+            }
+        }
+        self.ids.set_items(id, objects);
+        Ok(())
+    }
+
+    /// Writes a text layer's characters and marks from `old` (`None`: the layer was no text, its
+    /// field is made: emptied, then the final break) to `new`. The edits are computed on the
+    /// engine's characters, so the final break is never written over; its paragraph mark is
+    /// written on its own, when the field has it.
+    fn write_text(&mut self, object: &ObjectId, old: Option<&TextData>, new: &TextData) -> KdmResult<()> {
+        let kit = |e: kition_kit::session::KitError| kdm_err(e.to_string());
+        let new_runs = text::runs_of(new)?;
+        let new_final = text::final_mark(new)?;
+        let (old_runs, old_final) = match old {
+            Some(t) => (text::runs_of(t)?, text::final_mark(t)?),
+            None => {
+                let len = self.tx.text_len(object, "text")?;
+                if len > 0 {
+                    self.tx.text_delete(object, "text", 0, len)?;
+                }
+                self.tx.text_insert(object, "text", 0, "\n")?;
+                (Vec::new(), None)
+            }
+        };
+        self.wrote = true;
+        if old_runs != new_runs {
+            write_rich_text(self.tx, object, "text", &old_runs, &new_runs).map_err(kit)?;
+        }
+        let n = new.char_count();
+        if (old.is_none() || old_final != new_final) && self.tx.text_len(object, "text")? == n + 1 {
+            match new_final {
+                Some(v) => self.tx.text_mark(object, "text", n, n + 1, text::LIST, v)?,
+                None => self.tx.text_unmark(object, "text", n, n + 1, text::LIST)?,
+            }
+        }
+        Ok(())
     }
 
     fn nodes(&mut self, before: Option<&Document>, after: &Document) -> KdmResult<()> {
@@ -255,13 +402,7 @@ impl Writer<'_, '_> {
             self.ids.nodes.keys().copied().filter(|id| after.contains(*id) && in_store.contains(id) != self.ids.store.contains(id)).collect();
         crossed.sort_by_key(|id| (std::cmp::Reverse(before.map_or(0, |doc| depth(doc, *id))), *id));
         for id in crossed {
-            if let Some(object) = self.ids.node_object(id).cloned()
-                && self.tx.exists(&object)
-            {
-                self.tx.delete(&object)?;
-                self.wrote = true;
-            }
-            self.ids.remove_node(id);
+            self.delete_node(id)?;
             if !changed.contains(&id) {
                 changed.push(id);
             }
@@ -300,6 +441,7 @@ impl Writer<'_, '_> {
             };
             let new = fields::node_fields(n, snapshot_value(after, *id)?.as_ref())?;
             self.set_fields(&object, old, new)?;
+            self.containers(&object, *id, before.and_then(|b| b.node(*id)), n)?;
         }
         // Ready-for-dev snapshots taken or dropped while the layer stayed the same.
         if let Some(b) = before {
@@ -320,13 +462,7 @@ impl Writer<'_, '_> {
             }
         }
         for id in gone {
-            if let Some(object) = self.ids.node_object(id).cloned()
-                && self.tx.exists(&object)
-            {
-                self.tx.delete(&object)?;
-                self.wrote = true;
-            }
-            self.ids.remove_node(id);
+            self.delete_node(id)?;
         }
         Ok(())
     }

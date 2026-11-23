@@ -15,9 +15,11 @@ fn converges() {
     println!("{}", report.render());
     report.save_if_requested().unwrap();
     assert!(report.level6(), "{}", report.render());
-    // A text layer's characters are one register (`Node.kind`), not a KDM `text` field, so the
-    // adapter offers no text to type into concurrently: the text scenarios skip, as Vector's do.
-    assert!(matches!(report.outcome("text-position"), Some(Outcome::Skipped(_))));
+    // A text layer's characters are a KDM `text` field (`Node.text`): typing at one place,
+    // typing in a deleted range, a split and a merge concurrent with typing all keep both sides.
+    for scenario in ["text-position", "text-delete-insert", "text-split", "text-merge"] {
+        assert!(matches!(report.outcome(scenario), Some(Outcome::Passed)), "{scenario}: {}", report.render());
+    }
 }
 
 /// Native and WebAssembly engines reach one state from one change log. Set `KITION_WASM_ENGINE`

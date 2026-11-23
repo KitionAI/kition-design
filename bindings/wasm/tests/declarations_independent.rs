@@ -402,7 +402,7 @@ fn held_fields(fields: Option<&Vec<String>>, positions: Option<&Vec<String>>, la
     let frame = positions.is_none_or(|positions| positions.iter().any(|p| p == "frame" || p.starts_with("frame.")));
     let mut held: BTreeSet<String> = match fields {
         None if frame || !layer => return None,
-        None => kition_design_kdm::fields::NODE_REGISTERS.iter().map(|r| (*r).to_owned()).collect(),
+        None => kition_design_kdm::fields::NODE_FIELDS.iter().map(|r| (*r).to_owned()).collect(),
         Some(fields) => fields.iter().cloned().collect(),
     };
     if layer {
@@ -425,7 +425,7 @@ fn held_fields(fields: Option<&Vec<String>>, positions: Option<&Vec<String>>, la
             held.insert("frame".to_owned());
         }
     }
-    if layer && kition_design_kdm::fields::NODE_REGISTERS.iter().all(|r| held.contains(*r)) {
+    if layer && kition_design_kdm::fields::NODE_FIELDS.iter().all(|r| held.contains(*r)) {
         return None;
     }
     Some(held)
@@ -976,9 +976,9 @@ const ROWS: &[Row] = &[
         "part",
         &[
             ("$P1", "~hierarchy", false),
-            ("$T", "kind", true),
-            ("$KT", "kind", true),
-            ("$IT", "kind", true),
+            ("$T", "kind,text", true),
+            ("$KT", "kind,text", true),
+            ("$IT", "kind,text", true),
             ("$F", "frame,layout,childLayout", false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -996,15 +996,15 @@ const ROWS: &[Row] = &[
             ("$E", "name,kind", true),
             ("$F", "name,kind", true),
             ("$A", "name,kind", true),
-            ("$T", "name,kind", true),
+            ("$T", "name,kind,text", true),
             ("$G", "name,kind", true),
             ("$G1", "name,kind", true),
             ("$G2", "name,kind", true),
             ("$V", "name,kind", true),
             ("$K", "name,kind", true),
-            ("$KT", "name,kind", true),
+            ("$KT", "name,kind,text", true),
             ("$I", "name,kind", true),
-            ("$IT", "name,kind", true),
+            ("$IT", "name,kind,text", true),
             ("$X", "name,kind", true),
             ("$S", "name,kind", true),
             ("$Set", "name,kind", true),
@@ -1312,7 +1312,7 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$F"]}"##,
         &[],
         "",
-        &[("$F", "layout,childLayout,~hierarchy", false), ("$A", "childLayout", true), ("$T", "childLayout,kind", true)],
+        &[("$F", "layout,childLayout,~hierarchy", false), ("$A", "childLayout", true), ("$T", "childLayout,kind,text", true)],
     ),
     // layout.suggest: frame $D without layout: layout inferred from $LI's box and $D's size, $D hugs; re-flow moves $LI and resizes $D
     // Reviewed after comparison: the same layout_add branch reads kind (structure.rs:545).
@@ -1370,7 +1370,7 @@ const ROWS: &[Row] = &[
         r##"{"type": "rectangle", "parent": "$F", "width": 10, "height": 10}"##,
         &[],
         "",
-        &[("$F", "layout,frame,childLayout", false), ("$A", "frame,visible,childLayout", true), ("$T", "frame,visible,childLayout,kind", true)],
+        &[("$F", "layout,frame,childLayout", false), ("$A", "frame,visible,childLayout", true), ("$T", "frame,visible,childLayout,kind,text", true)],
     ),
     // node.create: parent $G (group): x/y in the group's frame-relative space; the group refits to its children
     r(
@@ -1440,7 +1440,7 @@ const ROWS: &[Row] = &[
         &[
             ("$A", "frame,visible,childLayout", true),
             ("$F", "layout,frame,childLayout,~hierarchy", false),
-            ("$T", "frame,visible,childLayout,kind", true),
+            ("$T", "frame,visible,childLayout,kind,text", true),
         ],
     ),
     // transform.nudgeSize: selection ($R via on): width += nudge preference, via resize_cmd (top-left kept, sizing fixed)
@@ -1467,7 +1467,7 @@ const ROWS: &[Row] = &[
         &[
             ("$F", "frame,layout,childLayout,props.constrain_proportions,~hierarchy", false),
             ("$A", "frame,visible,childLayout,constraints", true),
-            ("$T", "frame,visible,childLayout,constraints,kind", true),
+            ("$T", "frame,visible,childLayout,constraints,kind,text", true),
         ],
     ),
     // node.reparent: $E into $X on top (world position kept: reads $E's and $X's world transforms)
@@ -1598,7 +1598,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1610,7 +1610,7 @@ const ROWS: &[Row] = &[
         &["$T"],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1623,7 +1623,7 @@ const ROWS: &[Row] = &[
         "",
         &[
             ("$F", "~hierarchy", false),
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1637,12 +1637,12 @@ const ROWS: &[Row] = &[
         &[
             (
                 "$KT",
-                "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles,instance.prop_refs",
+                "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles,instance.prop_refs",
                 false,
             ),
             ("$K", "layout,props", false),
             ("$I", "kind,instance.overrides", false),
-            ("$IT", "kind,instance.overrides,mirrors,frame", false),
+            ("$IT", "kind,text,instance.overrides,mirrors,frame", false),
         ],
     ),
     // text.bold: in a text edit session the edited layer's chars 0..2 (ids ignored); toggle reads their style
@@ -1653,7 +1653,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1665,7 +1665,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1678,7 +1678,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1690,7 +1690,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1703,7 +1703,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1715,7 +1715,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1728,7 +1728,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1740,7 +1740,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1753,7 +1753,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1765,7 +1765,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1778,7 +1778,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1790,7 +1790,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1803,7 +1803,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1815,7 +1815,7 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.alignLeft: edit session: the whole edited layer (ids ignored)
     // review: unchanged fixture text does not schedule reflow (derived.rs:148).
@@ -1825,7 +1825,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "mode",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.alignCenter: ids names $T (and texts in its subtree); writes align_h; normalize reflow
     r(
@@ -1834,7 +1834,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1847,7 +1847,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1859,7 +1859,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1872,7 +1872,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1884,7 +1884,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1897,7 +1897,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1909,7 +1909,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1922,7 +1922,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1934,7 +1934,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1947,7 +1947,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1959,7 +1959,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1972,7 +1972,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1984,7 +1984,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -1997,7 +1997,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2009,7 +2009,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2022,7 +2022,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2034,7 +2034,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2047,7 +2047,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2059,7 +2059,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2072,7 +2072,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2084,7 +2084,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2097,7 +2097,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2109,7 +2109,7 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
     ),
     // text.caseOriginal: edit session: chars 0..2 of the edited layer (sets case)
     // review: unchanged fixture text does not schedule reflow (derived.rs:148).
@@ -2119,7 +2119,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "mode",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
     ),
     // text.caseUpper: ids names $T; sets case; detaches changed bindings; auto-size + $F reflow
     r(
@@ -2128,7 +2128,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2141,7 +2141,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2153,7 +2153,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2166,7 +2166,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2178,7 +2178,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2191,7 +2191,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2208,7 +2208,7 @@ const ROWS: &[Row] = &[
         r##"{"text": "Hi", "x": 0, "y": 0, "parent": "$F"}"##,
         &[],
         "",
-        &[("$F", TEXT_FLOW_PARENT, false), ("$A", "frame,visible,childLayout", true), ("$T", "kind,frame,visible,childLayout", true)],
+        &[("$F", TEXT_FLOW_PARENT, false), ("$A", "frame,visible,childLayout", true), ("$T", "kind,text,frame,visible,childLayout", true)],
     ),
     // text.create: parent group $G: x/y in $G's frame space (ancestors' transforms), $G refits to its children
     // Reviewed after behavior tests: doc::box_children reads visibility only on masks, and
@@ -2228,7 +2228,7 @@ const ROWS: &[Row] = &[
         "",
         &[
             ("$V", "kind,frame,fills,effects,bindings.styles,bindings.bound", true),
-            ("$T", "kind,frame,fills,effects,bindings.styles,bindings.bound", true),
+            ("$T", "kind,text,frame,fills,effects,bindings.styles,bindings.bound", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2242,7 +2242,7 @@ const ROWS: &[Row] = &[
         "selection",
         &[
             ("$V", "kind,frame,fills,effects,bindings.styles,bindings.bound", true),
-            ("$T", "kind,frame,fills,effects,bindings.styles,bindings.bound", true),
+            ("$T", "kind,text,frame,fills,effects,bindings.styles,bindings.bound", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2255,7 +2255,7 @@ const ROWS: &[Row] = &[
         "",
         &[
             ("$E", "kind,frame,corners,fills,effects,bindings.styles,bindings.bound", true),
-            ("$T", "kind,frame,fills,effects,bindings.styles,bindings.bound", true),
+            ("$T", "kind,text,frame,fills,effects,bindings.styles,bindings.bound", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2269,7 +2269,7 @@ const ROWS: &[Row] = &[
         r##"{"start": 0.5, "flip": true, "ids": ["$T"]}"##,
         &[],
         "",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.removeFromPath: path taken off, auto_resize -> width and height; auto-size writes $T's size
     s(
@@ -2278,7 +2278,7 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.caseSmallCaps: ids names $T; sets case small caps
     r(
@@ -2287,7 +2287,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2300,7 +2300,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2312,7 +2312,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2325,7 +2325,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2337,7 +2337,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2350,7 +2350,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2362,7 +2362,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2375,7 +2375,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2387,7 +2387,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2400,7 +2400,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2412,7 +2412,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2424,7 +2424,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2437,7 +2437,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2450,7 +2450,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2463,7 +2463,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2475,7 +2475,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2487,7 +2487,7 @@ const ROWS: &[Row] = &[
         &["$T"],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2501,12 +2501,12 @@ const ROWS: &[Row] = &[
         &[
             (
                 "$KT",
-                "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles,instance.prop_refs",
+                "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles,instance.prop_refs",
                 false,
             ),
             ("$K", "layout,props", false),
             ("$I", "kind,instance.overrides", false),
-            ("$IT", "kind,instance.overrides,mirrors,frame", false),
+            ("$IT", "kind,text,instance.overrides,mirrors,frame", false),
         ],
     ),
     // text.style: id names $T; restyles chars start..end (clamped to its length); auto-size + reflow
@@ -2516,7 +2516,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2528,7 +2528,7 @@ const ROWS: &[Row] = &[
         &[],
         "",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2541,7 +2541,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2554,7 +2554,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2567,7 +2567,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2580,7 +2580,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2592,7 +2592,7 @@ const ROWS: &[Row] = &[
         r##"{"key": "Escape"}"##,
         &[],
         "mode",
-        &[("$T", "kind", true), ("$F", TEXT_FLOW_PARENT, false), ("$A", "frame,visible,childLayout", true)],
+        &[("$T", "kind,text", true), ("$F", TEXT_FLOW_PARENT, false), ("$A", "frame,visible,childLayout", true)],
     ),
     // text.edit.key: Left: caret moves through the laid-out text; no design change
     s(
@@ -2601,7 +2601,7 @@ const ROWS: &[Row] = &[
         r##"{"key": "Left"}"##,
         &[],
         "mode",
-        &[("$T", "kind,frame.width", false)],
+        &[("$T", "kind,text,frame.width", false)],
     ),
     // text.listIndent: edit session: the selected list paragraphs one level deeper
     s(
@@ -2611,7 +2611,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2624,7 +2624,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -2632,7 +2632,7 @@ const ROWS: &[Row] = &[
     // text.refit: ids names $T: re-measures auto-sizing text in the subtree, writes size when it differs
     // Reviewed after behavior tests: fonts::refit normalizes only changed sizes; this text
     // already fits, so no parent or sibling is re-flowed.
-    r("text.refit", r##"{"ids": ["$T"]}"##, &[], "", &[("$T", "kind,frame.width,frame.height", false)]),
+    r("text.refit", r##"{"ids": ["$T"]}"##, &[], "", &[("$T", "kind,text,frame.width,frame.height", false)]),
     // UNSURE: text.refit: no ids: every text layer of the document (incl. instance and library-store copies); "design nodes" stands for "which text layers exist"
     // Reviewed after behavior tests: fonts::refit enumerates text identities, not the contents
     // of unrelated non-text layers; ~textNodes names exactly that set.
@@ -2643,9 +2643,9 @@ const ROWS: &[Row] = &[
         "",
         &[
             ("design", "~textNodes", false),
-            ("$T", "kind,frame.width,frame.height", false),
-            ("$KT", "kind,frame.width,frame.height", false),
-            ("$IT", "kind,frame.width,frame.height", false),
+            ("$T", "kind,text,frame.width,frame.height", false),
+            ("$KT", "kind,text,frame.width,frame.height", false),
+            ("$IT", "kind,text,frame.width,frame.height", false),
         ],
     ),
     // text.fit: fixed-width text $T (an explicit width makes it auto-height and fixed-width in $F's layout): largest font size fitting its width (height when fixed); scales all runs; auto-height + reflow
@@ -2656,7 +2656,7 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$T"], "maxLines": 1, "minSize": 4}"##,
         &[],
         "",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
     ),
     // ---- Reading 4 ----
     // vector.flatten: one rectangle named by id; reads its outline (kind, size, corners) and look (name, fills, strokes, stroke, effects, opacity, blend), inserts a vector at its place and removes it; the comment thread pinned to it is re-anchored
@@ -3178,7 +3178,7 @@ const ROWS: &[Row] = &[
             ("picks", DROP_PICKS, false),
             ("$F", "frame,visible,locked,kind,layout,childLayout,~hierarchy", true),
             ("$A", "frame,visible,childLayout", true),
-            ("$T", "frame,visible,childLayout,kind", true),
+            ("$T", "frame,visible,childLayout,kind,text", true),
             ("$K", "*", false),
             ("$KT", "*", true),
         ],
@@ -3251,7 +3251,13 @@ const ROWS: &[Row] = &[
     // component.resetOverride: the top instance: overrides cleared (replaced), props reset to the main's defaults; resync from the main
     r("component.resetOverride", r##"{"id": "$I"}"##, &[], "", &[("$I", "kind,instance,mirrors", false), ("$K", "*", false), ("$KT", "*", true)]),
     // component.resetOverride: a layer inside the instance, one group: its overrides minus the group; normalize copies the main layer's value back
-    r("component.resetOverride", r##"{"id": "$IT", "group": "characters"}"##, &[], "", &[("$IT", "instance,mirrors", true), ("$KT", "kind", false)]),
+    r(
+        "component.resetOverride",
+        r##"{"id": "$IT", "group": "characters"}"##,
+        &[],
+        "",
+        &[("$IT", "instance,mirrors", true), ("$KT", "kind,text", false)],
+    ),
     // instance.swap: kind.component replaced, props rebuilt from the new main's defs keeping same-named values; normalize rebuilds from the new main (old layers matched by parent/source/name path, overrides carried)
     // review: sync.rs:199 preserves modes used to resolve the new main.
     r(
@@ -3289,7 +3295,7 @@ const ROWS: &[Row] = &[
             // sync_instance_depth preserves the instance's explicit variable modes before
             // applying the new main; the point/mode matrix demonstrates this dependency.
             ("$I", "kind,instance,frame,visible,locked,bindings.var_modes", false),
-            ("$IT", "kind,name,mirrors,instance", true),
+            ("$IT", "kind,text,name,mirrors,instance", true),
             ("$Set", "name", false),
             ("$VS", "*", true),
         ],
@@ -3319,7 +3325,7 @@ const ROWS: &[Row] = &[
         r##"{"id": "$K", "name": "Show", "type": "boolean", "layer": "$KT"}"##,
         &[],
         "",
-        &[("$K", "kind", true), ("$KT", "visible,kind,instance", true), ("$I", "kind", false), ("$IT", "instance,mirrors", true)],
+        &[("$K", "kind", true), ("$KT", "visible,kind,text,instance", true), ("$I", "kind", false), ("$IT", "instance,mirrors", true)],
     ),
     // component.addProperty: text without a layer: default is the name; instances get it
     // Reviewed after comparison: adding I's default property requests a rebuild (patch.rs:37-45),
@@ -3363,7 +3369,7 @@ const ROWS: &[Row] = &[
         r##"{"id": "$K", "name": "Label"}"##,
         &[],
         "",
-        &[("$K", "kind", true), ("$KT", "kind,instance", true), ("$I", "kind,bindings", false), ("$IT", "instance,mirrors", true)],
+        &[("$K", "kind", true), ("$KT", "kind,text,instance", true), ("$I", "kind,bindings", false), ("$IT", "instance,mirrors", true)],
     ),
     // component.deleteProperty: a variant property: every variant's name loses it ("Default" when empty)
     r(
@@ -3379,7 +3385,7 @@ const ROWS: &[Row] = &[
         r##"{"layer": "$KT", "property": ""}"##,
         &[],
         "",
-        &[("$KT", "kind,instance", true), ("$IT", "instance,mirrors", true)],
+        &[("$KT", "kind,text,instance", true), ("$IT", "instance,mirrors", true)],
     ),
     // component.bindProperty: bind to a boolean property (def in the owning component's kind): prop_refs.visible set, visible := the def's default
     // Reviewed after comparison: changing the main's property references rebuilds I
@@ -3390,7 +3396,7 @@ const ROWS: &[Row] = &[
         r##"{"layer": "$KT", "property": "Show"}"##,
         &[],
         "",
-        &[("$KT", "kind,instance,visible", true), ("$K", "kind", false), ("$IT", "instance,mirrors", true)],
+        &[("$KT", "kind,text,instance,visible", true), ("$K", "kind", false), ("$IT", "instance,mirrors", true)],
     ),
     // library.publish: every local component/set (whole subtrees), local style, local collection with its variables (+ alias closure) is snapshotted; names decide the default offer; the previous published library gives versions; writes only doc.published (~published, not stored)
     // Reviewed after behavior tests: library::publishable selects local asset identities, not
@@ -3526,7 +3532,7 @@ const ROWS: &[Row] = &[
             ("$LK", "*", true),
             ("picks", SWAP_PICKS, false),
             ("$I", "kind,instance,frame,visible,locked,bindings.var_modes", false),
-            ("$IT", "kind,name,mirrors,instance", true),
+            ("$IT", "kind,text,name,mirrors,instance", true),
         ],
     ),
     // library.import: link + FILE manifest resolve "Primary"; existing record: no write, answers $LK
@@ -3833,7 +3839,7 @@ const ROWS: &[Row] = &[
         r##"{"targets": [{"id": "$T", "fills": true, "index": 0, "range": [0, 2]}], "paint": "#0000ff"}"##,
         &[],
         "",
-        &[("$T", "fills,kind", false)],
+        &[("$T", "fills,kind,text", false)],
     ),
     // selection.applyColorStyle by id: $R's fills replaced by $Brand's paints, link set, fill bindings dropped
     r(
@@ -3912,7 +3918,13 @@ const ROWS: &[Row] = &[
         &[("$X", "effects,bindings.styles,bindings.bound", false)],
     ),
     // style.create text from $T: takes $T's text style, links all its chars (kind) and styles.text
-    r("style.create", r##"{"type": "text", "name": "Body", "from": "$T"}"##, &[], "mode", &[("$T", "kind,bindings.styles,bindings.bound", false)]),
+    r(
+        "style.create",
+        r##"{"type": "text", "name": "Body", "from": "$T"}"##,
+        &[],
+        "mode",
+        &[("$T", "kind,text,bindings.styles,bindings.bound", false)],
+    ),
     // style.apply paint style by id on $X: fills replaced by $Brand's paints, link set, fill bindings dropped
     r(
         "style.apply",
@@ -3932,9 +3944,9 @@ const ROWS: &[Row] = &[
     // style.detach fill on $E: clears styles.fill
     r("style.detach", r##"{"ids": ["$E"], "which": "fill"}"##, &[], "", &[("$E", "bindings.styles", false)]),
     // style.detach text with no range: checks the text edit selection (mode), then unlinks every char of $T and styles.text
-    r("style.detach", r##"{"ids": ["$T"], "which": "text"}"##, &[], "mode", &[("$T", "kind,bindings.styles", false)]),
+    r("style.detach", r##"{"ids": ["$T"], "which": "text"}"##, &[], "mode", &[("$T", "kind,text,bindings.styles", false)]),
     // style.detach text with start/end: unlinks chars 0..2 only
-    r("style.detach", r##"{"ids": ["$T"], "which": "text", "start": 0, "end": 2}"##, &[], "", &[("$T", "kind", false)]),
+    r("style.detach", r##"{"ids": ["$T"], "which": "text", "start": 0, "end": 2}"##, &[], "", &[("$T", "kind,text", false)]),
     // style.update name: replaces $Brand's name
     r("style.update", r##"{"style": "$Brand", "name": "Brand/Main"}"##, &[], "", &[("$Brand", "name", false)]),
     // style.update value: replaces $Brand's value (prunes its bindings) and propagates to linked $E (fills rewritten)
@@ -4328,15 +4340,15 @@ const ROWS: &[Row] = &[
             ("$E", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$F", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$A", "fills,strokes,effects,props.grids,prototype.interactions", false),
-            ("$T", "fills,strokes,effects,props.grids,prototype.interactions,kind", false),
+            ("$T", "fills,strokes,effects,props.grids,prototype.interactions,kind,text", false),
             ("$G", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$G1", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$G2", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$V", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$K", "fills,strokes,effects,props.grids,prototype.interactions", false),
-            ("$KT", "fills,strokes,effects,props.grids,prototype.interactions,kind", false),
+            ("$KT", "fills,strokes,effects,props.grids,prototype.interactions,kind,text", false),
             ("$I", "fills,strokes,effects,props.grids,prototype.interactions", false),
-            ("$IT", "fills,strokes,effects,props.grids,prototype.interactions,kind", false),
+            ("$IT", "fills,strokes,effects,props.grids,prototype.interactions,kind,text", false),
             ("$X", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$S", "fills,strokes,effects,props.grids,prototype.interactions", false),
             ("$Set", "fills,strokes,effects,props.grids,prototype.interactions", false),
@@ -4852,7 +4864,7 @@ const ROWS: &[Row] = &[
             ("design", "settings.kind", false),
             ("$Conn", "props.board,~hierarchy", true),
             ("$Label", "props.board,layout,~hierarchy", true),
-            ("$LabelText", "kind,~hierarchy", true),
+            ("$LabelText", "kind,text,~hierarchy", true),
         ],
     ),
     // board.label with empty text removes the label found among $Conn's parent's children
@@ -4907,14 +4919,15 @@ const ROWS: &[Row] = &[
         r##"{"ids": ["$Shape"], "shape": "ellipse", "fontSize": 24}"##,
         &[],
         "",
-        &[("$Shape", "name,props.board,layout,frame,~hierarchy", false), ("slot:$Shape", "kind,frame", true), ("$ShapeText", "kind", false)],
+        &[("$Shape", "name,props.board,layout,frame,~hierarchy", false), ("slot:$Shape", "kind,frame", true), ("$ShapeText", "kind,text", false)],
     ),
     // board.timer start: overwrites the document timer (settings.timer) from the clock
     b(r##""##, "board.timer", r##"{"action": "start", "minutes": 5}"##, &[], "", &[("design", "settings.timer", false)]),
     // board.timer pause: reads the running timer
     b(r##"[["board.timer", {"action": "start"}]]"##, "board.timer", r##"{"action": "pause"}"##, &[], "", &[("design", "settings.timer", false)]),
-    // board.vote start: refused while one runs; replaces the vote and clears the ballots; author from prefs
-    b(r##""##, "board.vote", r##"{"action": "start", "votes": 2}"##, &[], "mode", &[("design", "settings.vote,settings.votes", false)]),
+    // board.vote start: refused while one runs; replaces the vote and clears the ballots (each
+    // voter's own settings key; none yet); author from prefs
+    b(r##""##, "board.vote", r##"{"action": "start", "votes": 2}"##, &[], "mode", &[("design", "settings.vote", false)]),
     // board.vote start on the selection: ids from the selection (layers with a parent)
     b(
         r##""##,
@@ -4922,16 +4935,16 @@ const ROWS: &[Row] = &[
         r##"{"action": "start", "on": "selection"}"##,
         &["$Sticky", "$Shape"],
         "selection,mode",
-        &[("design", "settings.vote,settings.votes", false), ("$Sticky", "-", true), ("$Shape", "-", true)],
+        &[("design", "settings.vote", false), ("$Sticky", "-", true), ("$Shape", "-", true)],
     ),
-    // board.vote cast on $Sticky: reads the running vote's scope and per-person count and the voter's ballot (existing nodes only); voter from prefs/live
+    // board.vote cast on $Sticky: reads the running vote's scope and per-person count and the voter's ballot (its own settings key; existing nodes only); voter from prefs/live
     b(
         r##"[["board.vote", {"action": "start"}]]"##,
         "board.vote",
         r##"{"action": "cast", "id": "$Sticky"}"##,
         &[],
         "mode",
-        &[("design", "settings.vote,settings.votes", false), ("$Sticky", "-", true)],
+        &[("design", "settings.vote,settings.votes/You", false), ("$Sticky", "-", true)],
     ),
     // board.vote cast with a stickies-only vote: the scope reads the target's props.board
     b(
@@ -4940,7 +4953,7 @@ const ROWS: &[Row] = &[
         r##"{"action": "cast", "id": "$Sticky2"}"##,
         &[],
         "mode",
-        &[("design", "settings.vote,settings.votes", false), ("$Sticky2", "props.board", true)],
+        &[("design", "settings.vote,settings.votes/You", false), ("$Sticky2", "props.board", true)],
     ),
     // board.vote end: sets the running vote ended
     b(r##"[["board.vote", {"action": "start"}]]"##, "board.vote", r##"{"action": "end"}"##, &[], "", &[("design", "settings.vote", false)]),
@@ -5205,7 +5218,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "selection",
-        &[("$F", "layout,childLayout,~hierarchy", false), ("$A", "childLayout", true), ("$T", "childLayout,kind", true)],
+        &[("$F", "layout,childLayout,~hierarchy", false), ("$A", "childLayout", true), ("$T", "childLayout,kind,text", true)],
     ),
     // layout.suggest: no ids -> the selection ($D); layout inferred from $LI, $D hugs, re-flow
     // Reviewed after comparison: the selected path uses the same layout_add branch (structure.rs:545).
@@ -5367,7 +5380,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5380,7 +5393,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5393,7 +5406,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5406,7 +5419,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5419,7 +5432,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5432,7 +5445,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5445,7 +5458,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5458,7 +5471,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5471,7 +5484,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5484,7 +5497,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5497,7 +5510,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5510,7 +5523,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5523,7 +5536,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "selection",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
     ),
     // text.caseUpper: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
@@ -5533,7 +5546,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5546,7 +5559,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5559,7 +5572,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5572,7 +5585,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5585,7 +5598,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5598,7 +5611,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5611,7 +5624,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5624,7 +5637,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5637,7 +5650,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "selection",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.alignCenter: no ids -> the selection ($T and its subtree); writes align
     s(
@@ -5647,7 +5660,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5660,7 +5673,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5673,7 +5686,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5686,7 +5699,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5699,7 +5712,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5712,7 +5725,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5725,7 +5738,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5738,7 +5751,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5751,7 +5764,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5764,7 +5777,7 @@ const ROWS: &[Row] = &[
         &[],
         "mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5777,7 +5790,7 @@ const ROWS: &[Row] = &[
         r##"{"start": 0.5, "flip": true}"##,
         &[],
         "selection",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.pathOptions: edit session on the text on a path: the edited layer
     // Reviewed after comparison: the edited-range path also normalizes its text-style link.
@@ -5787,7 +5800,7 @@ const ROWS: &[Row] = &[
         r##"{"start": 0.5}"##,
         &[],
         "mode",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.removeFromPath: no ids -> the selected text on a path; auto-width, auto-size writes its size
     s(
@@ -5796,7 +5809,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "selection",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.removeFromPath: edit session on the text on a path: the edited layer
     s(
@@ -5805,7 +5818,7 @@ const ROWS: &[Row] = &[
         r##"{}"##,
         &[],
         "mode",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
     // text.style: no id -> the selection ($T); restyles chars start..end
     s(
@@ -5815,7 +5828,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5828,7 +5841,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection,mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -5841,12 +5854,12 @@ const ROWS: &[Row] = &[
         r##"{"maxLines": 1, "minSize": 4}"##,
         &[],
         "selection",
-        &[("$T", "kind,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
+        &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.bound,bindings.styles", false)],
     ),
     // text.refit: ids names container $F: re-measures the auto-sizing texts in $F's subtree
     // Reviewed after behavior tests: fonts::refit uses text membership only; already-fitting
     // text causes neither normalization nor a parent/sibling reflow.
-    r("text.refit", r##"{"ids": ["$F"]}"##, &[], "", &[("$F", "~textNodes", false), ("$T", "kind,frame.width,frame.height", false)]),
+    r("text.refit", r##"{"ids": ["$F"]}"##, &[], "", &[("$F", "~textNodes", false), ("$T", "kind,text,frame.width,frame.height", false)]),
     // text.set: inside a text edit session no id -> the selection (the edited layer); replaces all characters
     s(
         r##"[["text.edit.begin", {"id": "$T"}]]"##,
@@ -5855,7 +5868,7 @@ const ROWS: &[Row] = &[
         &[],
         "selection,mode",
         &[
-            ("$T", "kind,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
+            ("$T", "kind,text,frame.width,frame.height,childLayout,bindings.bound,bindings.styles", true),
             ("$F", TEXT_FLOW_PARENT, false),
             ("$A", "frame,visible,childLayout", true),
         ],
@@ -6176,7 +6189,13 @@ const ROWS: &[Row] = &[
         ],
     ),
     // component.resetOverride: no id: the selected layer inside the instance; the group's override removed, main value copied back
-    r("component.resetOverride", r##"{"group": "characters"}"##, &["$IT"], "selection", &[("$IT", "instance,mirrors", true), ("$KT", "kind", false)]),
+    r(
+        "component.resetOverride",
+        r##"{"group": "characters"}"##,
+        &["$IT"],
+        "selection",
+        &[("$IT", "instance,mirrors", true), ("$KT", "kind,text", false)],
+    ),
     // instance.swap: no ids: the selected instance shows $VS (props by name kept; rebuilt from $VS)
     // review: sync.rs:199 preserves modes used to resolve the new main.
     r(
@@ -6202,7 +6221,7 @@ const ROWS: &[Row] = &[
         r##"{"name": "Show", "type": "boolean"}"##,
         &["$KT"],
         "selection",
-        &[("$K", "kind", true), ("$KT", "visible,kind,instance", true), ("$I", "kind", false), ("$IT", "instance,mirrors", true)],
+        &[("$K", "kind", true), ("$KT", "visible,kind,text,instance", true), ("$I", "kind", false), ("$IT", "instance,mirrors", true)],
     ),
     // component.editProperty: no id: the selected component; text default replaced in its kind
     r("component.editProperty", r##"{"name": "Label", "default": "Hi"}"##, &["$K"], "selection", &[("$K", "kind", true)]),
@@ -6212,10 +6231,16 @@ const ROWS: &[Row] = &[
         r##"{"name": "Label"}"##,
         &["$K"],
         "selection",
-        &[("$K", "kind", true), ("$KT", "kind,instance", true), ("$I", "kind,bindings", false), ("$IT", "instance,mirrors", true)],
+        &[("$K", "kind", true), ("$KT", "kind,text,instance", true), ("$I", "kind,bindings", false), ("$IT", "instance,mirrors", true)],
     ),
     // component.bindProperty: no layer: the selected layer is unbound (prop_refs cleared); copies follow the main's own characters
-    r("component.bindProperty", r##"{"property": ""}"##, &["$KT"], "selection", &[("$KT", "kind,instance", true), ("$IT", "instance,mirrors", true)]),
+    r(
+        "component.bindProperty",
+        r##"{"property": ""}"##,
+        &["$KT"],
+        "selection",
+        &[("$KT", "kind,text,instance", true), ("$IT", "instance,mirrors", true)],
+    ),
     // library.bindVariable: no ids: the selected frame gets the copy of "space" bound to gap
     r(
         "library.bindVariable",
@@ -6549,7 +6574,7 @@ const ROWS: &[Row] = &[
             ("design", "settings.kind", false),
             ("$Conn", "props.board,~hierarchy", true),
             ("$Label", "props.board,layout,~hierarchy", true),
-            ("$LabelText", "kind,~hierarchy", true),
+            ("$LabelText", "kind,text,~hierarchy", true),
         ],
     ),
     // board.ink without a colour: the marker tool's colour (tool state) is used; a new vector on the current page

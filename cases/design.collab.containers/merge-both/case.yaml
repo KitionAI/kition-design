@@ -1,0 +1,18 @@
+format: 1
+id: design.collab.containers/merge-both
+feature: design.collab.containers
+intent: >-
+  Two people edit one container of a design at once and both edits stay, the replicas ending identical: typing in one text layer, styling overlapping ranges, splitting a paragraph while typing, recolouring a paint while adding one, binding a paint while reordering the paints (the binding follows its paint), adding strokes, editing an effect while adding one, and voting. A paint added to a layer deleted at once goes with it, and who has read a comment thread is never replicated.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/containers.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design-kdm, test: containers }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-22"

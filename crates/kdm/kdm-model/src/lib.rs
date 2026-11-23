@@ -12,7 +12,9 @@
 //!
 //! **What lives where** (`model/schema.json`): every layer of every page is a `Node` object named
 //! by one node of the `Design.nodes` tree (pages are its roots), and the library store's layers by
-//! nodes of `Design.libraryStore`; a node's registers group its fields by coupling ([`fields`]).
+//! nodes of `Design.libraryStore`; a node's registers group its fields by coupling ([`fields`]),
+//! its paints and effects are objects of its lists ([`items`]) and a text layer's characters its
+//! rich `text` field ([`text`]).
 //! Styles, variable collections (with their modes), variables, images (blobs), comment threads
 //! (KitModel M23), library links and the records of library copies are objects in lists of the
 //! root; every other document-level value is one key of the `Design.settings` map.
@@ -27,11 +29,13 @@
 pub mod fields;
 pub mod file;
 mod ids;
+pub mod items;
 mod list;
 mod merge;
 mod read;
 mod session;
 mod store;
+pub mod text;
 mod validate;
 mod write;
 
@@ -44,7 +48,7 @@ use kition_kit::session::KitError;
 pub use ids::Ids;
 pub use read::{read_document, read_with};
 pub use session::{DesignSession, blobs_of, undoable};
-pub use validate::{repair_comment_ids, validate};
+pub use validate::{StoreTexts, repair_comment_ids, store_texts, validate};
 pub use write::{write_changes, write_document};
 
 /// Re-exported so the engine and the bindings share this crate's exact kition-sdk pin.
