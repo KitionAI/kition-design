@@ -9,8 +9,9 @@
 //! seal in.
 //!
 //! The needles below are written once each and share no run of four characters with anything else
-//! in the design, so each stays literal in the bytes that hold it: every test checks the session's
-//! full snapshot holds them (the control) before it checks the file does not.
+//! in the design, so each stays literal in the KDM bytes that hold it: every test checks the
+//! session's full snapshot holds them (the control) before it checks the file's content (unpacked
+//! from the zip) does not.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use std::io::Read;
@@ -97,7 +98,7 @@ fn the_file_holds_the_content_and_of_the_history_only_the_seal() {
     }
     let bytes = host_save(&mut doc);
     for needle in NEEDLES {
-        assert!(!contains(&bytes, needle), "the file holds {needle}");
+        assert!(!contains(&content(&bytes), needle), "the file holds {needle}");
     }
     let held = Replica::snapshot_origins(&content(&bytes)).unwrap();
     assert_eq!(held.len(), 1, "of the history, the file holds one change: {held:?}");
@@ -183,7 +184,7 @@ fn a_save_nobody_sealed_for_seals_a_copy_and_mark_saved_takes_the_seal() {
     let (mut doc, _) = design_with_history();
     let bytes = doc.save(Some(FILE)).unwrap();
     for needle in NEEDLES {
-        assert!(!contains(&bytes, needle), "the file holds {needle}");
+        assert!(!contains(&content(&bytes), needle), "the file holds {needle}");
     }
     assert_eq!(Replica::snapshot_origins(&content(&bytes)).unwrap(), vec![Some(Origin::system("content-seal"))]);
     assert_eq!(doc.save(Some(FILE)).unwrap(), bytes, "the same version seals the same way");

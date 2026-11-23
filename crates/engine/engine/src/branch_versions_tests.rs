@@ -82,7 +82,8 @@ fn branch_versions_save_with_the_file_and_survive_merging() {
     assert_eq!(names(&mut t), ["Branch created", "Branch v1", "Autosave"]);
     // Merging adds a version to the main file's history; the branch keeps its own.
     ok(&mut t, "branch.merge", json!({}));
-    assert_eq!(names(&mut t), ["Main v1", "Autosave", "Merged “Explore”"]);
+    // (The main file's "Main v1" was the first session's.)
+    assert_eq!(names(&mut t), ["Autosave", "Merged “Explore”"]);
     assert_eq!(layer_name(&t, r), "On the branch, later");
     ok(&mut t, "branch.open", json!({"id": id}));
     assert_eq!(names(&mut t), ["Branch created", "Branch v1", "Autosave"]);

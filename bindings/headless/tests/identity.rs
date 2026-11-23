@@ -76,7 +76,7 @@ fn design() -> Vec<u8> {
     doc.execute("image.place", json!({ "data": PNG, "target": kept })).unwrap();
     doc.prepare_save().unwrap();
     let first = doc.save(None).unwrap();
-    assert!(holds(&first, SECRET), "the layer is content before it is deleted");
+    assert!(holds(&entry(&first, "kdm/content.bin").unwrap(), SECRET), "the layer is content before it is deleted");
     let mut doc = DesignDocument::open("Plan.kdesign", &first).unwrap();
     doc.execute("edit.delete", json!({ "ids": [secret] })).unwrap();
     doc.prepare_save().unwrap();
@@ -179,8 +179,8 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     assert_eq!(reopened.inspect().unwrap()["tree"], opened.inspect().unwrap()["tree"]);
 
     // No history: the deleted layer's name is in neither file.
-    assert!(!holds(&source_bytes, SECRET), "a file holds no deleted content");
-    assert!(!holds(&fork_bytes, SECRET), "deleted content does not travel");
+    assert!(!holds(&entry(&source_bytes, "kdm/content.bin").unwrap(), SECRET), "a file holds no deleted content");
+    assert!(!holds(&entry(&fork_bytes, "kdm/content.bin").unwrap(), SECRET), "deleted content does not travel");
 
     // A fork of a fork is a third document with the same content.
     let again = kit.fork("Fork.kdesign", "Again.kdesign", LIMIT).await.unwrap().doc_id.expect("the second fork's identity");
@@ -273,7 +273,7 @@ async fn an_agents_batches_save_sealed_content() {
         vec![Some(kition_kit::kdm::Origin::system("content-seal"))],
         "of the history, the file holds the seal"
     );
-    assert!(!holds(&saved, OVERWRITTEN), "the overwritten name is in no file");
+    assert!(!holds(&content, OVERWRITTEN), "the overwritten name is in no file");
     let reopened = DesignDocument::open("Plan.kdesign", &saved).unwrap();
     assert!(reopened.session().ds().unwrap().doc.nodes().any(|n| n.id.0 == kept && n.name == "Renamed by the agent"));
     kit.shutdown(Duration::from_secs(5)).await;

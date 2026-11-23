@@ -385,13 +385,15 @@ fn comments_survive_saving_and_stay_put_on_copy_paste() {
     ex(&mut s, "file.save", json!({"path": path}));
     let mut t = Session::empty();
     ex(&mut t, "file.open", json!({"path": path}));
-    // Who has read a thread is each person's own, not the file's.
+    // Who has read a thread is each person's own, not the file's; a thread whose id is a layer's
+    // gets one of its own when the file opens (the replica's repair, V3).
     let unread = |comments: &[kition_design_doc::Comment]| {
         comments
             .iter()
             .cloned()
             .map(|mut c| {
                 c.read_by = None;
+                c.id = 0;
                 c
             })
             .collect::<Vec<_>>()
