@@ -3,7 +3,8 @@ use super::load::{ext, file_stem, write};
 use super::open::remember;
 use super::*;
 
-/// Thumbnail PNG of the first page's content (for file browsers / the home screen).
+/// Thumbnail PNG of the first page's content (a `.fig` export's `thumbnail.png`, the binding's
+/// `thumbnail` extra); never part of a `.kdesign`.
 pub fn thumbnail(doc: &Document) -> Option<Vec<u8>> {
     let page = doc.first_page()?;
     let b = doc.page_content_bounds(page)?;
@@ -18,23 +19,21 @@ pub fn thumbnail(doc: &Document) -> Option<Vec<u8>> {
     kition_design_render::encode_png(&pix).ok()
 }
 
-/// The `.kdesign` file for a document: its content, thumbnail and branches (no history). Its
+/// The `.kdesign` file for a document: its content and the images it uses (no history). Its
 /// replica must be sealed for the save ([`DocState::prepare_save`]).
 pub fn file_bytes(ds: &DocState) -> Result<Vec<u8>> {
     FileSnapshot::of(ds)?.encode()
 }
 
-/// A document's file as it is at one moment, so the slow part of saving it (the thumbnail and the
-/// encoding) can run on another thread while editing goes on: [`encode`](Self::encode) there, then
+/// A document's file as it is at one moment, so the slow part of saving it (the encoding) can run
+/// on another thread while editing goes on: [`encode`](Self::encode) there, then
 /// [`save`](Self::save) the bytes back on the session's thread.
 pub struct FileSnapshot {
     uid: u64,
     path: Option<String>,
-    revision: u64,
     doc: Arc<Document>,
     /// The document as last saved when the snapshot was taken: another save since makes it stale.
     saved: Arc<Document>,
-    branches: Vec<kition_design_format::Branch>,
     /// The document's KDM replica entries (`kdm/…`), when it has a replica.
     replica: Vec<(String, Vec<u8>)>,
 }
@@ -43,22 +42,12 @@ impl FileSnapshot {
     /// The file of `ds` now; its replica must be sealed for the save ([`DocState::prepare_save`]):
     /// an unsealed one is refused (`not-sealed`), never left out of the file.
     pub fn of(ds: &DocState) -> Result<Self> {
-        Ok(Self {
-            uid: ds.uid,
-            path: ds.path.clone(),
-            revision: ds.revision,
-            doc: ds.doc.clone(),
-            saved: ds.saved_doc.clone(),
-            branches: ds.branches.clone(),
-            replica: ds.replica_entries()?,
-        })
+        Ok(Self { uid: ds.uid, path: ds.path.clone(), doc: ds.doc.clone(), saved: ds.saved_doc.clone(), replica: ds.replica_entries()? })
     }
 
-    /// The file's bytes: the content, the thumbnail and the branches.
+    /// The file's bytes: the content and its images.
     pub fn encode(&self) -> Result<Vec<u8>> {
-        let thumb = thumbnail(&self.doc);
-        kition_design_format::save_bytes_with_replica(&self.doc, thumb.as_deref(), &self.branches, &self.replica)
-            .map_err(|e| EngineError::Other(e.to_string()))
+        kition_design_format::save_bytes_with_replica(&self.doc, &self.replica).map_err(|e| EngineError::Other(e.to_string()))
     }
 
     /// Write `bytes` (this snapshot's [`encode`](Self::encode)) to the document's file: it is saved
@@ -73,14 +62,9 @@ impl FileSnapshot {
         refuse_overwriting_changes(ds, path)?;
         write(path, bytes)?;
         ds.note_on_disk();
-        // The branches may have changed since: then they still count as unsaved.
-        if ds.revision == self.revision {
-            ds.versions_changed = false;
-        }
         ds.saved_doc = self.doc;
         ds.saved_replica();
         ds.revision += 1;
-        branch_tabs_saved(s, self.uid);
         Ok(true)
     }
 }
@@ -106,13 +90,6 @@ fn refuse_overwriting_changes(ds: &DocState, path: &str) -> Result<()> {
     }
 }
 
-/// The branch tabs of the file in tab `uid` were saved with it.
-fn branch_tabs_saved(s: &mut Session, uid: u64) {
-    for tab in s.docs.iter_mut().filter(|d| d.branch_of.as_ref().is_some_and(|(m, _)| *m == uid)) {
-        tab.mark_saved();
-    }
-}
-
 pub(super) fn color_profile(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "file.colorProfile";
     let Some(name) = string(p, "profile") else {
@@ -128,8 +105,7 @@ pub(super) fn color_profile(s: &mut Session, p: &Value) -> Result<Value> {
 /// Native saves act on the current document; a `.fig` copy exports the version shown, and a
 /// pending Save As choice must leave it shown until its destination is known.
 pub(crate) fn save_ends_preview(s: &Session, cmd: &str, p: &Value) -> bool {
-    let path =
-        string(p, "path").or_else(|| if cmd == "file.save" { s.docs.get(crate::branches::file_tab(s)).and_then(|ds| ds.path.clone()) } else { None });
+    let path = string(p, "path").or_else(|| if cmd == "file.save" { s.ds().ok().and_then(|ds| ds.path.clone()) } else { None });
     path.is_some_and(|path| ext(&path) != "fig") || (cmd == "file.saveAs" && wants_data(p))
 }
 
@@ -138,16 +114,15 @@ fn wants_data(p: &Value) -> bool {
     p.get("data").and_then(Value::as_bool) == Some(true)
 }
 
-/// Save the file of the active tab (the main file for a branch tab, with its branches), or export
+/// Save the file of the active tab, or export
 /// the active document as an experimental `.fig` copy without changing its native save state.
 /// Without a path the file comes back as base64 `data` for the caller to deliver (#969).
 fn save_to(s: &mut Session, path: Option<String>) -> Result<Value> {
     if let Some(path) = path.as_deref().filter(|p| ext(p) == "fig") {
         return export_fig(s, &json!({"path": path}));
     }
-    let i = crate::branches::file_tab(s);
     let (origin, bridged) = (s.origin(), s.kdm_enabled());
-    let ds = s.docs.get_mut(i).ok_or(EngineError::NoDocument)?;
+    let ds = s.ds_mut()?;
     // A download (no path) writes over no file.
     if let Some(path) = path.as_deref() {
         refuse_dropping_images(ds, path)?;
@@ -180,14 +155,11 @@ fn save_to(s: &mut Session, path: Option<String>) -> Result<Value> {
     Ok(json!({"path": path, "bytes": bytes.len()}))
 }
 
-/// The file of the active tab (with its branch tabs) now matches what was written or delivered.
+/// The file of the active tab now matches what was written or delivered.
 pub(super) fn mark_saved(s: &mut Session, _: &Value) -> Result<Value> {
-    let i = crate::branches::file_tab(s);
-    let ds = s.docs.get_mut(i).ok_or(EngineError::NoDocument)?;
+    let ds = s.ds_mut()?;
     ds.mark_saved();
     ds.revision += 1;
-    let uid = ds.uid;
-    branch_tabs_saved(s, uid);
     Ok(json!({"saved": true}))
 }
 
@@ -195,7 +167,7 @@ pub(super) fn save(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(path) = string(p, "path") {
         return save_to(s, Some(path));
     }
-    let ds = s.docs.get(crate::branches::file_tab(s)).ok_or(EngineError::NoDocument)?;
+    let ds = s.ds()?;
     match ds.path.clone() {
         // Earlier builds wrote native data under a .fig name: never overwrite that file with an export.
         Some(path) if ext(&path) == "fig" => {

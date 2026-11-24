@@ -57,9 +57,9 @@ async fn library_refresh_swap_and_prune_hold_local_inputs() {
         let basis = f.basis().await;
         match change {
             "main" => {
-                let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+                let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
                 file.doc.get_mut(kition_design_doc::NodeId(lib["main"].as_u64().unwrap())).unwrap().width += 50.0;
-                let bytes = kition_design_format::save_edited(&file, None).unwrap();
+                let bytes = kition_design_format::save_edited(&file).unwrap();
                 std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
             }
             "user" | "swap" => f.colleague(&[("node.set", json!({"id":lib["instance"],"props":{"width":130}}))]),
@@ -85,69 +85,10 @@ async fn library_refresh_swap_and_prune_hold_local_inputs() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-fn branch(f: &Fixture) -> String {
-    let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
-    let base = std::sync::Arc::new(file.doc.clone());
-    let mut head = file.doc.clone();
-    head.styles.iter_mut().find(|s| json!(s.id) == f.style).unwrap().description = "Branch".into();
-    file.branches.push(kition_design_format::Branch {
-        id: "review".into(),
-        name: "Review".into(),
-        time: 1,
-        client: 1,
-        state: kition_design_format::BranchState::Active,
-        base,
-        head: std::sync::Arc::new(head),
-        versions: Vec::new(),
-    });
-    let bytes = kition_design_format::save_edited(&file, None).unwrap();
-    std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
-    "review".into()
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn branch_combination_holds_main_resources() {
-    for command in ["branch.merge", "branch.updateFromMain"] {
-        for necessary in [true, false] {
-            let f = Fixture::new(Guard::Premise);
-            let branch = branch(&f);
-            let basis = f.basis().await;
-            if necessary {
-                f.colleague(&[("style.update", json!({"style":f.style,"description":"Colleague"}))]);
-            } else {
-                f.colleague(&[("library.publish", json!({}))]);
-            }
-            let key = format!("style/{}", f.style.as_str().unwrap());
-            outcome(&f, &basis, command, json!({"id":branch,"resolutions":{key:"branch"}}), necessary).await;
-            f.shutdown().await;
-        }
-    }
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn branch_snapshot_facts_include_image_bytes() {
-    let f = Fixture::new(Guard::Premise);
-    let branch = branch(&f);
-    let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
-    std::sync::Arc::make_mut(&mut file.branches[0].head)
-        .images
-        .insert("synthetic".into(), kition_design_doc::ImageData { width: 1, height: 1, bytes: std::sync::Arc::new(vec![1, 2, 3]) });
-    let bytes = kition_design_format::save_edited(&file, None).unwrap();
-    std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
-    let basis = f.basis().await;
-    let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
-    let head = std::sync::Arc::make_mut(&mut file.branches[0].head);
-    head.images.get_mut("synthetic").unwrap().bytes = std::sync::Arc::new(vec![4, 5, 6]);
-    let bytes = kition_design_format::save_edited(&file, None).unwrap();
-    std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
-    outcome(&f, &basis, "branch.merge", json!({"id":branch}), true).await;
-    f.shutdown().await;
-}
-
 fn board_file(f: &Fixture) {
-    let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+    let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
     file.doc.kind = kition_design_doc::FileKind::Board;
-    let bytes = kition_design_format::save_edited(&file, None).unwrap();
+    let bytes = kition_design_format::save_edited(&file).unwrap();
     std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
 }
 

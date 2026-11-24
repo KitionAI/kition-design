@@ -105,12 +105,12 @@ fn assert_same_doc(a: &Document, b: &Document) {
 fn large_document_roundtrips() {
     let d = large(200);
     assert!(d.node_count() > 4000);
-    let bytes = save_bytes(&d, None).unwrap();
+    let bytes = save_bytes(&d).unwrap();
     let (back, issues) = load_bytes(&bytes).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
     assert_same(&d, &back, false);
     // Saving what was read writes the same document again.
-    let again = save_bytes(&back, None).unwrap();
+    let again = save_bytes(&back).unwrap();
     let (twice, _) = load_bytes(&again).unwrap();
     assert_same(&back, &twice, false);
     // The streamed JSON and the JSON value the document converts to hold the same document (the

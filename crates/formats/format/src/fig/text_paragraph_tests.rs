@@ -103,7 +103,7 @@ fn encoded_fig_maps_paragraph_list_fields_through_native_round_trip() {
     assert_eq!(text.leading_trim, kition_design_doc::LeadingTrim::None);
     assert_eq!(text.style.font_family, "Inter");
 
-    let bytes = crate::save_bytes(&inherited, None).unwrap();
+    let bytes = crate::save_bytes(&inherited).unwrap();
     let (back, warnings) = crate::load_bytes(&bytes).unwrap();
     assert!(warnings.is_empty(), "native round trip: {warnings:?}");
     let text = back.nodes().find(|node| node.name == "Label").unwrap().kind.text().unwrap();
@@ -275,7 +275,7 @@ fn encoded_instance_paragraph_overrides_fall_back_only_when_invalid() {
     assert!(!text.hanging_punctuation);
     assert_eq!(text.leading_trim, kition_design_doc::LeadingTrim::CapHeight);
 
-    let bytes = crate::save_bytes(&doc, None).unwrap();
+    let bytes = crate::save_bytes(&doc).unwrap();
     let (back, warnings) = crate::load_bytes(&bytes).unwrap();
     assert!(warnings.is_empty(), "native round trip: {warnings:?}");
     let copy = back.nodes().find(|node| node.name == "Copy").unwrap();

@@ -42,7 +42,7 @@ fn published() -> (Document, kition_design_doc::NodeId, String) {
 #[test]
 fn library_roundtrip_with_its_own_images() {
     let (d, tile, hash) = published();
-    let bytes = save_bytes(&d, None).unwrap();
+    let bytes = save_bytes(&d).unwrap();
     // The author's file: its library comes back, with the image only the library uses.
     let (back, issues) = load_bytes(&bytes).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
@@ -57,7 +57,7 @@ fn library_roundtrip_with_its_own_images() {
     assert_eq!(read.manifest, lib.manifest);
     assert!(read.doc.images.contains_key(&hash));
     // Saving the loaded file again keeps everything.
-    let again = save_bytes(&back_with(&bytes), None).unwrap();
+    let again = save_bytes(&back_with(&bytes)).unwrap();
     assert_eq!(read_library(std::io::Cursor::new(&again)).unwrap().unwrap().manifest, lib.manifest);
 }
 
@@ -86,7 +86,7 @@ fn replace_member(zip_bytes: &[u8], name: &str, bytes: Option<&[u8]>) -> Vec<u8>
 #[test]
 fn damaged_libraries_are_errors_never_crashes() {
     let (d, _, hash) = published();
-    let good = save_bytes(&d, None).unwrap();
+    let good = save_bytes(&d).unwrap();
     let cases: [(&str, Option<&[u8]>); 6] = [
         ("library/manifest.json", Some(b"{nope")),
         ("library/manifest.json", Some(br#"{"id": "../../evil", "version": 1}"#)),
@@ -114,7 +114,7 @@ fn damaged_libraries_are_errors_never_crashes() {
 #[test]
 fn oversized_members_are_refused() {
     let (d, _, _) = published();
-    let good = save_bytes(&d, None).unwrap();
+    let good = save_bytes(&d).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(&good)).unwrap();
     assert!(read_member(&mut z, MANIFEST, 4).is_err_and(|e| e.to_string().contains("too large")));
     assert!(read_member(&mut z, MANIFEST, MAX_MANIFEST).is_ok());
@@ -125,14 +125,14 @@ fn oversized_members_are_refused() {
 #[test]
 fn library_survives_a_save_and_reopen() {
     let (d, tile, hash) = published();
-    let bytes = crate::save_bytes(&d, None).unwrap();
-    let loaded = crate::load_bytes_with_branches(&bytes).unwrap();
+    let bytes = crate::save_bytes(&d).unwrap();
+    let loaded = crate::load_with_replica(&bytes).unwrap();
     assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
     let lib = loaded.doc.published.clone().unwrap();
     assert_eq!((lib.manifest.id.as_str(), lib.manifest.version), ("kit-1", 3));
     assert!(lib.doc.images.contains_key(&hash) && lib.manifest.component(tile).is_some());
     assert!(read_library(std::io::Cursor::new(&bytes)).unwrap().unwrap().doc.images.contains_key(&hash));
     // Saved again, it is still a library.
-    let again = crate::save_bytes(&loaded.doc, None).unwrap();
+    let again = crate::save_bytes(&loaded.doc).unwrap();
     assert_eq!(read_library(std::io::Cursor::new(&again)).unwrap().unwrap().manifest, lib.manifest);
 }

@@ -338,16 +338,10 @@
 .design-version-time { padding-top: 4px; color: var(--design-text-secondary); }
 .design-version-desc { padding-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-height: 14px; overflow-wrap: anywhere; }
 .design-version-row[data-version='true'] { padding-bottom: 12px; min-height: 50px; box-sizing: border-box; }
+.design-version-row[data-available='false'] .design-version-name, .design-version-row[data-available='false'] .design-version-time { color: var(--design-text-secondary); }
 .design-version-more { position: absolute !important; right: 10px; top: 5px; display: none; }
 .design-version-row:hover .design-version-more, .design-version-more[aria-expanded='true'] { display: block; }
 .design-version-more .design-icon-button:hover { background: var(--design-pressed); }
-.design-version-fold { display: flex; align-items: center; gap: 6px; height: 32px; color: var(--design-text-secondary); }
-.design-version-fold .design-version-dot { top: 12.5px; }
-.design-branch-row { position: relative; height: 44px; padding: 0 30px 0 16px; cursor: default; }
-.design-branch-row:hover { background: var(--design-hover); }
-.design-branch-name { padding-top: 9px; font-weight: var(--design-semibold); }
-.design-branch-row[data-active='false'] .design-branch-name { color: var(--design-text-secondary); }
-.design-branch-sub { padding-top: 4px; color: var(--design-text-secondary); }
 
 /* egui's plain `ui.button` (Copy CSS): text only, the hover fill on hover. */
 .design-dev-text-button { height: 24px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: var(--design-text); font: var(--design-regular) 11px/1.2 var(--design-font); }

@@ -145,25 +145,6 @@ pub fn before_doc(doc: &Document, id: NodeId) -> Option<Document> {
     doc.with_dev_snapshot(id)
 }
 
-/// Every layer that changed between two versions of a whole document, page by page (pages added
-/// or removed as a whole), for reviewing a branch.
-pub fn compare_docs(before: &Document, now: &Document) -> Comparison {
-    let mut out = Comparison { name: now.name.clone(), snapshot: true, ..empty(now, NodeId(0)) };
-    let mut w = Walk { before, now, now_ids: now.ids().collect(), before_ids: before.ids().collect(), out: &mut out };
-    for p in &now.pages {
-        if before.contains(*p) {
-            w.layer(*p, 0);
-        } else {
-            w.whole(now, *p, 0, ChangeKind::Added);
-        }
-    }
-    for p in before.pages.iter().filter(|p| !now.contains(**p)) {
-        w.whole(before, *p, 0, ChangeKind::Removed);
-    }
-    out.changed = !out.changes.is_empty();
-    out
-}
-
 fn bounded_set(doc: &Document, id: NodeId) -> BTreeSet<NodeId> {
     doc.subtree(id).into_iter().take(MAX_SNAPSHOT_NODES * 2).collect()
 }

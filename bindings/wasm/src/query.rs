@@ -28,8 +28,6 @@
 //! | `measurements` | `{ … }` | `devMode.measurements` |
 //! | `devResources` | `{ id? }` | `devResource.list` |
 //! | `comments` | `{ … }` | `comment.list` |
-//! | `versions` | — | `version.list` |
-//! | `branches` | — | `branch.list` |
 //! | `framePresets` | — | `frame.presets` |
 //! | `fonts` | `{ … }` | `text.fonts` |
 //! | `documentColors` | `{ page?, limit? }` | `paint.documentColors` with each colour's alpha ([`crate::panels::document_colors`]) |
@@ -571,8 +569,6 @@ pub fn query(doc: &DesignDocument, name: &str, params: &Value) -> Result<Value, 
         "measurements" => via("devMode.measurements"),
         "devResources" => via("devResource.list"),
         "comments" => via("comment.list"),
-        "versions" => via("version.list"),
-        "branches" => via("branch.list"),
         "framePresets" => via("frame.presets"),
         "fonts" => via("text.fonts"),
         "documentColors" => crate::panels::document_colors(doc, &params),

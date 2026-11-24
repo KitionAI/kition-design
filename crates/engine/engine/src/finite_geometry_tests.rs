@@ -11,7 +11,7 @@ fn rect(s: &mut Session) -> crate::NodeId {
 }
 
 fn assert_roundtrips(s: &Session) {
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     assert!(kition_design_format::load_bytes(&bytes).is_ok(), "the saved file reopens");
 }
 

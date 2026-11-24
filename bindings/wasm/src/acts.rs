@@ -88,9 +88,6 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("library.place", &[Mode, Part]),
     ("tool.place", &[Mode, Part]),
     // Named document records and whole-document operations do not read editor navigation.
-    ("branch.create", &[]),
-    ("branch.merge", &[]),
-    ("branch.updateFromMain", &[]),
     ("codeConnect.import", &[]),
     ("comment.delete", &[]),
     ("comment.edit", &[]),
@@ -273,7 +270,6 @@ pub fn scanned_reads(id: &str) -> &'static [EditorState] {
             | "transform.rotationOrigin"
             | "transform.setRotationOrigin"
             | "dev.focus"
-            | "version.autosave"
             | "library.list"
             | "library.add"
             | "proto.linkNotice"
@@ -315,8 +311,6 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "bool.intersect"
         | "bool.subtract"
         | "bool.union"
-        | "branch.merge"
-        | "branch.updateFromMain"
         | "codeConnect.import"
         | "codeConnect.remove"
         | "codeConnect.set"
@@ -451,7 +445,6 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "board.sticky"
         | "board.table"
         | "board.template"
-        | "branch.create"
         | "comment.add"
         | "comment.list"
         | "comment.next"
@@ -486,7 +479,6 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "select.byName"
         | "selection.selectColor"
         | "style.bind"
-        | "version.autosave"
         | "version.restore"
         | "view.nextPage"
         | "view.prevPage" => PART,

@@ -92,7 +92,7 @@ fn templates_use_the_features_they_show() {
 fn templates_save_and_reopen_losslessly() {
     for t in TEMPLATES {
         let doc = built(t.id);
-        let bytes = kition_design_format::save_bytes(&doc, None).unwrap();
+        let bytes = kition_design_format::save_bytes(&doc).unwrap();
         let (back, notes) = kition_design_format::load_bytes(&bytes).unwrap();
         assert_eq!(notes, Vec::<String>::new(), "{}: nothing to repair", t.id);
         // The page the editor shows is no content: a file opens on its first page.

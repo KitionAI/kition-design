@@ -1,6 +1,7 @@
-//! The picture a saved file carries of itself: `thumbnail.png` inside a `.kdesign` or `.fig` zip,
-//! `previews/preview.png` inside a `.sketch` zip (the home screen's recent files show it), and the colour of the page it sits on. Image files are
-//! their own picture. Everything is read within caps: a missing, damaged or oversized picture gives
+//! The picture a saved file carries of itself: `thumbnail.png` inside a `.fig` zip,
+//! `previews/preview.png` inside a `.sketch` zip (the home screen's recent files show it), and the
+//! colour of the page it sits on. A `.kdesign` carries no picture (only its content): its page
+//! colour is all it shows. Image files are their own picture. Everything is read within caps: a missing, damaged or oversized picture gives
 //! `None`, never an error or a panic.
 
 use std::io::{Read, Seek};
@@ -26,7 +27,7 @@ pub struct Thumbnail {
     pub rgba: Vec<u8>,
 }
 
-/// The bytes of `thumbnail.png` in a zip archive (`.kdesign`, `.fig`); `None` when it isn't a zip,
+/// The bytes of `thumbnail.png` in a `.fig` zip archive; `None` when it isn't a zip,
 /// has no thumbnail, or the thumbnail is larger than [`MAX_THUMBNAIL_BYTES`].
 pub fn thumbnail_png<R: Read + Seek>(archive: R) -> Option<Vec<u8>> {
     let mut z = zip::ZipArchive::new(archive).ok()?;
@@ -89,11 +90,12 @@ impl FileKind {
 }
 
 /// The picture of the file at `path`, at most `fit` pixels on its longer side: the thumbnail a
-/// `.kdesign`, `.fig` or `.sketch` file carries, or an image file itself (up to [`MAX_IMAGE_FILE_BYTES`]).
-/// `None` for anything else, and for a file that is missing, unreadable or damaged.
+/// `.fig` or `.sketch` file carries, or an image file itself (up to [`MAX_IMAGE_FILE_BYTES`]).
+/// `None` for anything else (a `.kdesign` carries none), and for a file that is missing,
+/// unreadable or damaged.
 pub fn file_thumbnail(path: &Path, fit: u32) -> Option<Thumbnail> {
     match FileKind::of(path) {
-        FileKind::KitionDesign | FileKind::Fig => {
+        FileKind::Fig => {
             let file = std::fs::File::open(path).ok()?;
             let png = thumbnail_png(std::io::BufReader::new(file))?;
             decode_thumbnail(&png, fit)
@@ -112,7 +114,7 @@ pub fn file_thumbnail(path: &Path, fit: u32) -> Option<Thumbnail> {
             }
             decode_thumbnail(&bytes, fit)
         }
-        FileKind::Svg | FileKind::Other => None,
+        FileKind::KitionDesign | FileKind::Svg | FileKind::Other => None,
     }
 }
 
@@ -141,17 +143,17 @@ pub fn file_preview(path: &Path, fit: u32) -> Preview {
     }
 }
 
-/// The [`Preview`] of a `.kdesign` or `.fig` archive: `thumbnail.png`, and the first page's colour
-/// from the content (`.kdesign`) or `meta.json` (`.fig`).
+/// The [`Preview`] of a `.kdesign` or `.fig` archive: the first page's colour from the content
+/// (`.kdesign`, which carries no picture), or `meta.json` and `thumbnail.png` (`.fig`).
 pub fn archive_preview<R: Read + Seek>(archive: R, fit: u32) -> Preview {
     let Ok(mut z) = zip::ZipArchive::new(archive) else { return Preview::default() };
+    if z.file_names().any(|n| n == kition_design_kdm::file::CONTENT) {
+        let (page, kind) = kition_design_page(&mut z);
+        return Preview { page, picture: None, kind };
+    }
     let picture = crate::read_member(&mut z, "thumbnail.png", MAX_THUMBNAIL_BYTES).ok().and_then(|png| decode_thumbnail(&png, fit));
-    let (page, kind) = if z.file_names().any(|n| n == kition_design_kdm::file::CONTENT) {
-        kition_design_page(&mut z)
-    } else {
-        (crate::read_member(&mut z, "meta.json", MAX_META_BYTES).ok().and_then(|json| fig_page(&json)), kition_design_doc::FileKind::Design)
-    };
-    Preview { page, picture, kind }
+    let page = crate::read_member(&mut z, "meta.json", MAX_META_BYTES).ok().and_then(|json| fig_page(&json));
+    Preview { page, picture, kind: kition_design_doc::FileKind::Design }
 }
 
 /// The first page's background in a `.kdesign`'s content, and the file's kind.

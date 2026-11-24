@@ -127,10 +127,10 @@ existing type later).
   computed from the same document/picker as the engine. The binding's `place.rs` narrows
   property, transform, index, connector, component and point-swap calls; unhandled families
   retain SDK defaults. The current limits and exact families are in `agent/guide.md`.
-- **Saved records:** root derived `history` holds version metadata;
-  `snapshots` holds SHA-256 fingerprints of version documents and image bytes; `branches`
-  holds saved branch records. `assets` holds publishable identities and `published` the
-  current publication manifest and content fingerprint. These are guard facts, not new persisted formats.
+- **Saved records:** saved versions are the host's checkpoints, never the engine's: a restore
+  names its replica `version`, whose content never changes, and holds the whole design it
+  replaces. `assets` holds publishable identities and `published` the current publication
+  manifest and content fingerprint. These are guard facts, not new persisted formats.
 
 #### Guard coverage
 
@@ -156,7 +156,7 @@ writer control. `outside.rs::fixed_seed_mixed_table` adds 200 independent writes
 | Images/presets, export settings | Yes: `cmd/image`, export setters | Preset name selectors added; node export settings retain target defaults, no object ids inside those settings. Output rendering is outside this write table. |
 | Library placement | Yes: `cmd/library`, import and drop helpers | Shared component resolution and drop replay, including omitted coordinates and reused local mains. External library bytes are outside the current file's revision. |
 | Library publish/refresh/swap/prune | Yes: handlers, library mutators and `library_swap` | Publish holds identities/definitions and previous publication content. Holds local copy records, copy/instance dependency graphs, styles/variables, and root `~libraryUsage` for reference membership including added/deleted users. Conservative across libraries; external bytes remain a separate limit. |
-| Saved versions and branches | Yes: `cmd/file/version`, `sharing/branches` and merge/diff | Version metadata separate from snapshot fingerprints; restore holds the design/resources it replaces. Branch merge/update holds main resources/settings, and branch base/head/history fingerprints include image bytes. Holds are conservative across the main file. |
+| Saved versions | Yes: `cmd/file/version` | A restore names its replica version (immutable content) and holds the design/resources it replaces; comments stay. Saving, renaming and deleting versions are the host's (checkpoints), not engine commands. |
 | Clipboard/paste, file lifecycle and import | Yes: `cmd/edit` and `edit/clipboard`, `cmd/file` and `file/open`, `create::place_image`, library `adopt_pasted`/`merge_store`. `merge_components`, `sync_instance`, `duplicate_into`, the SVG importer and `file/load`/`file/export` skimmed | paste holds copied mains and instance mains, clipboard style/variable ids, library links/copies/store and images, and the paste parent; a repeated `edit.duplicate` without `dx`/`dy` holds the last sources/copies. `file.import` holds root resources and library records, but commands naming files are not offered to the agent. The clipboard is session state: a headless run cannot carry it across another program's save, so paste and repeat-duplicate are checked through `under` only. `image.place` `target` is a typed object parameter (held whole by default). `file.revert` is not offered. |
 | Templates, data fill, text fit, variable import/export | Yes: `content/templates`, `content/datafill`, `content/textfit`, `cmd/variables_io` | `data.fill` holds the source subtree and its component graph (layers are found by name); `variable.import` holds root collections/variables/library records (matched by name, absent names cannot be named by id). `text.fit` is held by the text family; `variable.export` and `file.newFromTemplate` do not write the open document. |
 | Dev status, code links/resources, measurements and playground | Yes: `dev/annotations`, `code_connect`, `dev_measurements`, `cmd/section`, `playground`; `dev_resources`, `devinspect`, `props` dev status and `derived::mark_dev_changes` in part; codegen grepped | marking ready-for-dev and `dev.resolveChange` hold the whole subtree they bless; `codeConnect.set/remove` hold the owning set/main and its graph; `codeConnect.import` holds every component/set and root tree membership; measurements hold `from` and, without `to`, its parent. Inspection, codegen, compare/focus and playground do not write the file. |
@@ -205,9 +205,9 @@ than Node typing, and remote references belong to another file's namespace.
 | `library.{place,swapAt,import}.component` | 3 | Remote published component id/name through the shared library resolver. |
 | `library.{importVariable,bindVariable}.variable`; `library.aliasVariable.alias` | 3 | Remote published variable lookup. The separate local variable/link references remain local. |
 | `library.setVariableMode.{collection,mode}`; `library.extendCollection.collection` | 3 | Remote collection/mode lookup. |
-| `version.{restore,rename,delete,preview}.id` | 4 | Saved history records; metadata/snapshot holds, string ids. |
+| `version.preview.id` | 1 | The host's checkpoint id, shown in the banner; the content comes from `version`. |
 | `annotation.{editCategory,removeCategory}.id` | 2 | Category settings token, held through settings. |
-| `branch.archive.id`; `widget.click.target` | 2 | Saved branch record; widget callback token. Neither is a layer id. |
+| `widget.click.target` | 1 | Widget callback token, not a layer id. |
 
 The mixed table's necessity rules:
 id rename holds A's name/existence; name-addressed description holds Accent's name assignment
@@ -292,7 +292,7 @@ making `Node.kind` optional would misstate the model. All 100 generated tasks ea
   object, so a concurrent edit or reaction on another reply is kept.
 - **Not replicated** (M2 and file-level state): the selection, the current page and the view
   (`current_page` is the editing person's), the id counter (`next_id`), the undo history, the
-  file's version history, branches, published library and thumbnail (kept by the file, section 3),
+  saved versions (the host's checkpoints), the published library (kept by the file, section 3),
   text layout caches, and who has read each comment thread (each person's own: the view keeps its
   read state through merges, and a thread that gets a message is unread for everyone but its
   author, as the engine marks it).
@@ -332,14 +332,18 @@ replica the host stores (`.kition/docs/<docId>/`, the Kit UI protocol's `host/re
 | --- | --- |
 | `kdm/meta.json` | `{ "format": "kition.design-content", "formatVersion": 1, "kit": "kit.design", "kdm": 1, "schemaVersion": 1, "docId" }`: what identifies the content, nothing else |
 | `kdm/content.bin` | the replica's sealed content snapshot (`Replica::sealed_content_snapshot`): its state, and of its history one `system` change labelled `content-seal` |
-| `images/<sha256>` | the blobs the content's `Image` objects name (and those the branches and the published library use) |
-| `thumbnail.png` | a picture of the first page, rendered on save (left as it was; the owner has not decided whether files keep one) |
-| `branches/` | the file's branches as document JSON (left as they were; the owner has not decided whether branches stay) |
+| `images/<sha256>` | the blobs the content's `Image` objects name (and those the published library uses) |
 | `library/` | the published library (manifest, snapshot, images), when the file was published |
 
-There is no `document.json`, no change log, no compaction and no `versions/`: saved versions are
-the session's (`DocState::versions`) until the host offers kits a store for labelled checkpoints
-(section 10).
+There is no `document.json`, no change log, no compaction, no `versions/`, no `branches/` and no
+`thumbnail.png` (owner, 2026-11-23: branches are cut, a person saves a copy of the file instead;
+a host draws its own pictures). Saved versions are the host's checkpoints (Kit UI protocol 7m):
+the editor saves one with `saveCheckpoint`, lists, renames and deletes them with the host, and
+shows or restores one by giving the engine the checkpoint's blobs and its replica `version`
+(`version.preview`, `version.restore`), from which the engine derives the design as it was there
+(`DesignSession::document_at`, a fork of the replica at that version). A restore is one undoable
+change of the replica, so it reaches everyone editing the design. Files with `branches/` or
+`thumbnail.png` from before are not read for them.
 
 - **Open**: load `content.bin` (refused as damaged when it is missing or `meta.json` names
   another docId), repair once, read the document from it. The engine's bridge opens the same
@@ -362,17 +366,17 @@ the session's (`DocState::versions`) until the host offers kits a store for labe
 - **Identity and forks** (Kit Process Protocol 5.6, KitModel M7a; `kition_design_kdm::file::embedded_replica`
   and `fork_entries`, `kition_design_format::replica_entries` and `replace_replica`, served as
   `document.identity` and `document.fork`): a byte copy of a file is the same document; its
-  identity is the content's docId. A fork writes the copy's content under a new docId, no
-  `branches/`, only the images the copy's state and the published library use; the thumbnail, the
-  published library and unknown entries are copied as they are.
+  identity is the content's docId. A fork writes the copy's content under a new docId, only the
+  images the copy's state and the published library use; the published library and unknown
+  entries are copied as they are.
 - **Another program's edit**: `kition_design_format::save_edited` writes a `.kdesign` read and
   edited as a document as the same document, its replica taking the edit as one `import`
   transaction (`kition_design_kdm::file::rewrite`).
 - **Read again after another program saved it** (kition-sdk `reconcile_reread`): a clean design
   keeps its replica, its undo histories and its editor state. What the file holds differently is
   written as one `import` transaction (`file reread`), outside both undo scopes, so each undo step
-  still takes back only its own change; branches and the published library are the file's, the
-  saved versions the session's. The editor state saved before the reread must resolve on the file as read again: a
+  still takes back only its own change; the published library is the file's, the saved versions
+  the host's. The editor state saved before the reread must resolve on the file as read again: a
   deleted page, selected layer, edit-mode layer, Dev Mode focus or guide holder is refused with
   its reason (`deleted active target <id>`) and the previous session stays.
 
@@ -565,10 +569,11 @@ session's random id space, so the layers a seed picks differ from run to run.
 - A paint's value (and an effect's) is one register: two people changing one paint's colour and
   its opacity at once keep one of the two (the paint is a property bag, split later without a
   container).
-- Saved versions (`file.saveVersion`, autosaves) live in the session only: the file holds no
-  history, and the host's history store (`history.json` in `.kition/docs/<docId>/`) records its
-  own unlabelled checkpoints on `host/replicaWrite` but offers a kit no way to record a labelled
-  checkpoint or to list and read them. Until it does, a design's versions are gone once it closes.
+- A saved version's replica version is the one the host asks for after the file write
+  (`replica/version`): an edit the person makes while that write is on its way is in the version
+  saved. The fix belongs in kition-sdk (the version taken with the saved bytes).
+- A design opened without its stored history (the file alone) reaches none of its earlier saved
+  versions: they are listed as unavailable.
 - `current_page` (the page the editor shows) is not in the file either: a reopened design opens on
   its first page (the host has no place for a kit's view state yet).
 - The blob store keeps every image added in the session (no collection of blobs only old undo

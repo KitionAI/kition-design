@@ -34,7 +34,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "dev.compare",
             "Compare changes",
-            "{id? (default the first selected layer), version? (a version id from version.list: compare with that saved version instead; any top-level frame or section), show? (open the compare view in the app)} → {id, name, changed, snapshot, added, removed, modified, truncated, version: {id, name, time} | null, changes: [{id, name, type, change: added|removed|changed, depth, layers, properties?: [{section, property, before, after, text}]}]}  what changed in a ready-for-dev frame or section since it was marked, or since the version (`snapshot` is false when that isn't known: a file from before snapshots were kept)",
+            "{id? (default the first selected layer), version? (a saved version's replica version, base64, as the host's checkpoint names it: compare with the design as it was there instead; any top-level frame or section), show? (open the compare view in the app)} → {id, name, changed, snapshot, added, removed, modified, truncated, version: the version compared with | null, changes: [{id, name, type, change: added|removed|changed, depth, layers, properties?: [{section, property, before, after, text}]}]}  what changed in a ready-for-dev frame or section since it was marked, or since the version (`snapshot` is false when that isn't known: a file from before snapshots were kept)",
             false,
             compare
         ),
@@ -107,7 +107,7 @@ fn compare(s: &mut Session, p: &Value) -> Result<Value> {
     let version = match get(p, "version") {
         None | Some(Value::Null) => None,
         Some(Value::String(v)) => Some(v.clone()),
-        Some(_) => return Err(bad(cmd, "version: a version id (version.list)")),
+        Some(_) => return Err(bad(cmd, "version: a saved version's replica version (base64, as the host's checkpoint names it)")),
     };
     let ds = s.ds()?;
     let doc = &ds.doc;
@@ -117,9 +117,8 @@ fn compare(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let (cmp, against) = match &version {
         Some(v) => {
-            let ver = ds.versions.iter().find(|x| x.id == *v).ok_or_else(|| bad(cmd, format!("no version `{v}`")))?;
-            let before = crate::cmd::file::read_version(ver)?;
-            (crate::devcompare::compare_with(&before, doc, id), json!({"id": ver.id, "name": ver.name, "time": ver.time}))
+            let before = crate::cmd::file::content_at(cmd, ds, v)?;
+            (crate::devcompare::compare_with(&before, doc, id), json!(v))
         }
         None if n.dev_status != DevStatus::ReadyForDev => return Err(bad(cmd, "compare a frame or section marked ready for dev, or pass `version`")),
         None => (crate::devcompare::compare(doc, id), Value::Null),

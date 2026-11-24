@@ -113,7 +113,7 @@ fn categories_are_saved_and_old_files_open() {
     let r = rect(&mut s);
     ex(&mut s, "annotation.addCategory", json!({"name": "Motion", "color": "#FF00AA"}));
     ex(&mut s, "annotation.add", json!({"id": r, "label": "Fade", "category": "Motion"}));
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (back, issues) = kition_design_format::load_bytes(&bytes).unwrap();
     assert!(issues.is_empty());
     assert_eq!(back.annotation_categories, s.doc().unwrap().annotation_categories);

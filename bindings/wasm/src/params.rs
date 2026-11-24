@@ -213,18 +213,8 @@ const EXTRA: &[(&str, &[(&str, Kind)])] = &[
 /// leaves out.
 pub fn complete(id: &str, schema: &mut Value) {
     let Some(properties) = schema.as_object_mut() else { return };
-    if matches!(
-        id,
-        "branch.open"
-            | "branch.review"
-            | "branch.archive"
-            | "branch.merge"
-            | "branch.updateFromMain"
-            | "version.restore"
-            | "version.rename"
-            | "version.delete"
-            | "version.preview"
-    ) && let Some(record) = properties.get_mut("id").and_then(Value::as_object_mut)
+    if id == "version.preview"
+        && let Some(record) = properties.get_mut("id").and_then(Value::as_object_mut)
     {
         record.remove("oneOf");
         record.insert("type".into(), json!("string"));

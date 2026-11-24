@@ -121,16 +121,16 @@ fn compare_changes_takes_any_saved_version_as_the_before() {
     let button =
         idv(&ex(&mut s, "shape.rectangle", json!({"x": 20, "y": 20, "width": 120, "height": 40, "parent": screen, "props": {"name": "Button"}})));
     let old = idv(&ex(&mut s, "shape.ellipse", json!({"x": 200, "y": 20, "width": 20, "height": 20, "parent": screen, "props": {"name": "Dot"}})));
-    let v1 = ex(&mut s, "file.saveVersion", json!({"name": "Kickoff"}))["id"].as_str().unwrap().to_string();
+    let v1 = crate::cmd::file::saved_version(&mut s);
     ex(&mut s, "node.set", json!({"id": button, "props": {"width": 136}}));
     ex(&mut s, "edit.delete", json!({"ids": [old]}));
     let added = idv(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 20, "y": 100, "parent": screen, "props": {"name": "Note"}})));
-    let v2 = ex(&mut s, "file.saveVersion", json!({"name": "Review"}))["id"].as_str().unwrap().to_string();
+    let v2 = crate::cmd::file::saved_version(&mut s);
     ex(&mut s, "node.set", json!({"id": button, "props": {"width": 150}}));
 
     // Any frame, ready for dev or not.
     let c = ex(&mut s, "dev.compare", json!({"id": screen, "version": v1}));
-    assert_eq!(c["version"]["name"], "Kickoff");
+    assert_eq!(c["version"], json!(v1));
     assert_eq!(
         (c["changed"].as_bool(), c["added"].as_u64(), c["removed"].as_u64(), c["modified"].as_u64()),
         (Some(true), Some(1), Some(1), Some(1)),

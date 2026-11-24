@@ -119,6 +119,25 @@ fn the_file_entries_reopen_the_replica() {
     assert!(same_content(back.document(), s.document()));
 }
 
+#[test]
+fn the_document_at_an_earlier_version_is_read_from_a_fork() {
+    let doc = Arc::new(sample());
+    let mut s = DesignSession::create(&doc, &Origin::system("create")).unwrap();
+    let before = s.version();
+    let mut d = (**s.document()).clone();
+    let page = d.first_page().unwrap();
+    let was = d.node(page).unwrap().name.clone();
+    d.get_mut(page).unwrap().name = "Edited".into();
+    s.record(&person(), &Arc::new(d)).unwrap();
+    let hash = s.state_hash().unwrap();
+    assert_eq!(s.document_at(&before).unwrap().node(page).unwrap().name, was, "the design as it was then");
+    assert_eq!(s.document_at(&s.version()).unwrap().node(page).unwrap().name, "Edited");
+    assert_eq!(s.state_hash().unwrap(), hash, "reading a version changes nothing");
+    // A version this replica never had is refused.
+    let other = DesignSession::create(&doc, &Origin::system("create")).unwrap();
+    assert!(s.document_at(&other.version()).is_err());
+}
+
 /// V7 (KDM M10b): A creates a layer and undoes it; B, not having seen the undo, moves the layer
 /// into a frame; A redoes, which makes the layer a new tree node. After the merge both replicas
 /// name the layer with one node and read the same design.

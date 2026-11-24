@@ -58,7 +58,7 @@ fn outline_keeps_rings_through_undo_and_native_reopen() {
         assert!(after.node(id).unwrap().strokes.is_empty());
         assert_eq!(s.selection(), vec![group]);
         assert_eq!(s.undo_depth(), (depth.0 + 1, 0));
-        let (loaded, notes) = kition_design_format::load_bytes(&kition_design_format::save_bytes(&after, None).unwrap()).unwrap();
+        let (loaded, notes) = kition_design_format::load_bytes(&kition_design_format::save_bytes(&after).unwrap()).unwrap();
         assert!(notes.is_empty(), "{notes:?}");
         same_pixels(&pixels(&loaded), &expected);
         assert!(s.undo().unwrap());

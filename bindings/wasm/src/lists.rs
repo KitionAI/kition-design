@@ -26,7 +26,7 @@
 //! | `dev.compare` | `{ id?, version? }` | the comparison with change boxes ([`dev::compare`]) |
 //! | `codeLinks` | `{ id? }` | `{ id, owner, links: [CodeLink] }` ([`code_links`]) |
 //! | `annotation.callouts` | `{ page? }` | `{ callouts: [{ …annotation, bounds }] }` ([`callouts`]) |
-//! | `version.previewState` | — | `{ id, name, time }` or `null` |
+//! | `version.previewState` | — | `{ id, name, time, version }` or `null` |
 //! | `proto.destinations` | `{ id?, kind? }` | `{ kind, destinations: [{ id, name, type }] }` ([`destinations`]) |
 //! | `proto.parseExpression` | `{ text, expect?, variable?, kind? }` | `{ ok, error, at, display, type, expr }` ([`parse_expression`]) |
 //!
@@ -109,7 +109,9 @@ pub fn query(doc: &DesignDocument, name: &str, params: &Value) -> Result<Value, 
         "dev.compare" => dev::compare(doc, params),
         "codeLinks" => code_links(doc, params),
         "annotation.callouts" => callouts(doc, params),
-        "version.previewState" => Ok(doc.ds()?.preview.as_ref().map_or(Value::Null, |p| json!({ "id": p.id, "name": p.name, "time": p.time }))),
+        "version.previewState" => {
+            Ok(doc.ds()?.preview.as_ref().map_or(Value::Null, |p| json!({ "id": p.id, "name": p.name, "time": p.time, "version": p.version })))
+        }
         "proto.destinations" => destinations(doc, params),
         "proto.parseExpression" => parse_expression(doc, params),
         _ => Err(format!("unknown query {name}")),

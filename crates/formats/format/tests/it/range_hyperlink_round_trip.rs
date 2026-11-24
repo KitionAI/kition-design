@@ -25,7 +25,7 @@ fn cleared_range_hyperlink_round_trip() {
 
     let expected = vec![Some(url.clone()), None];
     assert_eq!(links(&document, "Cleared"), expected);
-    let native_bytes = kition_design_format::save_bytes(&document, None).unwrap();
+    let native_bytes = kition_design_format::save_bytes(&document).unwrap();
     let native = kition_design_format::load_bytes(&native_bytes).unwrap().0;
     assert_eq!(links(&native, "Cleared"), expected);
 

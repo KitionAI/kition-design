@@ -34,8 +34,6 @@ pub static MENU: &[MenuItem] = &[
     m!("File", "Save as…", "file.saveAs"),
     m!("File", "Save to version history…", "file.saveVersion"),
     m!("File", "Show version history", "file.versionHistory"),
-    // Kition Design's own: branches of the file.
-    m!("File", "Create branch…", "branch.create"),
     m!("File", SEP, ""),
     // Kition Design's own (live sessions): not in the reference menu, so not counted by `parity`.
     m!("File", "Join live session…", "collab.join"),

@@ -3,29 +3,6 @@ use super::types::{NO_SESSION, SessionId, Share, SharedLink, Status};
 use super::*;
 
 impl Session {
-    /// Your client id in document `uid`'s live session (`None`: it isn't in one). Refused for
-    /// `cmd` while the session is on its way: there is no id yet.
-    pub(crate) fn live_client_id(&self, cmd: &str, uid: u64) -> Result<Option<u32>> {
-        let Some(live) = self.live.doc(uid) else { return Ok(None) };
-        match &live.client {
-            Some(c) => Ok(Some(c.id())),
-            None if live.status.active() => Err(EngineError::Disabled(cmd.into(), "wait until the file's live session has started".into())),
-            None => Ok(None),
-        }
-    }
-
-    /// Branch `id` of document `uid` got its base from the session document just now.
-    pub(crate) fn live_branch_base(&mut self, uid: u64, id: &str) {
-        if let Some(live) = self.live.doc_mut(uid).filter(|l| l.syncing()) {
-            live.branch_bases.insert(id.to_string());
-        }
-    }
-
-    /// Whether branch `id` of document `uid` got its base in the live session it is in now.
-    pub(crate) fn live_branch_in_session(&self, uid: u64, id: &str) -> bool {
-        self.live.doc(uid).is_some_and(|l| l.syncing() && l.branch_bases.contains(id))
-    }
-
     /// Whether document `uid` is a live session's synced document: its edits sync and its undo
     /// history is the user's own.
     pub fn live_doc(&self, uid: u64) -> bool {

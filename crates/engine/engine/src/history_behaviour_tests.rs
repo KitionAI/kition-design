@@ -54,10 +54,6 @@ fn ids(s: &mut Session, cmd: &str, p: Value) -> Vec<u64> {
     ex(s, cmd, p)["comments"].as_array().unwrap().iter().map(|c| c["id"].as_u64().unwrap()).collect()
 }
 
-fn versions(s: &mut Session) -> Vec<Value> {
-    ex(s, "version.list", json!({})).as_array().unwrap().clone()
-}
-
 fn temp_path(name: &str) -> (std::path::PathBuf, String) {
     let dir = std::env::temp_dir().join(format!("kition-design-history-{name}-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
@@ -413,66 +409,19 @@ fn comments_survive_saving_and_stay_put_on_copy_paste() {
 // Version history.
 
 #[test]
-fn autosaves_and_named_versions() {
-    let mut s = Session::new();
-    // (command, params, versions after as (name, auto), derivation)
-    let rows: Vec<(&str, Value, Vec<(&str, bool)>, &str)> = vec![
-        ("version.autosave", json!({}), vec![], "no checkpoint while nothing has changed"),
-        ("shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10}), vec![], "editing alone saves no version"),
-        ("version.autosave", json!({}), vec![("Autosave", true)], "after changes the file is checkpointed automatically"),
-        ("version.autosave", json!({}), vec![("Autosave", true)], "no new checkpoint without new changes"),
-        (
-            "file.saveVersion",
-            json!({"name": "Hand-off", "description": "for review"}),
-            vec![("Autosave", true), ("Hand-off", false)],
-            "a version can be saved by hand with a title and a description",
-        ),
-        (
-            "file.saveVersion",
-            json!({}),
-            vec![("Autosave", true), ("Hand-off", false), ("Version 3", false)],
-            "silent: a version saved without a title is numbered (pinned)",
-        ),
-        (
-            "version.rename",
-            json!({"index": 0, "name": "Before the redesign"}),
-            vec![("Before the redesign", false), ("Hand-off", false), ("Version 3", false)],
-            "giving an autosave a title makes it a named version",
-        ),
-    ];
-    for (cmd, p, want, why) in rows {
-        ex(&mut s, cmd, p);
-        let got: Vec<(String, bool)> = versions(&mut s).iter().map(|v| (v["name"].as_str().unwrap().to_string(), v["auto"] == true)).collect();
-        let want: Vec<(String, bool)> = want.into_iter().map(|(n, a)| (n.to_string(), a)).collect();
-        assert_eq!(got, want, "{why}");
-    }
-    assert_eq!(versions(&mut s)[1]["description"], "for review");
-    // A named autosave is kept when autosaves make room for new ones.
-    for i in 0..(crate::cmd::file::MAX_AUTOSAVES + 2) {
-        ex(&mut s, "shape.rectangle", json!({"x": i * 20, "y": 50, "width": 10, "height": 10}));
-        ex(&mut s, "version.autosave", json!({}));
-    }
-    assert_eq!(versions(&mut s)[0]["name"], "Before the redesign", "versions you named are never dropped to make room");
-    // The history lists versions in the order they were saved.
-    let times: Vec<u64> = versions(&mut s).iter().map(|v| v["time"].as_u64().unwrap()).collect();
-    assert!(times.windows(2).all(|w| w[0] <= w[1]), "oldest first in the list (the panel shows it newest first)");
-}
-
-#[test]
 fn restoring_a_version() {
     let mut s = Session::new();
     ex(&mut s, "file.rename", json!({"name": "Shop"}));
     let a = rect(&mut s, 0.0, 0.0, None);
-    let v1 = ex(&mut s, "file.saveVersion", json!({"name": "One box"}));
+    let v1 = crate::cmd::file::saved_version(&mut s);
     let b = rect(&mut s, 100.0, 0.0, None);
     let c =
         ex(&mut s, "comment.add", json!({"x": 120, "y": 20, "text": "Is this box needed?", "author": "Sam", "anchor": b}))["id"].as_u64().unwrap();
     assert_eq!(comment(&s, c).anchor, Some(b));
     ex(&mut s, "comment.reply", json!({"id": c, "text": "Yes", "author": "Ada"}));
     ex(&mut s, "file.rename", json!({"name": "Shop v2"}));
-    let n = versions(&mut s).len();
 
-    ex(&mut s, "version.restore", json!({"id": v1["id"]}));
+    ex(&mut s, "version.restore", json!({"version": v1}));
     let doc = s.doc().unwrap();
     // (holds, derivation)
     let rows: Vec<(bool, &str)> = vec![
@@ -485,113 +434,25 @@ fn restoring_a_version() {
         assert!(holds, "{why}");
     }
     assert_eq!(at(&s, c), (120.0, 20.0), "where it was");
-    let l = versions(&mut s);
-    assert_eq!(l.len(), n + 1, "restoring never loses work: the state before it is kept in the history first");
-    let kept = l.last().unwrap();
-    assert_eq!(kept["auto"], true);
-    ex(&mut s, "version.preview", json!({"id": kept["id"]}));
-    assert!(s.doc().unwrap().contains(b), "the kept checkpoint holds what was there before restoring");
-    ex(&mut s, "version.exitPreview", json!({}));
-    // Restoring again straight away doesn't checkpoint the restored state a second time.
-    ex(&mut s, "version.restore", json!({"id": v1["id"]}));
-    assert_eq!(versions(&mut s).len(), n + 1);
-    // Restoring is one undo step (twice here).
+    // Restoring never loses work: it is one undo step (twice here).
+    ex(&mut s, "version.restore", json!({"version": v1}));
     assert!(s.undo().unwrap() && s.undo().unwrap());
     assert!(s.doc().unwrap().contains(b));
 }
 
 #[test]
-fn duplicating_and_viewing_versions() {
+fn viewing_versions() {
     let mut s = Session::new();
     ex(&mut s, "file.rename", json!({"name": "App"}));
-    let a = rect(&mut s, 0.0, 0.0, None);
-    let v = ex(&mut s, "file.saveVersion", json!({"name": "Start"}));
+    rect(&mut s, 0.0, 0.0, None);
+    let v = crate::cmd::file::saved_version(&mut s);
     let b = rect(&mut s, 100.0, 0.0, None);
     // Viewing a version shows it read-only.
-    ex(&mut s, "version.preview", json!({"id": v["id"]}));
+    ex(&mut s, "version.preview", json!({"version": v}));
     assert!(!s.doc().unwrap().contains(b), "viewing a version shows the file as it was then");
     assert!(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).is_err(), "a version being viewed can't be edited");
     ex(&mut s, "version.exitPreview", json!({}));
     assert!(s.doc().unwrap().contains(b), "going back shows the current file, unchanged");
-    // Duplicating a version opens it as a new file.
-    let d = ex(&mut s, "version.duplicate", json!({"id": v["id"]}));
-    assert_eq!(s.active, d["index"].as_u64().unwrap() as usize);
-    let doc = s.doc().unwrap();
-    assert!(doc.contains(a) && !doc.contains(b), "a version can be duplicated into a new file");
-    assert!(s.ds().unwrap().versions.is_empty(), "the new file starts its own history");
-    assert!(s.ds().unwrap().path.is_none());
-    // So does duplicating the whole file.
-    ex(&mut s, "doc.switch", json!({"index": 0}));
-    ex(&mut s, "file.duplicate", json!({}));
-    assert!(s.ds().unwrap().versions.is_empty(), "silent: a duplicated file starts its own history (pinned)");
-}
-
-#[test]
-fn versions_stay_in_the_session_and_out_of_the_file() {
-    let mut s = Session::new();
-    rect(&mut s, 0.0, 0.0, None);
-    ex(&mut s, "version.autosave", json!({}));
-    rect(&mut s, 50.0, 0.0, None);
-    ex(&mut s, "file.saveVersion", json!({"name": "Named", "description": "two boxes"}));
-    rect(&mut s, 100.0, 0.0, None);
-    ex(&mut s, "version.autosave", json!({}));
-    ex(&mut s, "version.rename", json!({"index": 2, "name": "Three"}));
-    let before = versions(&mut s);
-    let (dir, path) = temp_path("versions");
-    ex(&mut s, "file.save", json!({"path": path}));
-    assert_eq!(versions(&mut s), before, "names, descriptions, times, order and the autosave flag stay in the session");
-    // Save as keeps the session's history too.
-    let (dir2, path2) = temp_path("versions-as");
-    ex(&mut s, "file.saveAs", json!({"path": path2}));
-    assert_eq!(versions(&mut s), before);
-    ex(&mut s, "version.restore", json!({"index": 0}));
-    // A file holds content, not history: reopened, it has no versions.
-    for path in [&path, &path2] {
-        let mut t = Session::empty();
-        ex(&mut t, "file.open", json!({"path": path}));
-        assert!(versions(&mut t).is_empty(), "no saved versions in {path}");
-    }
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&dir2);
-}
-
-#[test]
-fn branches_and_the_version_history() {
-    let mut s = Session::with_document(crate::collab_tests::base());
-    ex(&mut s, "file.saveVersion", json!({"name": "Before branching"}));
-    let b = ex(&mut s, "branch.create", json!({"name": "Explore"}));
-    let branch = b["id"].as_str().unwrap().to_string();
-    // On the branch tab.
-    // A branch keeps its own version history: a version saved on its tab is listed there only.
-    ex(&mut s, "file.saveVersion", json!({"name": "On the branch"}));
-    assert_eq!(
-        versions(&mut s).iter().map(|v| v["name"].clone()).collect::<Vec<_>>(),
-        [json!("Branch created"), json!("On the branch")],
-        "a branch's own history"
-    );
-    rect(&mut s, 900.0, 900.0, None);
-    ex(&mut s, "doc.switch", json!({"index": 0}));
-    let made_on_main = rect(&mut s, -500.0, 0.0, None);
-    let n = versions(&mut s).len();
-    ex(&mut s, "branch.merge", json!({"id": branch}));
-    let l = versions(&mut s);
-    // (holds, derivation)
-    let rows: Vec<(bool, &str)> = vec![
-        (l.len() == n + 2, "merging a branch adds to the main file's history: what was there before, then the merge"),
-        (l.get(n).is_some_and(|v| v["auto"] == true), "the main file as it was before the merge is kept"),
-        (l.get(n + 1).is_some_and(|v| v["name"] == "Merged “Explore”" && v["auto"] != true), "the merge is a named version, after the branch"),
-    ];
-    for (holds, why) in rows {
-        assert!(holds, "{why}: {l:?}");
-    }
-    let before_merge = l[n]["id"].clone();
-    ex(&mut s, "version.preview", json!({"id": before_merge}));
-    assert!(s.doc().unwrap().contains(made_on_main) && s.doc().unwrap().node_count() > 0);
-    ex(&mut s, "version.exitPreview", json!({}));
-    // The file can go back to before the merge by restoring that version.
-    let count = s.doc().unwrap().node_count();
-    ex(&mut s, "version.restore", json!({"id": before_merge}));
-    assert_eq!(s.doc().unwrap().node_count(), count - 1, "restoring the version before the merge takes the branch's work out");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -618,14 +479,13 @@ fn comments_and_restores_in_a_live_session() {
         assert_eq!(mine.as_ref(), room.s(1).doc().unwrap().comment(c), "{why}");
     }
     assert_eq!(room.s(1).doc().unwrap().comment(c).unwrap().anchor, Some(f), "the pin is on the same frame for everyone");
-    // A version is the saving person's own (versions aren't shared in a session, by design for now).
-    let v = ex(room.s(0), "file.saveVersion", json!({"name": "Shared?"}));
-    assert!(versions(room.s(1)).is_empty(), "silent here: versions stay with whoever saved them (shared history needs accounts)");
+    // A version saved now (the host's checkpoint of this replica's version).
+    let v = crate::cmd::file::saved_version(room.s(0));
     ex(room.s(1), "transform.move", json!({"ids": [f], "dx": 40, "dy": 0}));
     let d = ex(room.s(1), "comment.add", json!({"x": 900, "y": 900, "text": "Later", "author": "Sam"}))["id"].as_u64().unwrap();
     room.settle();
     // Restoring in a session changes the design for everyone and keeps everyone's comments.
-    ex(room.s(0), "version.restore", json!({"id": v["id"]}));
+    ex(room.s(0), "version.restore", json!({"version": v}));
     room.settle();
     room.check();
     let doc = room.s(1).doc().unwrap();

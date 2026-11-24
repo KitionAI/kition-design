@@ -86,7 +86,7 @@ fn frame_guides_move_with_the_frame_and_snap_its_layers() {
 fn frame_guides_are_saved_and_copied_with_the_frame() {
     let (mut s, frame, _) = setup();
     s.execute("guide.add", &json!({"frame": frame, "vertical": false, "offset": 12})).unwrap();
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (doc, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!(doc.node(frame).unwrap().guides.iter().map(|g| g.offset).collect::<Vec<_>>(), vec![12.0]);
     s.execute("select.set", &json!({"ids": [frame]})).unwrap();

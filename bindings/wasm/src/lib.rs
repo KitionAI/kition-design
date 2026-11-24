@@ -517,7 +517,7 @@ impl KitDocument for DesignDocument {
     }
 
     /// The design as `.kdesign` bytes: its content (the replica's sealed content snapshot: no
-    /// history, rule M16b), thumbnail and branches. Hosts call [`KitDocument::prepare_save`]
+    /// history, rule M16b) and the images it uses. Hosts call [`KitDocument::prepare_save`]
     /// first; a save the replica was not sealed for is refused (`not-sealed`,
     /// `kition_design_kdm::file::save`). Other extensions are exports (`file.export`), not saves.
     fn save(&self, name: Option<&str>) -> Result<Vec<u8>, String> {
@@ -633,7 +633,7 @@ impl DesignDocument {
         panels::stroke_preview_outline(params)
     }
 
-    /// A PNG thumbnail of the first page (what `.kdesign` files carry).
+    /// A PNG thumbnail of the first page (a picture for a host; never part of a `.kdesign`).
     pub fn thumbnail(&self) -> Result<Vec<u8>, String> {
         let ds = self.ds()?;
         kition_design_engine::cmd::file::thumbnail(&ds.doc).ok_or_else(|| "the first page is empty".to_owned())

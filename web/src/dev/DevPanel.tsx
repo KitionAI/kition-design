@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons/Icon'
 import { useDesignKit, useQuery, useSelection } from '../kit/hooks'
 import { Button, IconButton, Note, Popover, Row, SectionHeader, Separator, SubLabels, TextField, type MenuEntry } from '../ui'
+import { loadCheckpoint, useCheckpoints } from './checkpoints'
 import { COLOR_FORMATS, LANGUAGES, STATUS_COLORS, copyText, setDev, useDev, type FocusState, type ReadyFilter } from './store'
 import { MenuDropdown, NoteField, PropRow, TwoLineRow, toBytes, useThumbnail, type Prop } from './widgets'
 import './dev.css'
@@ -390,7 +391,9 @@ export function InspectSections({ sections, testId = 'design-dev-section' }: { s
 function Status({ nodes }: { nodes: SelectionNode[] }) {
   const { t, run } = useDesignKit()
   const focused = useQuery<FocusState | null>('dev.focusState')
-  const versions = useQuery<Array<{ id: string }>>('versions')
+  const designKit = useDesignKit()
+  // The newest saved version the design's history here reaches (the host's checkpoints).
+  const newestVersion = useCheckpoints(true).list.find((v) => v.available) ?? null
   const key = (n: SelectionNode) => `${n.devStatus ?? 'none'}:${n.devStatus === 'readyForDev' && n.devChanged ? 1 : 0}`
   const same = nodes.every((n) => key(n) === key(nodes[0]))
   const one = nodes[0]
@@ -398,7 +401,7 @@ function Status({ nodes }: { nodes: SelectionNode[] }) {
   const ids = nodes.map((n) => n.id)
   const single = nodes.length === 1 ? one : null
   const changed = single?.devStatus === 'readyForDev' && single.devChanged === true
-  const newest = !changed && versions && versions.length ? versions[versions.length - 1].id : null
+  const newest = !changed ? newestVersion : null
   return (
     <>
       <Separator />
@@ -426,7 +429,11 @@ function Status({ nodes }: { nodes: SelectionNode[] }) {
             </Button>
           ) : null}
           {changed || newest ? (
-            <Button variant={changed ? 'primary' : 'secondary'} tip={t(changed ? 'What changed since it was marked ready for dev' : 'What changed since a saved version')} onClick={() => void run('dev.compare', { id: single.id, version: newest, show: true })} testId="design-dev-compare">
+            <Button variant={changed ? 'primary' : 'secondary'} tip={t(changed ? 'What changed since it was marked ready for dev' : 'What changed since a saved version')} onClick={async () => {
+                const version = newest ? await loadCheckpoint(designKit, newest).then((v) => v.version, () => null) : null
+                if (newest && !version) return
+                void run('dev.compare', { id: single.id, version, show: true })
+              }} testId="design-dev-compare">
               {t('Compare changes')}
             </Button>
           ) : null}

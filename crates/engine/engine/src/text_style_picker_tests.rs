@@ -150,7 +150,7 @@ fn files_from_before_char_links_link_their_chars() {
     assert!(links(&s2, t).iter().all(|l| l.as_deref() == Some(h.as_str())));
     assert_eq!(layer_link(&s2, t).as_deref(), Some(h.as_str()));
     // Saved and read back, the links survive.
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!(back.node(t).unwrap().kind.text().unwrap().style.style_id.as_deref(), Some(h.as_str()));
 }

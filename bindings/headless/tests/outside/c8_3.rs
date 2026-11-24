@@ -227,9 +227,9 @@ async fn audited_dev_resource_fields_and_document_wide_font_refit() {
 async fn board_reattach_by_label_holds_the_connector_and_fixed_end() {
     for change in ["fixed-end", "routing", "unrelated"] {
         let f = Fixture::new(Guard::Premise);
-        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
         file.doc.kind = kition_design_doc::FileKind::Board;
-        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
+        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file).unwrap()).unwrap();
         let connector = rewrite(&f, |d| {
             let ends = if change == "routing" {
                 json!({"from":{"x":0,"y":0},"to":{"x":200,"y":0},"label":"Route"})

@@ -18,7 +18,7 @@ fn file(name: &str, damage: bool) -> std::path::PathBuf {
     std::fs::create_dir_all(&dir).unwrap();
     let mut d = Document::new("Pics");
     kition_design_format::add_image(&mut d, PNG.to_vec()).unwrap();
-    let mut bytes = kition_design_format::save_bytes(&d, None).unwrap();
+    let mut bytes = kition_design_format::save_bytes(&d).unwrap();
     if damage {
         // Images are stored as they are: change one byte of the PNG, not its checksum.
         let at = bytes.windows(PNG.len()).position(|w| w == PNG).unwrap();

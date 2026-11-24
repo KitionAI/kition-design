@@ -50,7 +50,7 @@ fn library_versions(colors: &[&str]) -> Vec<Vec<u8>> {
     for color in colors {
         ex(&mut s, "node.set", json!({"id": c, "props": {"fill": color}}));
         ex(&mut s, "library.publish", json!({}));
-        out.push(kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap());
+        out.push(kition_design_format::save_bytes(s.doc().unwrap()).unwrap());
     }
     out
 }

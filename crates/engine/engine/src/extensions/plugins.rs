@@ -93,7 +93,7 @@ impl OpenPanel {
 }
 
 /// Command prefixes no plugin may call, whatever its permissions: files and the app (plugins get
-/// no file system), other documents, version history, the undo history, plugins themselves and
+/// no file system), other documents, saved versions, the undo history, plugins themselves and
 /// nested batches (a run already is one undo step), widgets (only a click calls one back).
 const DENIED: &[&str] = &[
     "widget.",
@@ -122,7 +122,7 @@ const DENIED: &[&str] = &[
     "view.theme",
 ];
 /// Read-only exceptions to [`DENIED`].
-const ALLOWED: &[&str] = &["doc.list", "version.list"];
+const ALLOWED: &[&str] = &["doc.list"];
 
 /// Why a plugin may not call `command` with `params` (before running it), if it may not.
 fn refusal(m: &Manifest, command: &str, params: &Value) -> Option<String> {

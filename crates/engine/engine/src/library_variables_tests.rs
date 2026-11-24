@@ -88,7 +88,7 @@ fn publishing_collections_hides_and_versions_variables() {
     assert!(var("tmp").is_none());
     assert_eq!(lib.doc.variables.variables.len(), 4);
     // Saved and read back, the manifest and snapshot are the same.
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let read = kition_design_format::read_library(std::io::Cursor::new(&bytes)).unwrap().unwrap();
     assert_eq!(read.manifest, *m);
     assert_eq!(read.doc.variables, lib.doc.variables);

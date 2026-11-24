@@ -115,6 +115,16 @@ impl DesignSession {
         self.replica.is_sealed()
     }
 
+    /// The document as it was at `version` of this replica (a saved version, Kit UI protocol 7m),
+    /// read from a fork of the replica there, with this session's blobs. Errs when the replica
+    /// does not reach `version` (`HistoryMissing`: before a shallow replica's root, or changes it
+    /// never had). Never changes this session.
+    pub fn document_at(&self, version: &Version) -> Result<Document> {
+        let fork = self.replica.fork_at(version, ActorId::random()).map_err(kit_err)?;
+        let (doc, _) = read_document(&fork, &self.blobs).map_err(kit_err)?;
+        Ok(doc)
+    }
+
     /// The view: the document as of the last record, undo, redo or import.
     pub fn document(&self) -> &Arc<Document> {
         &self.view

@@ -110,18 +110,11 @@ export async function devSteps({ page, kit, designKit, step, until, toPage, canv
   await kit.getByTestId('design-compare-resolve').click()
   step('dev: Resolve change closes it and resolves', await until(async () => (await kit.getByTestId('design-compare').count()) === 0 && (await query('node', { id: frame })).devChanged !== true))
 
-  // Version history: save, preview, back.
+  // Version history (saving, previewing and restoring with a host that keeps versions is
+  // tests/versions.mjs): the panel opens and, with this host, says it keeps no versions.
   await run('file.versionHistory', {})
   step('dev: the version history panel opens', await until(async () => (await kit.getByTestId('design-version-history').count()) === 1))
-  const versions = (await query('versions')).length
-  await kit.getByTestId('design-version-save-toggle').click()
-  await kit.getByTestId('design-version-save-form-title').fill('Hand-off')
-  await kit.getByTestId('design-version-save-form-submit').click()
-  step('dev: saves a version', await until(async () => (await query('versions')).length === versions + 1))
-  await kit.getByTestId(`design-version-${versions}`).click()
-  step('dev: a version row previews it', await until(async () => (await kit.getByTestId('design-version-banner').count()) === 1))
-  await kit.getByTestId('design-version-back').click()
-  step('dev: Back to current ends the preview', await until(async () => (await kit.getByTestId('design-version-banner').count()) === 0))
+  step('dev: without the host keeping versions it says why', (await kit.getByTestId('design-version-unavailable').count()) === 1)
   await kit.getByTestId('design-version-close').click()
   step('dev: the panel closes', await until(async () => (await kit.getByTestId('design-version-history').count()) === 0))
 

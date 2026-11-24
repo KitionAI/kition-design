@@ -76,7 +76,6 @@ pub use selection::selection_colors;
 pub use selection::selection_reorder;
 pub use selection::selection_spacing;
 pub use sharing::background;
-pub use sharing::branches;
 pub use sharing::collab;
 pub use sharing::invite_links;
 pub use sharing::live;
@@ -181,8 +180,6 @@ mod arc_fields_tests;
 #[cfg(test)]
 mod arc_handles_tests;
 #[cfg(test)]
-mod autosave_tests;
-#[cfg(test)]
 mod batch_rollback_tests;
 #[cfg(test)]
 mod batch_step_ref_tests;
@@ -200,12 +197,6 @@ mod board_tools_tests;
 mod booleans_tests;
 #[cfg(test)]
 mod bound_alpha_tests;
-#[cfg(test)]
-mod branch_live_tests;
-#[cfg(test)]
-mod branch_tests;
-#[cfg(test)]
-mod branch_versions_tests;
 #[cfg(test)]
 mod brush_tests;
 #[cfg(test)]
@@ -276,6 +267,8 @@ mod fig_export_assets_tests;
 mod fig_export_tests;
 #[cfg(test)]
 mod fig_import_tests;
+#[cfg(test)]
+mod file_snapshot_tests;
 #[cfg(test)]
 mod fill_none_tests;
 #[cfg(test)]

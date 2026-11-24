@@ -136,7 +136,7 @@ fn resizing_overrides_survive_save_and_reopen() {
     let (ia, idot) = (copy_of(&s, i, atom), copy_of(&s, i, dot));
     ex(&mut s, "node.set", json!({"id": ia, "props": {"sizingH": "fill"}}));
     ex(&mut s, "node.set", json!({"id": idot, "props": {"width": 40}}));
-    let native = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let native = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (fig, _) = kition_design_format::fig::export(s.doc().unwrap(), None).unwrap();
     for (bytes, name) in [(native, "field.kdesign"), (fig, "field.fig")] {
         let mut s = Session::new();

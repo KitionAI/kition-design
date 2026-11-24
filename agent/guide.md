@@ -38,7 +38,9 @@ draft tools.
   command's declared targets. Imported thread/layer number collisions are repaired
   deterministically before exposing tool ids; inspect again after an import. Individual
   messages are held through their thread; category and preset records through settings
-  selectors. Saved versions and branches use string record ids, not layer ids.
+  selectors. A saved version is named by its replica version (a string, as the host's checkpoint
+  names it), never a layer id; the host keeps saved versions, so an agent restores one only with a
+  version it was given.
 - An integer is an object address only in the command's marked `objects` or `targets` paths.
   Indexes, dimensions and point coordinates are numbers, not object ids. A connector's endpoint
   may be either an object or coordinates; the call resolves which one it is. Marked name
@@ -147,10 +149,9 @@ successful write as proof that the entire document stayed unchanged.
 | Prototype/variable values | Referenced destinations, aliases and parsed expression variable/mode objects; resource alias chains and default-mode order. Dynamic expression names are replayed against previous names. |
 | Text formatting, search/replace, layout, boolean/flatten/outline and page duplicate/delete | Traversed text or layer subtrees, membership and consumed geometry. Text ranges conservatively hold whole text records. |
 | Annotation categories and image presets | The saved record selected by id/name; category creation/removal conservatively holds the category list. Comment message indexes hold their thread's body/order. |
-| Version restore | Version metadata and snapshot fingerprints, plus the current design it replaces. File comments are retained. Version-label edits hold metadata separately. |
+| Version restore | The current design it replaces (every node, resource and setting); the version's content is named by its replica version and never changes. File comments are retained. |
 | `library.publish` | Publishable identities, previous publication manifest and content fingerprint, component dependency graphs, styles, collections and variables. |
 | `library.acceptUpdates`, `library.swap`, `library.remove` | Local copy records, library links, component copies and instance inputs, style/variable definitions and the reference/alias membership query used by pruning. This is conservative across libraries. |
-| `branch.merge`, `branch.updateFromMain` | Branch metadata, snapshot/history fingerprints including image bytes, main nodes and main resources/settings. Conservative across the main file; publication-only changes are independent. |
 | Paste, repeated `edit.duplicate` | Copied mains and instance mains, clipboard style/variable ids and the paste parent; foreign pastes also adopt library records. A repeat without `dx`/`dy` holds the last sources and copies. |
 | `command.batch` | Each step's resolved inputs in execution order, selection and clipboard prefixes, nested reference scopes and query fields consumed by a later write. Unknown query-result provenance conservatively holds the document. Replay has no filesystem or live replica. |
 | `data.fill`, `variable.import` | The source subtree and its component graph (layers are matched by name); import name/type eligibility, matching collections/modes/variables, aliases and default values copied into new modes. The import name-membership hold remains broader than necessary. |

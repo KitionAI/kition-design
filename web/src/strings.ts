@@ -53,6 +53,18 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'People in this file': '此文件中的人员',
     Draw: '绘制',
     Inspect: '检查',
+    'Saved versions are kept by the app that opened this file, and this one keeps none. Save a copy of the file to keep a version of it.': '保存的版本由打开此文件的应用保留，而这个应用不保留版本。要保留此文件的某个版本，请保存一份副本。',
+    "This version is no longer in the design's history here": '这里的设计历史中已不再有此版本',
+    'This version is no longer kept': '此版本已不再保留',
+    'The title or description is too long': '标题或描述过长',
+    'This file is read-only here': '此文件在这里是只读的',
+    'Someone changed this version meanwhile: try again': '有人同时修改了此版本：请重试',
+    'This host keeps no saved versions': '此应用不保留保存的版本',
+    'The design was saved, but no version of it was kept': '设计已保存，但没有保留它的版本',
+    'Show older versions': '显示更早的版本',
+    'Untitled version': '未命名版本',
+    'Saved version': '保存的版本',
+    'Version {n}': '版本 {n}',
   },
 }
 

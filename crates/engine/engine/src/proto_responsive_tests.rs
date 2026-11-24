@@ -117,7 +117,7 @@ fn settings_are_saved_and_old_files_read_as_before() {
     ex(&mut s, "proto.settings", json!({"device": "Android Compact", "color": "Green", "responsive": true}));
     ex(&mut s, "proto.settings", json!({"width": 800, "height": 600}));
     ex(&mut s, "proto.settings", json!({"device": "Android Compact", "color": "Green"}));
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (doc, _) = kition_design_format::load_bytes(&bytes).unwrap();
     let NodeKind::Page { prototype, .. } = &doc.node(doc.pages[0]).unwrap().kind else { panic!("not a page") };
     assert_eq!(prototype, &settings(&s));

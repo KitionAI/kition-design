@@ -1162,32 +1162,15 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
                 under.premises.push(Premise::on("design").fields(["~defaultCondition"]).positions(Vec::<String>::new()));
             }
         }
-        "version.rename" | "version.delete" | "version.restore" | "version.preview" | "version.duplicate" => {
-            under.premises.push(Premise::on("design").fields(["~history"]).positions(Vec::<String>::new()));
-            if matches!(command, "version.restore" | "version.preview" | "version.duplicate") {
-                under.premises.push(Premise::on("design").fields(["~snapshots"]).positions(Vec::<String>::new()));
-            }
-            if command == "version.restore" {
-                component_inputs(doc, doc.pages.iter().copied(), &mut under);
-                under.premises.push(
-                    Premise::on("design")
-                        .fields(["settings", "nodes", "libraryStore", "styles", "collections", "variables", "libraries", "libraryCopies", "images"])
-                        .positions(Vec::<String>::new()),
-                );
-            }
-        }
-        "branch.archive" | "branch.merge" | "branch.updateFromMain" => {
-            under.premises.push(Premise::on("design").fields(["~branches"]).positions(Vec::<String>::new()));
-            if command != "branch.archive" {
-                // The three-way plan reads the whole main file: every node, resource and setting
-                // it may overwrite or keep. Publication is not part of the plan.
-                component_inputs(doc, doc.pages.iter().copied(), &mut under);
-                under.premises.push(
-                    Premise::on("design")
-                        .fields(["settings", "nodes", "libraryStore", "styles", "collections", "variables", "libraries", "libraryCopies", "images"])
-                        .positions(Vec::<String>::new()),
-                );
-            }
+        "version.restore" => {
+            // The restored version's content (its replica `version`, which never changes)
+            // replaces the whole design: every node, resource and setting it overwrites.
+            component_inputs(doc, doc.pages.iter().copied(), &mut under);
+            under.premises.push(
+                Premise::on("design")
+                    .fields(["settings", "nodes", "libraryStore", "styles", "collections", "variables", "libraries", "libraryCopies", "images"])
+                    .positions(Vec::<String>::new()),
+            );
         }
         "annotation.addCategory" | "annotation.editCategory" | "annotation.removeCategory" => {
             let fields = if command == "annotation.editCategory" && doc.annotation_categories.is_some() {
@@ -1716,20 +1699,6 @@ pub(crate) fn derived(design: &DesignDocument, ids: &[Value], names: &[String]) 
             }
             values.insert("codeOwners".into(), json!(owners));
         }
-        if names.is_empty() || names.iter().any(|n| n == "history") {
-            values.insert(
-                "history".into(),
-                json!(
-                    ds.versions
-                        .iter()
-                        .map(|v| json!({"id":v.id,"name":v.name,"description":v.description,"time":v.time,"auto":v.auto}))
-                        .collect::<Vec<_>>()
-                ),
-            );
-        }
-        if names.is_empty() || names.iter().any(|n| n == "versionIds") {
-            values.insert("versionIds".into(), json!(ds.versions.iter().map(|version| &version.id).collect::<Vec<_>>()));
-        }
         if names.is_empty() || names.iter().any(|n| n == "imagePresetCount") {
             values.insert("imagePresetCount".into(), json!(doc.image_presets.len()));
         }
@@ -1738,36 +1707,6 @@ pub(crate) fn derived(design: &DesignDocument, ids: &[Value], names: &[String]) 
                 "defaultCondition".into(),
                 serde_json::to_value(kition_design_engine::cmd::proto_actions::default_condition(&doc.variables)).map_err(crate::engine_error)?,
             );
-        }
-        if names.is_empty() || names.iter().any(|n| n == "snapshots") {
-            let snapshots = ds
-                .versions
-                .iter()
-                .map(|v| {
-                    let doc = v.document().map_err(crate::engine_error)?;
-                    Ok(json!({"id":v.id,"content":snapshot_fingerprint(&doc)?}))
-                })
-                .collect::<Result<Vec<_>, String>>()?;
-            values.insert("snapshots".into(), json!(snapshots));
-        }
-        if names.is_empty() || names.iter().any(|n| n == "branches") {
-            let branches = ds
-                .branches
-                .iter()
-                .map(|b| {
-                    let history = b
-                        .versions
-                        .iter()
-                        .map(|v| {
-                            let doc = v.document().map_err(crate::engine_error)?;
-                            Ok(json!({"id":v.id,"name":v.name,"description":v.description,"time":v.time,"auto":v.auto,"content":snapshot_fingerprint(&doc)?}))
-                        })
-                        .collect::<Result<Vec<_>, String>>()?;
-                    Ok(json!({"id":b.id,"name":b.name,"time":b.time,"client":b.client,"state":b.state,
-                        "base":snapshot_fingerprint(&b.base)?,"head":snapshot_fingerprint(&b.head)?,"history":history}))
-                })
-                .collect::<Result<Vec<_>, String>>()?;
-            values.insert("branches".into(), json!(branches));
         }
         if names.is_empty() || names.iter().any(|n| n == "assets") {
             let assets = kition_design_engine::library::publishable(doc);

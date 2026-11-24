@@ -127,7 +127,7 @@ fn publish_manifest_roundtrip() {
     assert!(lib.doc.validate().is_empty());
     assert_eq!(lib.doc.styles.len(), 1);
     // Saved and read back: the author's file and a reader of the library see the same manifest.
-    let bytes = kition_design_format::save_bytes(doc, None).unwrap();
+    let bytes = kition_design_format::save_bytes(doc).unwrap();
     let (back, issues) = kition_design_format::load_bytes(&bytes).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
     assert_eq!(back.published.as_ref().map(|p| &p.manifest), Some(m));
@@ -136,7 +136,7 @@ fn publish_manifest_roundtrip() {
     assert_eq!(read.doc.node_count(), lib.doc.node_count());
     // Older files and files never published have no library; readers that don't know libraries
     // are unaffected (the entries are extra archive members).
-    let plain = kition_design_format::save_bytes(&Document::new("x"), None).unwrap();
+    let plain = kition_design_format::save_bytes(&Document::new("x")).unwrap();
     assert!(kition_design_format::read_library(std::io::Cursor::new(&plain)).unwrap().is_none());
     assert!(kition_design_format::load_bytes(&plain).unwrap().0.published.is_none());
 
@@ -347,14 +347,14 @@ fn bad_library_files_are_errors() {
     assert!(s.execute("library.add", &json!({"path": path_str(&junk)})).is_err());
     // A Kition Design file that was never published.
     let plain = d.join("plain.kdesign");
-    std::fs::write(&plain, kition_design_format::save_bytes(&Document::new("Plain"), None).unwrap()).unwrap();
+    std::fs::write(&plain, kition_design_format::save_bytes(&Document::new("Plain")).unwrap()).unwrap();
     let e = s.execute("library.add", &json!({"path": path_str(&plain)})).unwrap_err();
     assert!(e.to_string().contains("no published library"), "{e}");
     // A truncated library (damaged entries are covered by the format crate's tests).
     let mut lib = Session::new();
     kit(&mut lib);
     ex(&mut lib, "library.publish", json!({}));
-    let good = kition_design_format::save_bytes(lib.doc().unwrap(), None).unwrap();
+    let good = kition_design_format::save_bytes(lib.doc().unwrap()).unwrap();
     let cut = d.join("cut.kdesign");
     std::fs::write(&cut, &good[..good.len() / 2]).unwrap();
     assert!(s.execute("library.add", &json!({"path": path_str(&cut)})).is_err());
@@ -427,16 +427,14 @@ fn library_survives_restoring_a_version_and_saving() {
     let mut lib = Session::new();
     kit(&mut lib);
     let r = ex(&mut lib, "library.publish", json!({}));
-    ex(&mut lib, "file.saveVersion", json!({"name": "Published"}));
+    let version = crate::cmd::file::saved_version(&mut lib);
     // Restoring a version keeps what the file published.
-    ex(&mut lib, "version.restore", json!({"index": 0}));
+    ex(&mut lib, "version.restore", json!({"version": version}));
     assert!(lib.doc().unwrap().published.is_some());
     ex(&mut lib, "file.saveAs", json!({"path": path}));
-    // Reopened: the library is there; the saved versions were the session's (a file holds no
-    // history).
+    // Reopened: the library is there (a file holds no history: saved versions are the host's).
     let mut back = Session::empty();
     ex(&mut back, "file.open", json!({"path": path}));
-    assert_eq!(ex(&mut back, "version.list", json!({})).as_array().map(Vec::len), Some(0));
     assert_eq!(back.doc().unwrap().published.as_ref().map(|p| p.manifest.id.clone()), r["id"].as_str().map(str::to_string));
     // Saved again, other files can use it.
     ex(&mut back, "file.save", json!({}));

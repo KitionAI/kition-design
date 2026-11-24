@@ -1,10 +1,9 @@
-//! File menu: documents, save/open, import/export, versions.
+//! File menu: documents, save/open, import/export, saved versions (the host's checkpoints).
 
 use std::sync::Arc;
 
 use base64::Engine as _;
 use kition_design_doc::*;
-use kition_design_format::Version;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, ok};
@@ -37,9 +36,10 @@ use open::{import, open, open_recent};
 pub(crate) use save::save_ends_preview;
 pub use save::{FileSnapshot, file_bytes, thumbnail};
 use save::{color_profile, mark_saved, save, save_as};
-pub use version::MAX_AUTOSAVES;
-pub(crate) use version::{add_version, keep_in_history, read_version, unique_id};
-use version::{autosave, restore_version, save_version, version_index, version_json, version_list};
+pub use version::content_at;
+#[cfg(test)]
+pub(crate) use version::saved_version;
+use version::{preview_version, restore_version};
 
 /// A new file of `kind` in a tab of its own.
 fn new_file(s: &mut Session, p: &Value, kind: FileKind) -> Result<Value> {
@@ -100,7 +100,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "file.markSaved",
             "Mark saved",
-            "{}  clears the unsaved changes of the active tab's file and its branch tabs: run it once the file from `file.saveAs {data: true}` was delivered (a refused download keeps them)",
+            "{}  clears the unsaved changes of the active tab's file: run it once the file from `file.saveAs {data: true}` was delivered (a refused download keeps them)",
             false,
             mark_saved
         ),
@@ -199,115 +199,45 @@ pub fn specs() -> Vec<CommandSpec> {
             let on_disk = crate::library::stat(&path).ok();
             let (loaded, _) = load_path(&path, None)?;
             let i = s.active;
-            let uid = s.ds()?.uid;
             if let Some(slot) = s.docs.get_mut(i) {
-                // The saved versions are this session's (a file holds no history): they stay.
-                let versions = std::mem::take(&mut slot.versions);
                 *slot = DocState::new(loaded.doc, Some(path.clone()))
-                    .with_versions(versions)
-                    .with_branches(loaded.branches)
                     .with_replica(loaded.replica)
                     .with_images_left_in_file(&path, loaded.images_past_budget);
                 slot.on_disk = on_disk;
             }
-            // Edits on its branch tabs are reverted too.
-            crate::branches::close_tabs(s, uid, None);
             ok()
         }),
         spec!(
             "file.saveVersion",
             "Save to version history",
-            "{name?, description?}  snapshot the document into the file's version history (on a branch tab: the branch's own history; kept when the file is saved); returns the version",
+            "{}  opens the version history's save form: the editor saves the version with the host (its checkpoints; nothing about versions is kept in the design or its file)",
             false,
-            save_version
+            |s, _| {
+                s.request_ui("panel.versionHistory", json!({"save": true}));
+                ok()
+            }
         ),
-        spec!("file.versionHistory", "Show version history", "{}  opens the panel; returns the versions like `version.list`", false, |s, _| {
-            let list = version_list(s.ds()?);
+        spec!("file.versionHistory", "Show version history", "{}  opens the panel (the host keeps the saved versions)", false, |s, _| {
             s.request_ui("panel.versionHistory", json!({}));
-            Ok(list)
-        }),
-        spec!(
-            "version.list",
-            "List versions",
-            "{}  the version history, oldest first: [{id, index, name, description, time (Unix seconds), auto?, previewing?}]",
-            false,
-            |s, _| Ok(version_list(s.ds()?))
-        ),
-        spec!(
-            "version.restore",
-            "Restore version",
-            "{id | index}  replace the design with the version (one undo step; the file name and the comments stay; the design as it was is kept in the history first, unless a version of it was just saved or restored)",
-            true,
-            restore_version
-        ),
-        spec!("version.rename", "Rename version", "{id | index, name, description?}  a titled autosave becomes a named version", false, |s, p| {
-            const CMD: &str = "version.rename";
-            let name = req_string(CMD, p, "name")?;
-            if name.trim().is_empty() {
-                return Err(bad(CMD, "`name` can't be empty"));
-            }
-            let ds = s.ds_mut()?;
-            let i = version_index(CMD, ds, p)?;
-            let description = string(p, "description");
-            let v = ds.versions_mut().get_mut(i).ok_or_else(|| bad(CMD, "no such version"))?;
-            v.name = kition_design_format::clip(name.trim(), kition_design_format::MAX_VERSION_NAME);
-            // A titled autosave is a named version (never dropped to make room).
-            v.auto = false;
-            if let Some(d) = description {
-                v.description = kition_design_format::clip(d.trim(), kition_design_format::MAX_VERSION_DESCRIPTION);
-            }
-            Ok(version_json(i, v))
-        }),
-        spec!("version.delete", "Delete version", "{id | index}", false, |s, p| {
-            let ds = s.ds_mut()?;
-            let i = version_index("version.delete", ds, p)?;
-            let v = ds.versions_mut().remove(i);
-            if ds.preview.as_ref().is_some_and(|pv| pv.id == v.id) {
-                ds.end_preview();
-            }
             ok()
         }),
         spec!(
-            "version.preview",
-            "View version",
-            "{id | index}  show the version on the canvas in place of the document (read-only; `version.restore` keeps it, `version.exitPreview` goes back)",
-            false,
-            |s, p| {
-                let ds = s.ds_mut()?;
-                let i = version_index("version.preview", ds, p)?;
-                let v = ds.versions.get(i).ok_or_else(|| bad("version.preview", "no such version"))?;
-                let (id, name, time, out) = (v.id.clone(), v.name.clone(), v.time, version_json(i, v));
-                let doc = read_version(v)?;
-                ds.start_preview(&id, &name, time, doc);
-                Ok(out)
-            }
+            "version.restore",
+            "Restore version",
+            "{version (a replica version, base64, as the host's checkpoint names it)}  the design takes the content it had at that version, as one undoable edit (the file name, what it published and the comments stay); refused when the design's history here does not reach the version",
+            true,
+            restore_version
         ),
         spec!(
-            "version.autosave",
-            "Autosave version",
-            "{}  save an automatic checkpoint when the document has unsaved changes since the last version (with `pref.autoSave` on: changes made since it was opened); the app does this every 30 minutes; keeps the newest 20 autosaves → {saved, version?}",
+            "version.preview",
+            "View version",
+            "{version (base64), id?, name?, time? (the host's checkpoint, shown in the banner)}  show the design as it was at that version on the canvas in place of the document (read-only; `version.restore` keeps it, `version.exitPreview` goes back)",
             false,
-            autosave
+            preview_version
         ),
         spec!("version.exitPreview", "Back to current version", "{}  end a version preview", false, |s, _| {
             Ok(json!({"ended": s.ds_mut()?.end_preview()}))
         }),
-        spec!(
-            "version.duplicate",
-            "Duplicate version",
-            "{id | index}  open the version as a new document; returns its tab `index`",
-            false,
-            |s, p| {
-                let ds = s.ds()?;
-                let v = ds.versions.get(version_index("version.duplicate", ds, p)?).ok_or_else(|| bad("version.duplicate", "no such version"))?;
-                let mut doc = (*read_version(v)?).clone();
-                doc.name = format!("{} ({})", ds.doc.name, v.name);
-                doc.take_dirty();
-                s.docs.push(DocState::new(doc, None));
-                s.active = s.docs.len() - 1;
-                Ok(json!({"index": s.active}))
-            }
-        ),
         spec!("doc.switch", "Switch document", "{index}", false, |s, p| {
             let i = req_index("doc.switch", p, "index")?;
             if i >= s.docs.len() {
@@ -425,8 +355,7 @@ fn vd_compat_param(cmd: &str, p: &Value) -> Result<Option<VdCompat>> {
 fn close(s: &mut Session, p: &Value) -> Result<Value> {
     let i = if get(p, "index").is_none() { s.active } else { req_index("file.close", p, "index")? };
     let Some(ds) = s.docs.get(i) else { return Err(bad("file.close", "no such document")) };
-    // A branch tab's edits are in its main file already (which then has unsaved changes).
-    if ds.branch_of.is_none() && ds.is_dirty() && !boolean(p, "force").unwrap_or(false) {
+    if ds.is_dirty() && !boolean(p, "force").unwrap_or(false) {
         s.request_ui("dialog.unsaved", json!({"index": i}));
         return Err(EngineError::Disabled("file.close".into(), "the document has unsaved changes (pass force: true to discard)".into()));
     }
@@ -435,7 +364,6 @@ fn close(s: &mut Session, p: &Value) -> Result<Value> {
     s.remove_tabs(|d| d.uid == uid);
     // Removing a tab before the active one shifts its index; keep the same document selected.
     s.active = active_uid.and_then(|a| s.docs.iter().position(|d| d.uid == a)).unwrap_or(i.min(s.docs.len().saturating_sub(1)));
-    crate::branches::close_tabs(s, uid, None);
     ok()
 }
 

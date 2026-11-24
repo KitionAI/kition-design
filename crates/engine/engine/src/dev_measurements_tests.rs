@@ -152,7 +152,7 @@ fn measurements_sync_save_and_old_files_open() {
     assert_eq!(crate::inspect::node_json(s.doc().unwrap(), b, 0)["measurements"], json!([{"side": "right"}]));
     // Saved and opened again.
     let doc = s.doc().unwrap();
-    let bytes = kition_design_format::save_bytes(doc, None).unwrap();
+    let bytes = kition_design_format::save_bytes(doc).unwrap();
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!(back.node(a).unwrap().measurements, doc.node(a).unwrap().measurements);
     assert_eq!(back.node(b).unwrap().measurements, doc.node(b).unwrap().measurements);

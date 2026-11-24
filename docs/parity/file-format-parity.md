@@ -130,7 +130,7 @@ each.
   leading trim, OpenType features, per-layer operations inside boolean groups, different stroke ends
   on lines. Not written at all: stroke outlines of dashed and per-side strokes and of inside or
   outside strokes on polygons, stars and vectors, glyph outlines of text (a reader lays text out
-  with its own fonts), version history and branches.
+  with its own fonts), and saved versions (the host's, never a file's).
 - **Checked by opening written files in other software:** the example documents and small test
   files open there, and layers, fills, gradients, strokes, shadows, vectors, components and text draw
   as in Kition Design. A file saved again there and read back keeps the layer tree and properties.

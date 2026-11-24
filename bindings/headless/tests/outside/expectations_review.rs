@@ -29,15 +29,15 @@ async fn review_board_commands_hold_the_file_kind_they_require() {
     let mut failures = Vec::new();
     for command in ["board.label", "tool.stamp"] {
         let f = Fixture::new(Guard::Premise);
-        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
         file.doc.kind = kition_design_doc::FileKind::Board;
-        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
+        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file).unwrap()).unwrap();
         let made = prepare(&f, |d| d.execute("board.connector", json!({"from":{"x":0,"y":0},"to":{"x":100,"y":0},"label":"Before"})).unwrap());
         let basis = f.basis().await;
         // A separate native-file writer changes this persisted precondition.
-        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
         file.doc.kind = kition_design_doc::FileKind::Design;
-        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
+        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file).unwrap()).unwrap();
         let before = f.bytes();
         let steps = if command == "board.label" {
             json!([{"command":command,"params":{"id":made["id"],"text":"Agent"}}])
@@ -75,10 +75,10 @@ async fn review_a_new_image_preset_holds_the_capacity_it_checks() {
         let f = Fixture::new(Guard::Premise);
         // The reader can append Mine. A second writer either fills the final slot or
         // changes an independent existing record without changing capacity.
-        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
         file.doc.image_presets =
             (0..499).map(|i| kition_design_doc::ImagePreset { name: format!("Other {i}"), filters: Default::default() }).collect();
-        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
+        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file).unwrap()).unwrap();
         let basis = f.basis().await;
         let name = if adding { "Final slot" } else { "Other 0" };
         f.colleague(&[("image.savePreset", json!({"name":name,"filters":{"exposure":0.5}}))]);
@@ -89,7 +89,7 @@ async fn review_a_new_image_preset_holds_the_capacity_it_checks() {
             assert_eq!(f.bytes(), before, "refusal must leave the independent writer's file intact");
         } else {
             applied(&answer);
-            let file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+            let file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
             assert_eq!(file.doc.image_presets.len(), 500);
             assert_eq!(file.doc.image_presets.iter().find(|p| p.name == "Other 0").unwrap().filters.exposure, 0.5);
             assert_eq!(file.doc.image_presets.iter().find(|p| p.name == "Mine").unwrap().filters.exposure, 0.2);
@@ -124,9 +124,9 @@ async fn review_an_id_addressed_swap_reads_the_instances_variable_mode() {
 #[tokio::test(flavor = "multi_thread")]
 async fn review_column_removal_keeps_the_original_text_edit_control() {
     let f = Fixture::new(Guard::Premise);
-    let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+    let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
     file.doc.kind = kition_design_doc::FileKind::Board;
-    std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file).unwrap()).unwrap();
     let table = prepare(&f, |board| board.execute("board.table", json!({"cells":[["a","b"],["c","d"]],"x":0,"y":0})).unwrap());
     let text = table["cells"][0][1].clone();
     let basis = f.basis().await;
@@ -135,7 +135,7 @@ async fn review_column_removal_keeps_the_original_text_edit_control() {
     f.colleague(&[("node.set", json!({"id":text,"props":{"characters":"typed"}}))]);
     let answer = f.write(&basis, "board.tableEdit", json!({"id":table["id"],"action":"removeColumn","index":1})).await;
     applied(&answer);
-    let file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+    let file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
     assert!(!file.doc.contains(kition_design_doc::NodeId(text.as_u64().unwrap())));
     f.shutdown().await;
 }

@@ -1,151 +1,52 @@
+//! Saved versions: the host keeps them (Kit UI protocol section 7m, checkpoints), never the engine
+//! or the file. A saved version is one version of the design's replica; the engine only derives
+//! the design as it was there ([`content_at`]) to show it (`version.preview`), restore it
+//! (`version.restore`) or compare with it (`dev.compare`).
+
+use base64::Engine as _;
+use kition_design_kdm::kition_kit::kdm::Version as ReplicaVersion;
+
 use super::*;
 
-pub(super) fn version_json(index: usize, v: &Version) -> Value {
-    let mut j = json!({"id": v.id, "index": index, "name": v.name, "description": v.description, "time": v.time});
-    if v.auto {
-        j["auto"] = json!(true);
-    }
-    j
+/// The design as it was at replica version `version` (base64, as the host's checkpoints name it),
+/// derived from the document's replica, with the pictures it holds (a host adds the ones a
+/// checkpoint needs first, `addBlobs`). Refused when the document has no replica or its history
+/// does not reach that version (`history-missing`: the file was opened without its stored history).
+pub fn content_at(cmd: &str, ds: &DocState, version: &str) -> Result<Arc<Document>> {
+    let bytes = base64::engine::general_purpose::STANDARD.decode(version.trim()).map_err(|_| bad(cmd, "`version` is a replica version in base64"))?;
+    let version = ReplicaVersion::decode(&bytes).map_err(|e| bad(cmd, format!("`version` is not a replica version: {e}")))?;
+    let kdm = ds.kdm().ok_or_else(|| EngineError::Disabled(cmd.into(), "the design has no history here (no replica)".into()))?;
+    let doc = kdm
+        .document_at(&version)
+        .map_err(|e| EngineError::Disabled(cmd.into(), format!("history-missing: the design's history here does not reach that version ({e})")))?;
+    Ok(Arc::new(doc))
 }
 
-/// Autosaves kept per file; older ones make room for new ones.
-pub const MAX_AUTOSAVES: usize = 20;
-
-/// `version.autosave`: a checkpoint of a document with unsaved changes since the last version.
-pub(super) fn autosave(s: &mut Session, _: &Value) -> Result<Value> {
-    let auto_save = s.prefs.auto_save;
+/// `version.preview`: shows the design as it was at a saved version, read-only.
+pub(super) fn preview_version(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "version.preview";
+    let version = req_string(CMD, p, "version")?;
+    let id = string(p, "id").unwrap_or_default();
+    let name = string(p, "name").unwrap_or_default();
+    let time = get(p, "time").and_then(Value::as_u64).unwrap_or(0);
     let ds = s.ds_mut()?;
-    // A file that saves itself is rarely unsaved: edits since it was opened count then.
-    let edited = ds.is_dirty() || (auto_save && !ds.history.undo.is_empty());
-    if ds.preview.is_some() || !edited || !ds.changed_since_checkpoint() {
-        return Ok(json!({"saved": false}));
-    }
-    Ok(match add_version(ds, AUTOSAVE, "", true) {
-        Some(v) => json!({"saved": true, "version": v}),
-        None => json!({"saved": false}),
-    })
+    let doc = content_at(CMD, ds, &version)?;
+    ds.start_preview(&id, &name, time, &version, doc);
+    Ok(json!({"id": id, "name": name, "time": time, "version": version}))
 }
 
-/// What checkpoints are called.
-const AUTOSAVE: &str = "Autosave";
-
-/// Add a version of `ds`'s document as it is now (`auto`: a checkpoint) and return it. The oldest
-/// autosave makes room when the autosaves or the history are full; versions the user named are
-/// never dropped, so a history full of them takes nothing (None).
-pub(crate) fn add_version(ds: &mut DocState, name: &str, description: &str, auto: bool) -> Option<Value> {
-    let autos = ds.versions.iter().filter(|v| v.auto).count();
-    if ((auto && autos >= MAX_AUTOSAVES) || ds.versions.len() >= kition_design_format::MAX_VERSIONS)
-        && let Some(oldest) = ds.versions.iter().position(|v| v.auto)
-    {
-        ds.versions_mut().remove(oldest);
-    }
-    if ds.versions.len() >= kition_design_format::MAX_VERSIONS {
-        return None;
-    }
-    let mut v = snapshot_version(ds, name, description);
-    v.auto = auto;
-    let out = version_json(ds.versions.len(), &v);
-    ds.versions_mut().push(v);
-    ds.mark_checkpoint();
-    Some(out)
-}
-
-/// Before the document is replaced (a restore, a merge): keep it in the history as it is, unless
-/// it is what the last version saved or restored holds.
-pub(crate) fn keep_in_history(ds: &mut DocState) {
-    if ds.branch_of.is_none() && ds.changed_since_checkpoint() {
-        add_version(ds, AUTOSAVE, "", true);
-    }
-}
-
-/// A version of `ds`'s document as it is now, opening on the page shown.
-fn snapshot_version(ds: &DocState, name: &str, description: &str) -> Version {
-    let mut snap = ds.doc.clone();
-    if snap.current_page != Some(ds.page) {
-        Arc::make_mut(&mut snap).current_page = Some(ds.page);
-    }
-    Version::new(unique_id(|id| ds.versions.iter().any(|v| v.id == id)), name, description, crate::cmd::comment::now_secs(), snap)
-}
-
-pub(super) fn version_list(ds: &DocState) -> Value {
-    let previewing = ds.preview.as_ref().map(|p| p.id.as_str());
-    Value::Array(
-        ds.versions
-            .iter()
-            .enumerate()
-            .map(|(i, v)| {
-                let mut j = version_json(i, v);
-                if previewing == Some(v.id.as_str()) {
-                    j["previewing"] = json!(true);
-                }
-                j
-            })
-            .collect(),
-    )
-}
-
-/// The version named by `id`, else by `index` (validated: never negative, never past the end).
-pub(super) fn version_index(cmd: &str, ds: &DocState, p: &Value) -> Result<usize> {
-    if let Some(id) = string(p, "id") {
-        return ds.versions.iter().position(|v| v.id == id).ok_or_else(|| bad(cmd, format!("no version `{id}`")));
-    }
-    if get(p, "index").is_none() {
-        return Err(bad(cmd, "pass the version's `id` or `index`"));
-    }
-    let i = req_index(cmd, p, "index")?;
-    if i < ds.versions.len() { Ok(i) } else { Err(bad(cmd, format!("no version at index {i}"))) }
-}
-
-pub(crate) fn read_version(v: &Version) -> Result<Arc<Document>> {
-    v.document().map_err(|e| EngineError::Other(format!("version “{}” can't be read: {e}", v.name)))
-}
-
-/// A new version or branch id: the time in milliseconds (hex), not `taken`.
-pub(crate) fn unique_id(taken: impl Fn(&str) -> bool) -> String {
-    let mut n = web_time::SystemTime::now().duration_since(web_time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
-    loop {
-        let id = format!("{n:x}");
-        if !taken(&id) {
-            return id;
-        }
-        n = n.wrapping_add(1);
-    }
-}
-
-/// `file.saveVersion`; on a branch tab the version goes into the branch's own history.
-pub(super) fn save_version(s: &mut Session, p: &Value) -> Result<Value> {
-    let ds = s.ds_mut()?;
-    if ds.versions.len() >= kition_design_format::MAX_VERSIONS {
-        return Err(EngineError::Disabled(
-            "file.saveVersion".into(),
-            format!("the version history is full ({} versions): delete old versions first", kition_design_format::MAX_VERSIONS),
-        ));
-    }
-    let name =
-        string(p, "name").map(|n| n.trim().to_string()).filter(|n| !n.is_empty()).unwrap_or_else(|| format!("Version {}", ds.versions.len() + 1));
-    let description = string(p, "description").unwrap_or_default();
-    // The version opens on the page shown when it was saved.
-    add_version(ds, &name, description.trim(), false).ok_or_else(|| {
-        EngineError::Disabled(
-            "file.saveVersion".into(),
-            format!("the version history is full ({} versions): delete old versions first", kition_design_format::MAX_VERSIONS),
-        )
-    })
-}
-
+/// `version.restore`: the design takes the content it had at a saved version, as one undoable
+/// edit (a new change of the replica, so it reaches everyone editing the design). The file name,
+/// what the file published and the comments stay.
 pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "version.restore";
-    // Refused before anything goes into the history.
+    // Refused before anything changes.
     if let Some(why) = s.live_read_only(s.ds()?.uid) {
         return Err(EngineError::Disabled(CMD.into(), why.into()));
     }
+    let version = req_string(CMD, p, "version")?;
     let ds = s.ds_mut()?;
-    let i = version_index(CMD, ds, p)?;
-    let v = ds.versions.get(i).ok_or_else(|| bad(CMD, "no such version"))?;
-    let (id, mut doc) = (v.id.clone(), read_version(v)?);
-    // Restoring never loses work: the document as it is goes into the history first.
-    keep_in_history(ds);
-    let out = ds.versions.iter().enumerate().find(|(_, v)| v.id == id).map_or(Value::Null, |(i, v)| version_json(i, v));
+    let mut doc = content_at(CMD, ds, &version)?;
     let d = Arc::make_mut(&mut doc);
     d.name = ds.doc.name.clone();
     // What the file published belongs to the file, not to the version.
@@ -154,7 +55,7 @@ pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     // and those on layers the version doesn't have stay where they were.
     d.comments = ds.doc.comments.clone();
     crate::cmd::comment::follow_anchors(d, &ds.doc);
-    // The snapshot is already consistent: nothing to re-normalise.
+    // The content is already consistent: nothing to re-normalise.
     d.take_dirty();
     // Stay on the current page when the version has it.
     ds.page = Some(ds.page)
@@ -166,7 +67,15 @@ pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     ds.selection.clear();
     ds.text_edit = None;
     ds.vector_edit = None;
-    // The restored design is in the history already: restoring it again keeps nothing new.
-    ds.mark_checkpoint();
-    Ok(out)
+    Ok(json!({"restored": true, "version": version}))
+}
+
+/// The design's replica version now, as the host's checkpoint of a version saved now names it
+/// (base64): what a test passes to `version.preview`, `version.restore` and `dev.compare`. Turns
+/// the bridge on, so the replica follows every edit after it.
+#[cfg(test)]
+pub(crate) fn saved_version(s: &mut Session) -> String {
+    s.enable_kdm();
+    let version = s.version().map(|v| v.encode()).unwrap_or_default();
+    base64::engine::general_purpose::STANDARD.encode(version)
 }

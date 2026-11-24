@@ -1,0 +1,25 @@
+format: 1
+id: design.version.history/checkpoints
+feature: design.version.history
+intent: >-
+  Saved versions are the host's checkpoints (Kit UI protocol 7m), never kept in the .kdesign or
+  the replica: under the development host with checkpoints, two saved versions are listed again
+  after devHost.reload(); renaming goes to the host; deleting a row deletes that version by its
+  id even when two versions share a title; restoring one gives the design the content it had then
+  and undo takes the restore back; a version the design's history no longer reaches (the file
+  opened alone) is listed as unavailable and cannot be shown; without the capability the panel
+  says why and cannot save.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/versions.mjs, web/tests/menus.mjs
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/versions.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-23"
+timeout_s: 300

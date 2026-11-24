@@ -206,7 +206,7 @@ fn snapshots_are_saved_and_old_files_open() {
     let plain = kition_design_format::to_json(s.doc().unwrap()).unwrap();
     assert!(plain.get("devSnapshots").is_none() && plain.get("dev_snapshots").is_none(), "nothing written without a change");
     ex(&mut s, "node.set", json!({"id": sc.button, "props": {"width": 136}}));
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (back, issues) = kition_design_format::load_bytes(&bytes).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
     assert_eq!(back.dev_snapshots, s.doc().unwrap().dev_snapshots);

@@ -3,7 +3,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use kition_design_format::Version;
 use serde_json::{Value, json};
 
 use crate::{DocState, EngineError, Session};
@@ -46,22 +45,10 @@ fn rect(s: &mut Session, name: &str) {
     s.execute("shape.rectangle", &json!({"name": name, "x": 10, "y": 20, "width": 30, "height": 40})).unwrap();
 }
 
-fn assert_versions_unchanged(after: &[Version], before: &[Version]) {
-    assert_eq!(after.len(), before.len());
-    for (after, before) in after.iter().zip(before) {
-        assert_eq!(
-            (&after.id, &after.name, &after.description, after.time, after.auto),
-            (&before.id, &before.name, &before.description, before.time, before.auto)
-        );
-        assert_eq!(*after.document().unwrap(), *before.document().unwrap());
-    }
-}
-
 fn assert_save_state_unchanged(s: &Session, before: &DocState, recent: &[String]) {
     let after = s.ds().unwrap();
     assert_eq!(after.path, before.path);
     assert_eq!(after.is_dirty(), before.is_dirty());
-    assert_eq!(after.versions_changed, before.versions_changed);
     assert!(Arc::ptr_eq(&after.doc, &before.doc));
     assert!(Arc::ptr_eq(&after.saved_doc, &before.saved_doc));
     assert_eq!(
@@ -72,17 +59,6 @@ fn assert_save_state_unchanged(s: &Session, before: &DocState, recent: &[String]
         assert!(Arc::ptr_eq(&after.doc, &before.doc));
     }
     assert_eq!((&after.selection, after.page), (&before.selection, before.page));
-    assert_versions_unchanged(&after.versions, &before.versions);
-    assert_eq!(after.branches.len(), before.branches.len());
-    for (after, before) in after.branches.iter().zip(&before.branches) {
-        assert_eq!(
-            (&after.id, &after.name, after.time, after.client, after.state),
-            (&before.id, &before.name, before.time, before.client, before.state)
-        );
-        assert_eq!(*after.base, *before.base);
-        assert_eq!(*after.head, *before.head);
-        assert_versions_unchanged(&after.versions, &before.versions);
-    }
     for (after, before) in [(&after.history.undo, &before.history.undo), (&after.history.redo, &before.history.redo)] {
         assert_eq!(after.len(), before.len());
         for (after, before) in after.iter().zip(before) {
@@ -153,7 +129,6 @@ fn fig_save_as_keeps_native_path_dirty_state_and_history() {
     let saved = std::fs::read(&native).unwrap();
     rect(&mut s, "New rectangle");
     s.execute("comment.add", &json!({"x": 0, "y": 0, "text": "Copy warning"})).unwrap();
-    s.execute("file.saveVersion", &json!({"name": "Before copy"})).unwrap();
     rect(&mut s, "Undone rectangle");
     s.undo().unwrap();
     let before = s.ds().unwrap().clone();
@@ -172,10 +147,8 @@ fn fig_save_as_keeps_native_path_dirty_state_and_history() {
     s.execute("file.save", &json!({})).unwrap();
     assert!(!s.ds().unwrap().is_dirty());
     assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-    let persisted = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
+    let persisted = kition_design_format::load_with_replica(&std::fs::read(&native).unwrap()).unwrap();
     assert!(persisted.doc.nodes().any(|n| n.name == "New rectangle"));
-    // The saved version is the session's: the file holds content, no history.
-    assert_eq!(s.ds().unwrap().versions[0].name, "Before copy");
     assert_eq!(std::fs::read(&copy).unwrap().len(), result["bytes"].as_u64().unwrap() as usize);
 }
 
@@ -223,42 +196,6 @@ fn fig_save_commands_accept_uppercase_extension() {
 }
 
 #[test]
-fn fig_copy_from_branch_exports_active_document_without_saving_main() {
-    let mut files = SaveFiles::new();
-    let native = files.path("main.kdesign");
-    let copy = files.path("branch.fig");
-    let mut s = Session::new();
-    rect(&mut s, "Main rectangle");
-    s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
-    let saved = std::fs::read(&native).unwrap();
-    s.execute("branch.create", &json!({"name": "Explore"})).unwrap();
-    rect(&mut s, "Branch rectangle");
-    s.execute("file.saveVersion", &json!({"name": "Branch version"})).unwrap();
-    // Branch edits normally sync to main before commands; capture that state before exporting.
-    s.execute("branch.list", &json!({})).unwrap();
-    let branch = s.ds().unwrap().clone();
-    let main = s.docs[0].clone();
-    let recent = s.prefs.recent_files.clone();
-
-    let result = s.execute("file.saveAs", &json!({"path": copy.to_string_lossy()})).unwrap();
-    assert!(read_fig(&copy, &result).nodes().any(|n| n.name == "Branch rectangle"));
-    assert_save_state_unchanged(&s, &branch, &recent);
-    assert_eq!(s.docs[0].path, main.path);
-    assert_eq!(s.docs[0].is_dirty(), main.is_dirty());
-    assert!(Arc::ptr_eq(&s.docs[0].saved_doc, &main.saved_doc));
-    assert!(Arc::ptr_eq(&s.docs[0].doc, &main.doc));
-    assert_eq!(std::fs::read(&native).unwrap(), saved);
-
-    s.execute("file.save", &json!({})).unwrap();
-    let persisted = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
-    assert!(!persisted.doc.nodes().any(|n| n.name == "Branch rectangle"));
-    assert!(persisted.branches[0].head.nodes().any(|n| n.name == "Branch rectangle"));
-    assert_eq!(persisted.branches[0].versions.last().unwrap().name, "Branch version");
-    assert!(!s.ds().unwrap().is_dirty());
-    assert!(!s.docs[0].is_dirty());
-}
-
-#[test]
 fn fig_copy_write_failure_keeps_save_state() {
     let mut files = SaveFiles::new();
     let blocked = files.path("blocked.fig");
@@ -266,9 +203,9 @@ fn fig_copy_write_failure_keeps_save_state() {
     let missing = files.path("missing/copy.fig");
     let mut s = Session::new();
     rect(&mut s, "Kept rectangle");
-    s.execute("file.saveVersion", &json!({"name": "Kept version"})).unwrap();
+    let kept = crate::cmd::file::saved_version(&mut s);
     rect(&mut s, "Later rectangle");
-    s.execute("version.preview", &json!({"index": 0})).unwrap();
+    s.execute("version.preview", &json!({"version": kept})).unwrap();
     let before = s.ds().unwrap().clone();
     for command in ["file.save", "file.saveAs"] {
         for path in [&blocked, &missing] {
@@ -303,11 +240,11 @@ fn fig_copy_of_version_preview_keeps_visible_version_and_save_state() {
         let copy = files.path(&format!("version-{index}.FIG"));
         let mut s = Session::new();
         rect(&mut s, "A");
-        s.execute("file.saveVersion", &json!({"name": "A only"})).unwrap();
+        let a_only = crate::cmd::file::saved_version(&mut s);
         s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         let saved = std::fs::read(&native).unwrap();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"index": 0})).unwrap();
+        s.execute("version.preview", &json!({"version": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
         assert!(before.preview.is_some());
@@ -330,13 +267,13 @@ fn pending_save_choice_keeps_version_preview() {
     for (index, (command, native_path)) in [("file.saveAs", false), ("file.saveAs", true), ("file.save", false)].into_iter().enumerate() {
         let mut s = Session::new();
         rect(&mut s, "A");
-        s.execute("file.saveVersion", &json!({"name": "A only"})).unwrap();
+        let a_only = crate::cmd::file::saved_version(&mut s);
         if native_path {
             let native = files.path(&format!("saved-{index}.kdesign"));
             s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         }
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"index": 0})).unwrap();
+        s.execute("version.preview", &json!({"version": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
         assert!(matches!(s.execute(command, &json!({})), Err(EngineError::Disabled(..))));
@@ -352,10 +289,10 @@ fn native_save_from_version_preview_writes_current_document() {
         let native = files.path(&format!("native-version-{index}.kdesign"));
         let mut s = Session::new();
         rect(&mut s, "A");
-        s.execute("file.saveVersion", &json!({"name": "A only"})).unwrap();
+        let a_only = crate::cmd::file::saved_version(&mut s);
         s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"index": 0})).unwrap();
+        s.execute("version.preview", &json!({"version": a_only})).unwrap();
         let undo = s.ds().unwrap().history.undo.len();
         let params = if explicit { json!({"path": native.to_string_lossy()}) } else { json!({}) };
         s.execute(command, &params).unwrap();
@@ -363,10 +300,11 @@ fn native_save_from_version_preview_writes_current_document() {
         assert!(!s.ds().unwrap().is_dirty());
         assert_eq!(s.ds().unwrap().history.undo.len(), undo);
         assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-        let loaded = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
+        let loaded = kition_design_format::load_with_replica(&std::fs::read(&native).unwrap()).unwrap();
         assert!(loaded.doc.nodes().any(|n| n.name == "A"));
         assert!(loaded.doc.nodes().any(|n| n.name == "B"));
-        assert!(!s.ds().unwrap().versions[0].document().unwrap().nodes().any(|n| n.name == "B"));
+        let version = crate::cmd::file::content_at("test", s.ds().unwrap(), &a_only).unwrap();
+        assert!(!version.nodes().any(|n| n.name == "B"), "the version stays as it was");
     }
 }
 
@@ -378,14 +316,16 @@ fn implicit_save_protects_legacy_fig_destination() {
         let native = files.path(&format!("corrected-{index}.kdesign"));
         let mut s = Session::new();
         rect(&mut s, "A");
-        s.execute("file.saveVersion", &json!({"name": "A only"})).unwrap();
+        let a_only = crate::cmd::file::saved_version(&mut s);
         // Earlier builds could write native data under .fig; keep those bytes safe on plain Save.
+        let origin = s.origin();
+        s.ds_mut().unwrap().prepare_save(&origin).unwrap();
         let sentinel = crate::cmd::file::file_bytes(s.ds().unwrap()).unwrap();
         std::fs::write(&legacy, &sentinel).unwrap();
         s.ds_mut().unwrap().path = Some(legacy.to_string_lossy().into_owned());
         s.ds_mut().unwrap().mark_saved();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"index": 0})).unwrap();
+        s.execute("version.preview", &json!({"version": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
 
@@ -398,10 +338,9 @@ fn implicit_save_protects_legacy_fig_destination() {
         assert!(s.ds().unwrap().preview.is_none());
         assert!(!s.ds().unwrap().is_dirty());
         assert_eq!(s.ds().unwrap().path.as_deref(), native.to_str());
-        let loaded = kition_design_format::load_bytes_with_branches(&std::fs::read(&native).unwrap()).unwrap();
+        let loaded = kition_design_format::load_with_replica(&std::fs::read(&native).unwrap()).unwrap();
         assert!(loaded.doc.nodes().any(|n| n.name == "A"));
         assert!(loaded.doc.nodes().any(|n| n.name == "B"));
-        assert_eq!(s.ds().unwrap().versions[0].name, "A only");
         rect(&mut s, "C");
         s.execute("file.save", &json!({})).unwrap();
         let loaded = kition_design_format::load_bytes(&std::fs::read(&native).unwrap()).unwrap();

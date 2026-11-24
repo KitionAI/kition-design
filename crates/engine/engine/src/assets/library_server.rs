@@ -47,7 +47,7 @@ pub fn shown_path(path: &str) -> String {
 pub fn archive(lib: &PublishedLibrary) -> Result<Vec<u8>> {
     let mut holder = Document::new(lib.manifest.name.clone());
     holder.published = Some(Arc::new(lib.clone()));
-    kition_design_format::save_bytes(&holder, None).map_err(|e| EngineError::Other(format!("couldn't pack the library: {e}")))
+    kition_design_format::save_bytes(&holder).map_err(|e| EngineError::Other(format!("couldn't pack the library: {e}")))
 }
 
 /// The library in an archive from a server (untrusted: read with the library file's limits).

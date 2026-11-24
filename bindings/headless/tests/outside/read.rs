@@ -352,7 +352,7 @@ async fn removing_a_table_row_reads_its_place_and_not_its_text() {
         |f| {
             let mut document = kition_design_doc::Document::new("Synthetic board");
             document.kind = kition_design_doc::FileKind::Board;
-            let bytes = kition_design_format::save_bytes(&document, None).unwrap();
+            let bytes = kition_design_format::save_bytes(&document).unwrap();
             let mut board = DesignDocument::open(FILE, &bytes).unwrap();
             let table = board.execute("board.table", json!({"rows":2,"columns":2,"x":0,"y":0})).unwrap();
             let doc = board.session().doc().unwrap();
@@ -513,38 +513,6 @@ async fn a_vector_network_edit_does_not_hold_unread_appearance() {
                 ]}),
             )
             .await;
-        assert_eq!(answer["error"]["code"] == "conflict", necessary, "{answer}");
-        if !necessary {
-            applied(&answer);
-        }
-        f.shutdown().await;
-    }
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn a_branch_combination_holds_comments_it_merges() {
-    for necessary in [true, false] {
-        let f = Fixture::new(Guard::Premise);
-        let comment = prepare(&f, |d| id(&d.execute("comment.add", json!({"x":0,"y":0,"text":"Observed"})).unwrap()));
-        let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
-        file.branches.push(kition_design_format::Branch {
-            id: "comments".into(),
-            name: "Comments".into(),
-            time: 1,
-            client: 1,
-            state: kition_design_format::BranchState::Active,
-            base: std::sync::Arc::new(file.doc.clone()),
-            head: std::sync::Arc::new(file.doc.clone()),
-            versions: Vec::new(),
-        });
-        std::fs::write(f.workspace.path().join(FILE), kition_design_format::save_edited(&file, None).unwrap()).unwrap();
-        let basis = f.basis().await;
-        if necessary {
-            f.colleague(&[("comment.edit", json!({"id":comment,"text":"Colleague"}))]);
-        } else {
-            f.colleague(&[("library.publish", json!({}))]);
-        }
-        let answer = f.write(&basis, "branch.merge", json!({"id":"comments"})).await;
         assert_eq!(answer["error"]["code"] == "conflict", necessary, "{answer}");
         if !necessary {
             applied(&answer);

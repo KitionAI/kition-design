@@ -46,8 +46,9 @@ pub fn focus_state(doc: &DesignDocument) -> Result<Value, String> {
 /// A compare view's layer, version, comparison, and its before and after documents.
 type Compared = (NodeId, Option<String>, Comparison, Option<Arc<Document>>, Arc<Document>);
 
-/// The two documents a compare view shows for layer `id` and `version` (a saved version's id;
-/// none: the snapshot from when it was marked ready for dev), with the comparison.
+/// The two documents a compare view shows for layer `id` and `version` (a saved version's replica
+/// version, base64, as the host's checkpoint names it; none: the snapshot from when it was marked
+/// ready for dev), with the comparison.
 fn compared(doc: &DesignDocument, params: &Value) -> Result<Compared, String> {
     let ds = doc.ds()?;
     let id = super::target(doc, params)?;
@@ -58,12 +59,11 @@ fn compared(doc: &DesignDocument, params: &Value) -> Result<Compared, String> {
     let version = match params.get("version") {
         None | Some(Value::Null) => None,
         Some(Value::String(v)) => Some(v.clone()),
-        Some(other) => return Err(format!("invalid-params: `version` must be a version id, not {other}")),
+        Some(other) => return Err(format!("invalid-params: `version` must be a replica version (base64), not {other}")),
     };
     let (cmp, before) = match &version {
         Some(v) => {
-            let found = ds.versions.iter().find(|x| x.id == *v).ok_or_else(|| format!("not-found: no version {v}"))?;
-            let b = found.document().map_err(|e| e.to_string())?;
+            let b = kition_design_engine::cmd::file::content_at("dev.compare", ds, v).map_err(crate::engine_error)?;
             (devcompare::compare_with(&b, &now, id), Some(b))
         }
         None => (devcompare::compare(&now, id), devcompare::before_doc(&now, id).map(Arc::new)),
@@ -80,12 +80,12 @@ fn shot(d: &Document, id: NodeId, max_side: f64) -> Option<(kition_design_geom::
 
 /// `dev.compare { id?, version?, maxSide? }`: what the compare view lists and outlines for a
 /// ready-for-dev frame or section (`id`, default the first selected layer) against the snapshot
-/// from when it was marked, or against saved version `version`:
+/// from when it was marked, or against saved version `version` (its replica version; the editor
+/// lists the saved versions from the host's checkpoints):
 ///
 /// ```text
 /// { …Comparison,          // the engine's dev.compare: id, name, changed, snapshot, changes: [{ id, name, type, change, depth, layers, properties }], added, removed, modified, truncated
 ///   version,              // the version compared with, or null
-///   versions: [{ id, name, time }],   // the saved versions, newest first (the footer's picker)
 ///   before: Side or null, // null: the before is not known (no snapshot)
 ///   after: Side or null }
 /// Side = { area: { x, y, width, height } (page space), scale, width, height (the picture's pixels),
@@ -119,10 +119,8 @@ pub fn compare(doc: &DesignDocument, params: &Value) -> Result<Value, String> {
         })
     };
     let mut v = serde_json::to_value(&cmp).map_err(|e| e.to_string())?;
-    let versions: Vec<Value> = doc.ds()?.versions.iter().rev().map(|x| json!({ "id": x.id, "name": x.name, "time": x.time })).collect();
     if let Some(o) = v.as_object_mut() {
         o.insert("version".into(), json!(version));
-        o.insert("versions".into(), Value::Array(versions));
         o.insert("before".into(), before.as_deref().map_or(Value::Null, |b| side(b, true)));
         o.insert("after".into(), side(&now, false));
     }

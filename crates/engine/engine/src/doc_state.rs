@@ -95,24 +95,12 @@ pub struct DocState {
     /// Vector edit mode: the vector being edited, its selected points and the edit tool.
     pub vector_edit: Option<vectoredit::VectorEdit>,
     pub uid: u64,
-    /// The document's saved versions, oldest first: this session's (a `.kdesign` holds content,
-    /// not history, and the host offers kits no store for labelled checkpoints yet); not undoable.
-    pub versions: Vec<kition_design_format::Version>,
-    /// The file's branches (saved in the `.kdesign` file; not undoable).
-    pub branches: Vec<kition_design_format::Branch>,
-    /// This tab shows a branch: the `uid` of its main file's tab and the branch id. Its edits go
-    /// into the main file's branch (and are saved with the main file).
-    pub branch_of: Option<(u64, String)>,
-    /// The branches (a branch tab's versions among them) changed since the last save.
-    pub(crate) versions_changed: bool,
-    /// A version shown in place of the document (read-only).
+    /// A saved version (the content at one of the host's checkpoints) shown in place of the
+    /// document (read-only). The versions themselves are the host's, never the engine's.
     pub preview: Option<VersionPreview>,
     /// The document under a live text preview (a hovered font family or style, text style or
     /// font instance, a dragged axis slider): `doc` shows the preview until [`textpreview::end`] puts this back.
     pub text_preview: Option<Arc<Document>>,
-    /// The document as of the last version saved or restored (none yet): autosaves, restores and
-    /// merges only add a checkpoint for changes since.
-    checkpoint: Option<Arc<Document>>,
     /// Dev Mode focus view: the frame or section shown alone on the canvas (see [`Self::focused`]).
     pub focus: Option<NodeId>,
     /// The ruler guide clicked last: its page or frame and index (see [`Self::selected_guide`]).
@@ -132,14 +120,17 @@ pub struct DocState {
     pub(crate) link: crate::kdm::Link,
 }
 
-/// A version shown on the canvas in place of the document: read-only until it's restored or the
-/// preview ends, which puts the document back as it was.
+/// A saved version shown on the canvas in place of the document: read-only until it's restored or
+/// the preview ends, which puts the document back as it was.
 #[derive(Clone, Debug)]
 pub struct VersionPreview {
+    /// The host's checkpoint id.
     pub id: String,
     pub name: String,
-    /// When the version was saved (Unix seconds).
+    /// When the version was saved (milliseconds since the Unix epoch, as the host keeps it).
     pub time: u64,
+    /// The replica version it shows (base64, as the host names it).
+    pub version: String,
     pub(crate) doc: Arc<Document>,
     pub(crate) selection: Vec<NodeId>,
     pub(crate) page: NodeId,
@@ -151,7 +142,7 @@ pub const PREVIEW_READ_ONLY: &str = "you're viewing an earlier version: restore 
 /// Commands that first end a version preview: they act on the document itself. Saving does so
 /// only with a native destination; export copies and pending format choices keep the preview.
 pub(crate) const ENDS_PREVIEW: &[&str] =
-    &["file.save", "file.saveAs", "file.markSaved", "file.close", "file.revert", "file.saveVersion", "file.duplicate", "version.restore"];
+    &["file.save", "file.saveAs", "file.markSaved", "file.close", "file.revert", "file.duplicate", "version.restore"];
 
 static NEXT_UID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
@@ -174,7 +165,6 @@ impl DocState {
         let doc = Arc::new(doc);
         let mut st = Self {
             link: crate::kdm::Link::new(&doc),
-            checkpoint: None,
             saved_doc: doc.clone(),
             doc,
             selection: Vec::new(),
@@ -188,10 +178,6 @@ impl DocState {
             hover: None,
             vector_edit: None,
             uid: NEXT_UID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-            versions: Vec::new(),
-            branches: Vec::new(),
-            branch_of: None,
-            versions_changed: false,
             preview: None,
             text_preview: None,
             focus: None,
@@ -228,56 +214,15 @@ impl DocState {
         (on_page && guides::keeps_guides(&self.doc, owner) && self.doc.node(owner).is_some_and(|n| i < n.guides().len())).then_some((owner, i))
     }
 
-    /// With these saved versions (a file holds none: a reverted tab keeps its session's).
-    pub fn with_versions(mut self, versions: Vec<kition_design_format::Version>) -> Self {
-        self.versions = versions;
-        self
-    }
-
-    /// With the branches read from its file.
-    pub fn with_branches(mut self, branches: Vec<kition_design_format::Branch>) -> Self {
-        self.branches = branches;
-        self
-    }
-
-    /// The branches, for editing (the file then has unsaved changes).
-    pub fn branches_mut(&mut self) -> &mut Vec<kition_design_format::Branch> {
-        self.versions_changed = true;
-        &mut self.branches
-    }
-
     /// The document itself, not a version or live text preview shown in its place.
     pub fn document_itself(&self) -> &Arc<Document> {
         self.preview.as_ref().map(|p| &p.doc).or(self.text_preview.as_ref()).unwrap_or(&self.doc)
     }
 
-    /// The saved versions, for editing. A branch tab's are its branch's, saved with the main file
-    /// (which then has unsaved changes); the main file's are no file change (it holds no history).
-    pub fn versions_mut(&mut self) -> &mut Vec<kition_design_format::Version> {
-        if self.branch_of.is_some() {
-            self.versions_changed = true;
-        }
-        &mut self.versions
-    }
-
-    /// The document changed since the last version was saved or restored (always, before one).
-    pub fn changed_since_checkpoint(&self) -> bool {
-        let doc = self.preview.as_ref().map_or(&self.doc, |p| &p.doc);
-        // Normalising after a command can copy a document without changing it: compare contents then.
-        self.checkpoint.as_ref().is_none_or(|c| !Arc::ptr_eq(doc, c) && **doc != **c)
-    }
-
-    /// Note that a version of the current document was just saved (or restored).
-    pub(crate) fn mark_checkpoint(&mut self) {
-        self.checkpoint = Some(self.doc.clone());
-    }
-
     /// Takes the parts of the file that are not the replica's from `fresh`, the same file read
-    /// again: the branches and the file stamp (the saved versions are this session's).
+    /// again: the file stamp.
     pub(crate) fn take_file_parts(&mut self, fresh: &Self) {
-        self.branches.clone_from(&fresh.branches);
         self.on_disk.clone_from(&fresh.on_disk);
-        self.versions_changed = false;
     }
 
     /// Push a snapshot undo step: the document was `before` (shown with `selection` on `page`).
@@ -293,16 +238,18 @@ impl DocState {
     }
 
     pub fn is_dirty(&self) -> bool {
-        !Arc::ptr_eq(self.document_itself(), &self.saved_doc) || self.versions_changed
+        !Arc::ptr_eq(self.document_itself(), &self.saved_doc)
     }
 
-    /// Show `version` in place of the document (or switch to it from another preview).
-    pub fn start_preview(&mut self, id: &str, name: &str, time: u64, doc: Arc<Document>) {
+    /// Show saved version `doc` (checkpoint `id`, named `name`, at replica version `version`) in
+    /// place of the document (or switch to it from another preview).
+    pub fn start_preview(&mut self, id: &str, name: &str, time: u64, version: &str, doc: Arc<Document>) {
         self.end_preview();
         self.preview = Some(VersionPreview {
             id: id.to_string(),
             name: name.to_string(),
             time,
+            version: version.to_string(),
             doc: std::mem::replace(&mut self.doc, doc),
             selection: std::mem::take(&mut self.selection),
             page: self.page,
@@ -340,7 +287,6 @@ impl DocState {
 
     pub fn mark_saved(&mut self) {
         self.saved_doc = self.doc.clone();
-        self.versions_changed = false;
         self.saved_replica();
     }
 

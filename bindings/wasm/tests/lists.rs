@@ -292,14 +292,12 @@ fn dev_focus_compare_and_the_playground_picture() {
     assert!(is_png(&png));
     assert!(is_png(&doc.dev_compare_render(&json!({ "id": frame, "side": "before" })).unwrap()));
     assert!(doc.dev_compare_render(&json!({ "id": frame, "side": "middle" })).unwrap_err().starts_with("invalid-params"));
-    // Against a saved version.
-    doc.execute("file.saveVersion", json!({ "name": "Hand-off" })).unwrap();
-    let v = doc.query("versions", &json!({})).unwrap();
-    let vid = v["versions"].as_array().or(v.as_array()).and_then(|a| a.last()).map(|x| x["id"].clone()).unwrap();
+    // Against a saved version (the host's checkpoint names the replica version).
+    let vid = json!(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.version().unwrap()));
     let c = doc.query("dev.compare", &json!({ "id": frame, "version": vid })).unwrap();
     assert_eq!(c["version"], vid);
-    assert!(!c["versions"].as_array().unwrap().is_empty());
-    assert!(doc.query("dev.compare", &json!({ "id": frame, "version": "nope" })).unwrap_err().starts_with("not-found"));
+    assert!(c.get("versions").is_none(), "the editor lists the host's checkpoints itself");
+    assert!(doc.query("dev.compare", &json!({ "id": frame, "version": "nope" })).is_err());
     // The playground's instance as a picture; the document stays as it was.
     let revision = doc.revision();
     let button =
@@ -336,13 +334,12 @@ fn code_links_callouts_and_the_version_preview_state() {
     assert_eq!(first["bounds"]["width"], 120.0);
     assert_eq!(first["visible"], true);
     assert_eq!(doc.query("version.previewState", &json!({})).unwrap(), Value::Null);
-    doc.execute("file.saveVersion", json!({ "name": "First" })).unwrap();
-    let v = doc.query("versions", &json!({})).unwrap();
-    let vid = v["versions"].as_array().or(v.as_array()).and_then(|a| a.last()).map(|x| x["id"].clone()).unwrap();
-    doc.execute("version.preview", json!({ "id": vid })).unwrap();
+    let version = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.version().unwrap());
+    doc.execute("version.preview", json!({ "version": version, "id": "checkpoint-1", "name": "First", "time": 1 })).unwrap();
     let p = doc.query("version.previewState", &json!({})).unwrap();
-    assert_eq!(p["id"], vid, "{p}");
+    assert_eq!(p["id"], "checkpoint-1", "{p}");
     assert_eq!(p["name"], "First");
+    assert_eq!(p["version"], version);
 }
 
 #[test]

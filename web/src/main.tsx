@@ -38,9 +38,10 @@ const alone = window.setTimeout(() => {
   root.render(<div className="kui-alone">{t('noHost')}</div>)
 }, 3000)
 
-// `replica`: engine contract 2. The `.kdesign` file carries its own replica; the host relays changes
-// between people editing one design (Kit UI protocol section 7).
-void connectHost({ id: 'kit.design', version: manifest.version, capabilities: ['ai', 'replica'], brand: manifest.ui?.brand, display: manifest.ui?.display, ui: KIT_UI }).then(async (host) => {
+// `replica`: engine contract 2. The `.kdesign` file carries the design's content; the host keeps its
+// history (the replica) and relays changes between people editing one design (Kit UI protocol
+// section 7). `checkpoints`: saved versions are the host's checkpoints of that history (section 7m).
+void connectHost({ id: 'kit.design', version: manifest.version, capabilities: ['ai', 'replica', 'checkpoints'], brand: manifest.ui?.brand, display: manifest.ui?.display, ui: KIT_UI }).then(async (host) => {
   window.clearTimeout(alone)
   const show = async (locale: string) => {
     const strings = await loadStrings(locale)

@@ -20,7 +20,7 @@ export type DevState = {
   language: CodeLanguage
   rem: boolean
   compare: { id: number; version: string | null } | null
-  versions: { open: boolean; saving: boolean; branching: boolean }
+  versions: { open: boolean; saving: boolean }
 }
 
 let state: DevState = {
@@ -30,7 +30,7 @@ let state: DevState = {
   language: 'css',
   rem: false,
   compare: null,
-  versions: { open: false, saving: false, branching: false },
+  versions: { open: false, saving: false },
 }
 
 const listeners = new Set<() => void>()

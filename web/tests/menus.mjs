@@ -276,15 +276,16 @@ try {
   step('another profile offers Keep appearance', (await kit.getByTestId('design-profile-convert').count()) === 1)
   await kit.getByTestId('design-dialog-color-profile-close').click()
 
-  // File ▸ Save to version history opens the version panel's save form; its Save saves a version.
+  // File ▸ Save to version history opens the version panel. Saved versions are the host's
+  // checkpoints: this page's host keeps none, so the panel says why and offers no save form
+  // (tests/versions.mjs saves them where the host keeps them).
   await designKit(() => window.designKit.editor.run('file.saveVersion'))
-  await until(async () => (await kit.getByTestId('design-version-save-form').count()) === 1)
-  step('Save to version history opens the save form', (await kit.getByTestId('design-version-save-form').count()) === 1)
-  const versionCount = async () => (await designKit(() => window.designKit.query('versions'))).length
-  const versionsBefore = await versionCount()
-  await kit.getByTestId('design-version-save-form-submit').click()
-  await until(async () => (await versionCount()) === versionsBefore + 1)
-  step('its Save saves a version', (await versionCount()) === versionsBefore + 1 && (await kit.getByTestId('design-version-save-form').count()) === 0)
+  await until(async () => (await kit.getByTestId('design-version-history').count()) === 1)
+  step('Save to version history opens the version panel', (await kit.getByTestId('design-version-history').count()) === 1)
+  step(
+    'without the host keeping versions, the panel says why and cannot save',
+    (await kit.getByTestId('design-version-unavailable').count()) === 1 && (await kit.getByTestId('design-version-save-form').count()) === 0 && (await kit.getByTestId('design-version-save-toggle').isDisabled()),
+  )
   await kit.getByTestId('design-version-close').click()
   await until(async () => (await kit.getByTestId('design-version-history').count()) === 0)
 

@@ -31,7 +31,7 @@ fn an_existing_staging_file_is_never_written_through() {
     // staging name instead of truncating this one.
     let old = d.join("a.kdesign.tmp");
     std::fs::write(&old, b"not yours").unwrap();
-    save_file(&Document::new("Mine"), &path, None).unwrap();
+    save_file(&Document::new("Mine"), &path).unwrap();
     assert_eq!(std::fs::read(&old).unwrap(), b"not yours", "an unrelated file at a staging name is untouched");
     assert_eq!(crate::load_file(&path).unwrap().0.name, "Mine");
     // Just the file and the untouched staging file: no new staging leftovers.
@@ -49,7 +49,7 @@ fn a_staging_symlink_is_never_followed() {
     if !symlink(&old, &victim) {
         return; // Making a symlink needs privileges on some Windows setups.
     }
-    save_file(&Document::new("Mine"), &path, None).unwrap();
+    save_file(&Document::new("Mine"), &path).unwrap();
     assert_eq!(std::fs::read(&victim).unwrap(), b"innocent", "the symlink was never written through");
     assert_eq!(crate::load_file(&path).unwrap().0.name, "Mine");
     let _ = std::fs::remove_dir_all(&d);
@@ -64,7 +64,7 @@ fn concurrent_savers_of_one_file_never_interleave() {
         let mut handles = Vec::new();
         for name in names {
             let (path, doc) = (path.clone(), Document::new(name));
-            handles.push(std::thread::spawn(move || save_file(&doc, &path, None)));
+            handles.push(std::thread::spawn(move || save_file(&doc, &path)));
         }
         for h in handles {
             // On Windows a rename over a file another writer just replaced can lose the race.
@@ -90,7 +90,7 @@ fn a_failed_write_leaves_the_destination_alone_and_cleans_up() {
     // directory is untouched.
     let taken = d.join("folder.kdesign");
     std::fs::create_dir_all(&taken).unwrap();
-    assert!(save_file(&Document::new("Mine"), &taken, None).is_err());
+    assert!(save_file(&Document::new("Mine"), &taken).is_err());
     assert!(write_file_atomic(&taken, b"payload").is_err());
     assert!(taken.is_dir());
     assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1, "no staging file left behind");

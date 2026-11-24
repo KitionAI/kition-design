@@ -1,5 +1,5 @@
-//! Reading the picture a saved file carries: from `.kdesign` and `.fig` archives and image files,
-//! and `None` (never a panic) for missing, damaged, oversized and non-zip input.
+//! Reading the picture a saved file carries: from `.fig` archives and image files (a `.kdesign`
+//! carries none), and `None` (never a panic) for missing, damaged, oversized and non-zip input.
 
 use std::io::{Cursor, Write};
 
@@ -34,17 +34,26 @@ fn dir(name: &str) -> std::path::PathBuf {
 }
 
 #[test]
-fn a_kition_design_file_gives_its_thumbnail() {
+fn a_kition_design_file_carries_no_thumbnail() {
+    let mut doc = Document::new("File");
+    let page = doc.first_page().unwrap();
+    doc.create(page, kition_design_doc::NodeKind::Rectangle, "Box", 0.0, 0.0, 40.0, 20.0).unwrap();
+    let bytes = crate::save_bytes(&doc).unwrap();
+    assert_eq!(thumbnail_png(Cursor::new(&bytes)), None, "a save writes no thumbnail.png");
+    let z = zip::ZipArchive::new(Cursor::new(&bytes)).unwrap();
+    assert!(z.file_names().all(|n| n != "thumbnail.png"));
+    // A picture decodes as it is.
     let thumb = png(40, 20);
-    let bytes = crate::save_bytes(&Document::new("File"), Some(&thumb)).unwrap();
-    assert_eq!(thumbnail_png(Cursor::new(&bytes)).as_deref(), Some(thumb.as_slice()));
     let t = decode_thumbnail(&thumb, 640).unwrap();
     assert_eq!((t.width, t.height, t.rgba.len()), (40, 20, 40 * 20 * 4));
     assert_eq!(t.rgba.get(..4), Some([10, 20, 30, 255].as_slice()));
-    // And from disk.
+    // And from disk: none, even when a `thumbnail.png` was put in by hand (nothing reads it).
     let path = dir("kition-design").join("a.kdesign");
     std::fs::write(&path, &bytes).unwrap();
-    assert_eq!(file_thumbnail(&path, 640), Some(t));
+    assert_eq!(file_thumbnail(&path, 640), None);
+    let by_hand = dir("kition-design").join("b.kdesign");
+    std::fs::write(&by_hand, zip(&[("thumbnail.png", &thumb)])).unwrap();
+    assert_eq!(file_thumbnail(&by_hand, 640), None);
 }
 
 #[test]
@@ -71,7 +80,7 @@ fn large_pictures_are_scaled_down_to_fit_never_up() {
 #[test]
 fn missing_damaged_oversized_and_non_zip_input_give_none() {
     // No thumbnail in the archive.
-    let bytes = crate::save_bytes(&Document::new("File"), None).unwrap();
+    let bytes = crate::save_bytes(&Document::new("File")).unwrap();
     assert_eq!(thumbnail_png(Cursor::new(&bytes)), None);
     // Not a zip: bare JSON, an old-style `.fig`, nothing at all.
     assert_eq!(thumbnail_png(Cursor::new(b"{\"format\":\"kition-design\"}".as_slice())), None);
@@ -90,7 +99,7 @@ fn missing_damaged_oversized_and_non_zip_input_give_none() {
     // Too many pixels on a side, however small the file.
     assert_eq!(decode_thumbnail(&png(MAX_THUMBNAIL_SIDE + 1, 1), 640), None);
     // A zip with a damaged central directory.
-    let mut cut = crate::save_bytes(&Document::new("File"), Some(&png(4, 4))).unwrap();
+    let (mut cut, _) = crate::fig::export(&Document::new("File"), Some(&png(4, 4))).unwrap();
     cut.truncate(cut.len() - 10);
     assert_eq!(thumbnail_png(Cursor::new(cut)), None);
 }
@@ -141,23 +150,23 @@ fn doc_on(rgb: [f32; 3]) -> Document {
 fn previews_carry_the_first_pages_colour() {
     use crate::thumbnail::{Preview, archive_preview, file_preview};
     let thumb = png(8, 4);
-    // `.kdesign`: the first page's background from its content.
-    let bytes = crate::save_bytes(&doc_on([0.1, 0.2, 0.3]), Some(&thumb)).unwrap();
+    // `.kdesign`: the first page's background from its content, and no picture.
+    let bytes = crate::save_bytes(&doc_on([0.1, 0.2, 0.3])).unwrap();
     let p = archive_preview(Cursor::new(&bytes), 640);
     assert_eq!(p.page, Some([0.1, 0.2, 0.3, 1.0]));
-    assert_eq!(p.picture.map(|t| (t.width, t.height)), Some((8, 4)));
+    assert_eq!(p.picture, None);
     // `.fig`: the canvas colour from meta.json.
     let (bytes, _) = crate::fig::export(&doc_on([0.5, 0.25, 0.75]), Some(&thumb)).unwrap();
     let p = archive_preview(Cursor::new(&bytes), 640);
     assert_eq!(p.page, Some([0.5, 0.25, 0.75, 1.0]));
     assert!(p.picture.is_some());
     // A file with nothing on it: its colour, no picture.
-    let bytes = crate::save_bytes(&doc_on([0.9, 0.9, 0.9]), None).unwrap();
+    let bytes = crate::save_bytes(&doc_on([0.9, 0.9, 0.9])).unwrap();
     assert_eq!(archive_preview(Cursor::new(&bytes), 640), Preview { page: Some([0.9, 0.9, 0.9, 1.0]), picture: None, kind: Default::default() });
     // A board says so (the home screen marks it).
     let mut board = doc_on([0.9, 0.9, 0.9]);
     board.kind = kition_design_doc::FileKind::Board;
-    let bytes = crate::save_bytes(&board, None).unwrap();
+    let bytes = crate::save_bytes(&board).unwrap();
     assert_eq!(archive_preview(Cursor::new(&bytes), 640).kind, kition_design_doc::FileKind::Board);
     // Damaged or odd metadata: no colour, never a panic.
     for meta in [&b"{"[..], b"{\"client_meta\":{\"background_color\":{\"r\":\"x\",\"g\":0,\"b\":0}}}", b"[]", b"{\"client_meta\":7}"] {
@@ -168,6 +177,14 @@ fn previews_carry_the_first_pages_colour() {
         let entries = [(kition_design_kdm::file::META, &b"{}"[..]), (kition_design_kdm::file::CONTENT, content)];
         assert_eq!(archive_preview(Cursor::new(zip(&entries)), 640).page, None, "{}", String::from_utf8_lossy(content));
     }
+    // Out-of-range channels are clamped, alpha too.
+    let mut odd = doc_on([0.0, 0.0, 0.0]);
+    let p = odd.first_page().unwrap();
+    if let Some(kition_design_doc::NodeKind::Page { background, .. }) = odd.node_mut(p).map(|n| &mut n.kind) {
+        *background = kition_design_doc::color::Color { r: 2.0, g: -1.0, b: 0.5, a: 3.0 };
+    }
+    let bytes = crate::save_bytes(&odd).unwrap();
+    assert_eq!(archive_preview(Cursor::new(&bytes), 640).page, Some([1.0, 0.0, 0.5, 1.0]));
     // Not an archive, or no file at all.
     assert_eq!(archive_preview(Cursor::new(b"junk".to_vec()), 640), Preview::default());
     assert_eq!(file_preview(std::path::Path::new("/nonexistent/x.kdesign"), 640), Preview::default());

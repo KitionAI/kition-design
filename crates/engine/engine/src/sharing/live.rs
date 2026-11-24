@@ -37,7 +37,7 @@
 //! short-lived presence the host passes on to everyone, never stored. A spotlight makes everyone
 //! follow the person who started it; moving your own view stops following, as with any follow.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -137,9 +137,6 @@ pub struct Live {
     pub spotlight: Option<u32>,
     /// You spotlight: everyone follows you.
     pub spotlighting: bool,
-    /// The branches of the session's file made or last updated from main in this session: every
-    /// layer of their base was in it (see [`crate::branches`]).
-    branch_bases: BTreeSet<String>,
 }
 
 impl Live {

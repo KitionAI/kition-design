@@ -32,7 +32,7 @@ fn library_files() -> &'static [Vec<u8>] {
                 let f = run(&mut s, "frame.create", json!({ "x": 0, "y": 0, "width": 40, "height": 40, "name": name }))["id"].clone();
                 run(&mut s, "component.create", json!({ "ids": [f] }));
                 run(&mut s, "library.publish", json!({}));
-                kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap()
+                kition_design_format::save_bytes(s.doc().unwrap()).unwrap()
             })
             .collect()
     })

@@ -145,7 +145,6 @@ fn a_view_link_makes_the_file_read_only() {
 
 fn saved_file(s: &mut Session) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!("kition-design-live-revert-{}-{}.kdesign", std::process::id(), s.ds().unwrap().uid));
-    s.execute("file.saveVersion", &json!({"name": "Saved"})).unwrap();
     s.execute("file.save", &json!({"path": path})).unwrap();
     s.execute("file.rename", &json!({"name": "Unsaved"})).unwrap();
     path
@@ -172,7 +171,7 @@ fn revert_refused_unchanged(s: &mut Session, script: &Arc<Mutex<Script>>) {
         s.ds().unwrap().uid,
         s.live().id
     );
-    assert_eq!(format!("{:?}", s.docs), before, "all document state, including previews and branch tabs, stays intact");
+    assert_eq!(format!("{:?}", s.docs), before, "all document state, including previews, stays intact");
     assert_eq!(s.live_summary(), live);
     assert_eq!((s.active, &s.journal, &s.last_command, &s.message, &s.ui_requests), (active, &journal, &last, &message, &ui));
     let sc = script.lock().unwrap();
@@ -234,27 +233,20 @@ fn revert_refuses_live_documents_without_losing_access_or_sync() {
 }
 
 #[test]
-fn revert_refusal_preserves_previews_and_branch_tabs() {
+fn revert_refusal_preserves_previews() {
     let (mut s, script) = session();
     let text = s.execute("text.create", &json!({"text": "Preview"})).unwrap()["id"].clone();
+    let version = crate::cmd::file::saved_version(&mut s);
     let path = saved_file(&mut s);
-    s.execute("branch.create", &json!({"name": "Working"})).unwrap();
-    s.execute("doc.switch", &json!({"index": 0})).unwrap();
     s.execute("collab.host", &json!({})).unwrap();
     let (_, _, welcome) = serve_as(s.doc().unwrap(), Access::Edit);
     push(&script, vec![welcome]);
     s.live_poll();
     let main_uid = s.ds().unwrap().uid;
-    // A branch has no local save path; refusal keeps its live parent associated.
-    s.execute("doc.switch", &json!({"index": 1})).unwrap();
-    assert!(s.ds().unwrap().path.is_none());
     revert_refused_unchanged(&mut s, &script);
     assert_eq!(s.live_of(main_uid).doc_uid, Some(main_uid));
-    s.execute("doc.switch", &json!({"index": 0})).unwrap();
-    s.execute("version.preview", &json!({"index": 0})).unwrap();
+    s.execute("version.preview", &json!({"version": version})).unwrap();
     assert!(s.ds().unwrap().preview.is_some());
-    // A gesture on a branch has not yet been copied back into its main file.
-    s.docs[1].doc_mut().name = "Branch edits".into();
     revert_refused_unchanged(&mut s, &script);
     s.execute("version.exitPreview", &json!({})).unwrap();
     s.execute("text.preview", &json!({"command": "text.style", "params": {"ids": [text], "fontSize": 32}})).unwrap();

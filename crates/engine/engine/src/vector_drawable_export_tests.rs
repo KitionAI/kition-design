@@ -74,7 +74,7 @@ fn export_settings_keep_their_compatibility_mode() {
     assert_eq!((v["format"].as_str(), v["vdCompat"].as_str()), (Some("vectorDrawable"), Some("exact")));
     assert!(serde_json::to_value(ExportSetting::default()).unwrap().get("vdCompat").is_none());
     // Saved and loaded.
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!(back.node(f).unwrap().exports[0], e);
     // Edited and undone.

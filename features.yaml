@@ -64,7 +64,7 @@ features:
     gap: "An independent reading covers all 372 write handlers; 368 commands are mechanically compared across 803 paths (four widget commands need an unavailable plugin). The gate permits zero held-less commands and twelve held-more commands: import name membership, page-window occupants, prototype mode-reference replay, painted-bound facts in five spatial commands and unconditional reflow inputs in three no-op text commands and unread current subtrees in Dev Mode resolution. Batch selection/dataflow, layout limits, text and group membership, variable defaults/aliases and consumed appearance are covered by independent-writer tests. The 300-cell constraint matrix has zero wrong writes and false refusals; other combinations remain unproven. The pinned SDK still accepts implicit-selection wrong writes, refuses unrelated address/membership changes, and cannot observe a linked library file changing by itself."
     paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/validate.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/rests/**, bindings/wasm/tests/declarations_independent.rs, bindings/headless/tests/premise.rs, bindings/headless/tests/outside/**]
     requirements: [AX13]
-    cases: [design.agent.ids/guard-conflicts, design.agent.ids/guard-others, design.agent.ids/ids-survive-reopen, design.agent.ids/inspect-lists-pages, design.agent.ids/kdm-tool-ids, design.agent.ids/keyless-layer-repair, design.agent.ids/model-speaks-layer-ids, design.agent.ids/new-server, design.agent.ids/receipts, regressions/issue-c8-land-11-design, regressions/issue-c8-land-11-design-receipts, regressions/issue-c8-land-11-design-premises, regressions/issue-c8-land-11-design-receipt-sizes, regressions/issue-c8-land-11-design-outside, regressions/issue-c8-land-11-design-env, regressions/issue-c8-design-guard-review, regressions/issue-c8-design-review2-library, regressions/issue-c8-design-review2-branches, regressions/issue-c8-design-review2-families, regressions/issue-c8-design-review2-propagation, regressions/issue-c8-design-review2-external-library, regressions/issue-c8-design-3-place, regressions/issue-c8-design-3-vector, regressions/issue-c8-design-3-normalisation, regressions/issue-c8-design-3-implicit-place,
+    cases: [design.agent.ids/guard-conflicts, design.agent.ids/guard-others, design.agent.ids/ids-survive-reopen, design.agent.ids/inspect-lists-pages, design.agent.ids/kdm-tool-ids, design.agent.ids/keyless-layer-repair, design.agent.ids/model-speaks-layer-ids, design.agent.ids/new-server, design.agent.ids/receipts, regressions/issue-c8-land-11-design, regressions/issue-c8-land-11-design-receipts, regressions/issue-c8-land-11-design-premises, regressions/issue-c8-land-11-design-receipt-sizes, regressions/issue-c8-land-11-design-outside, regressions/issue-c8-land-11-design-env, regressions/issue-c8-design-guard-review, regressions/issue-c8-design-review2-library, regressions/issue-c8-design-review2-families, regressions/issue-c8-design-review2-propagation, regressions/issue-c8-design-review2-external-library, regressions/issue-c8-design-3-place, regressions/issue-c8-design-3-vector, regressions/issue-c8-design-3-normalisation, regressions/issue-c8-design-3-implicit-place,
       regressions/issue-c8-design-3-tool-cleanup, regressions/issue-c8-design-3-addresses, regressions/issue-c8-design-3-audit, regressions/issue-c8-design-3-board-label, regressions/issue-c8-design-read, regressions/issue-c8-expectations-review-design]
     since: "2026-11-17"
   - id: design.platform.display-modes
@@ -84,12 +84,12 @@ features:
     cases: [design.platform.document-identity/fork, design.platform.document-identity/no-replica]
     since: "2026-11-20"
   - id: design.file.content-only
-    title: "A .kdesign holds the design's content, not its history: the replica's sealed content snapshot and the images it uses; no document.json, change log or saved versions (kition-sdk M16b)"
+    title: "A .kdesign holds the design's content, not its history: the replica's sealed content snapshot and the images it uses; no document.json, change log, saved versions, branches or thumbnail (kition-sdk M16b)"
     dimension: [platform, data-safety]
     priority: P0
     status: has
     paths: [crates/kdm/kdm-model/src/file.rs, crates/formats/format/src/lib.rs, crates/engine/engine/src/kdm.rs, crates/engine/engine/src/cmd/file/save.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/identity.rs]
-    gap: "Saved versions live in the session only: the host offers kits no store for labelled checkpoints yet. The page the editor shows is not kept either."
+    gap: "The page the editor shows is not kept."
     cases: [design.file.content-only/no-history, design.file.content-only/agent-saves-sealed]
     since: "2026-11-22"
   - id: design.collab.containers
@@ -107,16 +107,6 @@ features:
     status: partial
     commands: [file.import, file.placeImage, file.saveVersion, file.versionHistory, file.export, file.exportFramesPdf, file.exportSvg, file.rename, file.colorProfile, export.add, export.update, export.remove, file.exportLayers, file.render]
     paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/commands.rs, tools/xtask/src/main.rs, crates/engine/engine/src/cmd/edit.rs]
-    target: "Figma desktop 126.10.7 (macOS)"
-    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    since: "2026-11-17"
-  - id: design.branch.manage
-    title: "Branches: create, update from main, merge, archive"
-    dimension: [collab, function]
-    priority: P1
-    status: partial
-    commands: [branch.create, branch.list, branch.updateFromMain, branch.merge, branch.archive]
-    paths: [crates/engine/engine/src/sharing/branches.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/query.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
@@ -332,14 +322,15 @@ features:
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
   - id: design.version.history
-    title: "Version history"
+    title: "Saved versions through the host's checkpoints: save, list (newest first, paged), rename, delete, preview, restore as one undoable edit, compare in Dev Mode; nothing about versions in the file or the replica"
     dimension: [collab, function]
     priority: P1
     status: partial
-    commands: [version.list, version.restore, version.rename, version.delete, version.preview, version.autosave, version.exitPreview]
-    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/query.rs, crates/engine/engine/src/cmd/file/version.rs]
+    commands: [file.saveVersion, file.versionHistory, version.restore, version.preview, version.exitPreview]
+    paths: [web/src/dev/VersionHistory.tsx, web/src/dev/checkpoints.ts, web/src/dev/DevHost.tsx, crates/engine/engine/src/cmd/file/version.rs, crates/engine/engine/src/cmd/file.rs, crates/kdm/kdm-model/src/session.rs, bindings/wasm/src/rests/resolve.rs, bindings/wasm/src/rests/edit.rs, web/tests/versions.mjs]
     target: "Figma desktop 126.10.7 (macOS)"
-    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    gap: "A host with the checkpoints capability keeps them (Kition, the development host); elsewhere the panel says it keeps none. The checkpoint's version is the replica's when the host asks after the file write, so an edit made during that wait is in the version saved (kition-sdk). Versions are not compared with each other."
+    cases: [design.version.history/checkpoints, design.version.history/restore-premises]
     since: "2026-11-17"
   - id: design.page.manage
     title: "Pages"

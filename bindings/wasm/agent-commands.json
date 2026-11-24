@@ -473,36 +473,6 @@
  "bool.union": {
   "description": "Sets union as the boolean operation of the selected operands or group, or wraps layers in a union boolean group."
  },
- "branch.archive": {
-  "description": "Sets a branch aside without merging and closes its tab."
- },
- "branch.create": {
-  "description": "Creates a branch: a separate copy of the file to work on, opened in a new tab; answers its id, name and tab index."
- },
- "branch.list": {
-  "description": "Answers the file's branches, oldest first, with their names, times and states.",
-  "output": {
-   "type": "array"
-  }
- },
- "branch.merge": {
-  "description": "Merges the branch into the main file as one undo step, with conflict resolutions, then archives it.",
-  "params": {
-   "resolutions": {
-    "additionalProperties": true,
-    "type": "object"
-   }
-  }
- },
- "branch.updateFromMain": {
-  "description": "Brings the main file's changes since the branch was made into the branch, with conflict resolutions.",
-  "params": {
-   "resolutions": {
-    "additionalProperties": true,
-    "type": "object"
-   }
-  }
- },
  "codeConnect.export": {
   "description": "Answers (or writes) every component's code connections as a connect JSON file.",
   "output": {
@@ -1681,40 +1651,10 @@
   }
  },
  "file.saveVersion": {
-  "description": "Snapshots the document into the file's version history with an optional name and description; answers the version.",
-  "params": {
-   "description": {
-    "type": "string"
-   }
-  }
+  "description": "Opens the version history's save form: the editor saves the version with the host, which keeps saved versions (never the design or its file)."
  },
  "file.versionHistory": {
-  "description": "Opens the version history panel and answers the versions, as version.list does.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "result": {
-     "type": "array"
-    },
-    "uiRequests": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "data": {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       "kind": {
-        "type": "string"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    }
-   },
-   "type": "object"
-  }
+  "description": "Opens the version history panel; the host keeps the saved versions."
  },
  "fill.add": {
   "description": "Adds a fill paint (default light grey, white for frames) on top of the selected or given layers' fills.",
@@ -5706,12 +5646,6 @@
  "vector.smoothJoin": {
   "description": "Joins the selected open paths or points with a smooth curve."
  },
- "version.autosave": {
-  "description": "Saves an automatic checkpoint when there are changes since the last version."
- },
- "version.delete": {
-  "description": "Deletes a version from the file's history."
- },
  "version.exitPreview": {
   "description": "Ends a version preview and shows the current document again.",
   "output": {
@@ -5724,28 +5658,14 @@
    "type": "object"
   }
  },
- "version.list": {
-  "description": "Answers the file's version history, oldest first, with names, descriptions and times.",
-  "output": {
-   "type": "array"
-  }
- },
  "version.preview": {
-  "description": "Shows a saved version on the canvas read-only in place of the document; version.exitPreview goes back.",
+  "description": "Shows the design as it was at a saved version (its replica version) on the canvas read-only in place of the document; version.exitPreview goes back.",
   "output": {
    "type": "json"
   }
  },
- "version.rename": {
-  "description": "Renames a version (an autosave with a title becomes a named version).",
-  "params": {
-   "description": {
-    "type": "string"
-   }
-  }
- },
  "version.restore": {
-  "description": "Replaces the design with a saved version in one undo step, keeping the current state in the history first."
+  "description": "Gives the design the content it had at a saved version (its replica version, as the host's checkpoint names it) as one undoable edit; the file name, what it published and the comments stay."
  },
  "view.comments": {
   "description": "Shows, hides or toggles comment pins; view state only.",

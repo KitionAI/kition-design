@@ -1,5 +1,5 @@
 //! What the edit family's writes rest on (see [`super`]): `edit.*`, `object.*`, `command.*`,
-//! `data.*`, `page.*`, `file.*`, `branch.*`, `version.*`, `comment.*`, `board.*` and `tool.*`.
+//! `data.*`, `page.*`, `file.*`, `version.*`, `comment.*`, `board.*` and `tool.*`.
 //!
 //! Engine paths below are under `crates/engine/engine/src/`. After every edit the engine's
 //! clean-up (`derived.rs:15` normalize) re-flows auto layout parents of what changed size, place
@@ -70,7 +70,7 @@ pub(super) fn rest(rest: &mut Rest<'_>) {
         _ if command.starts_with("object.") => object(rest),
         _ if command.starts_with("page.") => page(rest),
         _ if command.starts_with("comment.") => comment(rest),
-        _ if command.starts_with("file.") || command.starts_with("version.") || command.starts_with("branch.") => file(rest),
+        _ if command.starts_with("file.") || command.starts_with("version.") => file(rest),
         _ if command.starts_with("board.") => board(rest),
         _ => {}
     }
@@ -231,7 +231,6 @@ fn named(params: &Value) -> bool {
 /// layers it changed (KDM undoes only that step), the resources it changed, and the history.
 fn history(rest: &mut Rest<'_>, undo: bool) {
     let Ok(ds) = rest.design.ds() else { return };
-    rest.root(&["~history"]);
     let scope = rest.design.session().undo_scope();
     let stack = if undo { &ds.history.undo } else { &ds.history.redo };
     let Some(entry) = stack.iter().rev().find(|e| e.scope == scope).or_else(|| stack.last()) else { return };
@@ -934,7 +933,7 @@ fn comment(rest: &mut Rest<'_>) {
     }
 }
 
-// ---- file.*, version.*, branch.* ----
+// ---- file.*, version.* ----
 
 fn file(rest: &mut Rest<'_>) {
     let doc = rest.doc;
@@ -964,27 +963,17 @@ fn file(rest: &mut Rest<'_>) {
                 }
             }
         }
-        // A snapshot of the whole design (`cmd/file/version.rs:115-131`, `:14-28`).
-        "file.saveVersion" | "version.autosave" | "branch.create" => rest.whole("design", false),
-        // Replaces the document's name (`cmd/file.rs:176-180`).
+        // Replaces the document's name (`cmd/file.rs`).
         "file.rename" => rest.root(&["settings.name"]),
-        // The whole design is replaced by the version's (`cmd/file/version.rs:133-171`); a
-        // three-way merge reads the whole main design (`sharing/branches.rs`).
-        "version.restore" | "branch.merge" | "branch.updateFromMain" => {
+        // The whole design is replaced by the content at the version (`cmd/file/version.rs`).
+        "version.restore" => {
             clear(rest, &[]);
             rest.only(
                 "design",
                 &["settings", "nodes", "libraryStore", "styles", "collections", "variables", "libraries", "libraryCopies", "images"],
                 false,
             );
-            rest.root(if rest.command == "version.restore" { &["~history", "~snapshots"] } else { &["~branches"] });
-            if rest.command != "version.restore" {
-                rest.root(&["comments"]);
-            }
         }
-        // The version at the index (`cmd/file.rs:241-267`).
-        "version.rename" => rest.only("design", &["~history"], false),
-        "version.delete" => rest.only("design", &["~versionIds"], false),
         "file.colorProfile" => colour_profile(rest),
         _ => {}
     }

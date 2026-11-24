@@ -76,7 +76,7 @@ fn rest_slot_content_survives_main_edits_moves_and_saving() {
     assert_eq!(slot_content(&s).1, want, "kept across syncs");
 
     // Saving and opening again keeps it.
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let data = base64::engine::general_purpose::STANDARD.encode(bytes);
     let mut again = Session::new();
     ex(&mut again, "file.open", json!({"data": data, "name": "slots.kdesign"}));

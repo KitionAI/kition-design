@@ -2,8 +2,8 @@ use super::*;
 
 /// The recovery copy at `path` as a document with unsaved changes and no path.
 pub(crate) fn recovered(path: &str) -> Result<DocState> {
-    let loaded = read(path).and_then(|b| kition_design_format::load_bytes_with_branches(&b).map_err(|e| EngineError::Other(e.to_string())))?;
-    Ok(DocState::new(loaded.doc, None).with_branches(loaded.branches).unsaved())
+    let loaded = read(path).and_then(|b| kition_design_format::load_with_replica(&b).map_err(|e| EngineError::Other(e.to_string())))?;
+    Ok(DocState::new(loaded.doc, None).unsaved())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -57,7 +57,7 @@ pub fn load_bytes(bytes: &[u8], name_hint: &str) -> Result<(Document, Vec<String
     load_with(bytes, name_hint, None, &kition_design_format::rest::no_images).map(|(l, _)| (l.doc, l.issues))
 }
 
-/// [`load`] with the version history, also telling whether the file was REST API file JSON. A REST
+/// [`load`] with its replica entries, also telling whether the file was REST API file JSON. A REST
 /// import reads its variables from `variables`, else from a variables JSON next to the file.
 pub fn load_path(path: &str, variables: Option<&Value>) -> Result<(kition_design_format::Loaded, bool)> {
     let bytes = read(path)?;
@@ -66,7 +66,7 @@ pub fn load_path(path: &str, variables: Option<&Value>) -> Result<(kition_design
 }
 
 /// Load from bytes. Returns the document with its notes (repairs of a native file, or import
-/// warnings) and version history, and whether it was imported from REST API file JSON or a `.fig`
+/// warnings) and replica entries, and whether it was imported from REST API file JSON or a `.fig`
 /// file (such a file is never saved over). `variables`: the local variables JSON for a REST API file JSON.
 pub(super) fn load_with(
     bytes: &[u8],
@@ -103,7 +103,7 @@ pub(super) fn load_with(
                 link_instances(&mut doc);
                 return Ok((kition_design_format::Loaded { issues: warnings, ..doc.into() }, true));
             }
-            let mut loaded = kition_design_format::load_bytes_with_branches(bytes).map_err(|e| EngineError::Other(e.to_string()))?;
+            let mut loaded = kition_design_format::load_with_replica(bytes).map_err(|e| EngineError::Other(e.to_string()))?;
             // Older files saved an untouched default title even after the user chose a filename.
             if loaded.doc.name.is_empty() || loaded.doc.name == "Untitled" {
                 loaded.doc.name = file_stem(name_hint);

@@ -585,14 +585,14 @@ impl Session {
     /// what it holds differently is written, as one `import` transaction: that is outside both
     /// undo scopes, so the person's and agents' undo steps stay and each still undoes only its
     /// own change. Layers keep their ids, so the selection and the edit modes stay. The parts of
-    /// the file outside the replica (the version history, the branches, the published library)
-    /// are the file's. The document ends clean. Errs, changing nothing, without a replica, while
-    /// a gesture, a text preview or a version preview is open, or on a branch's tab.
+    /// the file outside the replica (the published library) are the file's. The document ends
+    /// clean. Errs, changing nothing, without a replica, or while a gesture, a text preview or a
+    /// version preview is open.
     pub fn reconcile_reread(&mut self, fresh: &DocState) -> Result<()> {
         let origin = self.origin();
         let ds = self.ds_mut()?;
-        if ds.interaction.is_some() || ds.text_preview.is_some() || ds.preview.is_some() || ds.branch_of.is_some() {
-            return Err(EngineError::Other("the file changed while a gesture, a preview or a branch was open: open the file again".into()));
+        if ds.interaction.is_some() || ds.text_preview.is_some() || ds.preview.is_some() {
+            return Err(EngineError::Other("the file changed while a gesture or a preview was open: open the file again".into()));
         }
         ds.sync_kdm(&origin);
         let kdm = ds.link.kdm.as_mut().ok_or_else(no_replica)?;

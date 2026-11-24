@@ -43,7 +43,7 @@ fn device_rotation_turns_phones_and_tablets_and_is_saved() {
     assert_eq!(settings(&s).rotation, DeviceRotation::Landscape);
     // Saved in the file and read back; files without it open in portrait.
     s.execute("proto.settings", &json!({"device": "iPad mini"})).unwrap();
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (doc, _) = kition_design_format::load_bytes(&bytes).unwrap();
     let NodeKind::Page { prototype, .. } = &doc.node(doc.pages[0]).unwrap().kind else { panic!("not a page") };
     assert_eq!(prototype.device().map(|d| (d.width, d.height)), Some((1133.0, 744.0)));

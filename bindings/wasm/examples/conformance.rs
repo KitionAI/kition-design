@@ -233,17 +233,14 @@ fn truncated(doc: &mut DesignDocument) -> Result<(), String> {
 fn rewrite(bytes: &[u8], damage: Option<Damage>, keep: fn(&str) -> bool) -> Vec<u8> {
     let bytes = match damage {
         Some(damage) => {
-            let mut file = kition_design_format::load_bytes_with_branches(bytes).unwrap();
+            let mut file = kition_design_format::load_with_replica(bytes).unwrap();
             let mut json = kition_design_format::to_json(&file.doc).unwrap();
             damage(&mut json);
             let (mut doc, _) = kition_design_format::from_json(&json.to_string()).unwrap();
             doc.images = std::mem::take(&mut file.doc.images);
             doc.published = file.doc.published.take();
             file.doc = doc;
-            let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
-            let mut thumbnail = Vec::new();
-            let has_thumbnail = archive.by_name("thumbnail.png").map(|mut f| f.read_to_end(&mut thumbnail).is_ok()).unwrap_or(false);
-            kition_design_format::save_edited(&file, has_thumbnail.then_some(thumbnail.as_slice())).unwrap()
+            kition_design_format::save_edited(&file).unwrap()
         }
         None => bytes.to_vec(),
     };
@@ -268,7 +265,6 @@ fn fixture(name: &str, build: Build, damage: Option<Damage>, drop_images: bool) 
     let mut doc = DesignDocument::create(name, 400, 300)?;
     build(&mut doc)?;
     run(&mut doc, "select.none", json!({}))?;
-    doc.prepare_save()?;
     let bytes = doc.seal_and_save(None)?;
     Ok(if damage.is_some() || drop_images {
         rewrite(&bytes, damage, if drop_images { |name: &str| !name.starts_with("images/") } else { |_: &str| true })

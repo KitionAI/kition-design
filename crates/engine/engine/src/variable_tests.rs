@@ -51,7 +51,7 @@ fn initial_color_bindings_settle_in_constructor_and_loaders() {
     state.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 2, "height": 2})).unwrap();
     assert_dark_bound_color(state.doc().unwrap(), name_transform);
 
-    let native = kition_design_format::save_bytes(&stale, None).unwrap();
+    let native = kition_design_format::save_bytes(&stale).unwrap();
     let (loaded, _) = crate::cmd::file::load_bytes(&native, "bindings.kdesign").unwrap();
     // A native file settles when it opens as a document, not in the loader.
     let opened = Session::with_document(loaded);

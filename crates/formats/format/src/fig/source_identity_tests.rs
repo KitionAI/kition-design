@@ -339,7 +339,7 @@ fn hidden_cached_component_is_retained_and_linked() {
         assert_eq!(fill_rgb_node(doc, external_child), Some([f64::from(0.2_f32), f64::from(0.7_f32), f64::from(0.1_f32)]));
     };
     check(&doc);
-    let (saved, warnings) = crate::load_bytes(&crate::save_bytes(&doc, None).unwrap()).unwrap();
+    let (saved, warnings) = crate::load_bytes(&crate::save_bytes(&doc).unwrap()).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     check(&saved);
 }
@@ -363,7 +363,7 @@ fn visible_component_default_swap_retains_hidden_cached_main() {
     let (doc, warnings) = import(&cached_component_default_swap_fixture(), "Cached default swap.fig").unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     assert_default_swap(&doc);
-    let (saved, _) = crate::load_bytes(&crate::save_bytes(&doc, None).unwrap()).unwrap();
+    let (saved, _) = crate::load_bytes(&crate::save_bytes(&doc).unwrap()).unwrap();
     assert_default_swap(&saved);
 }
 

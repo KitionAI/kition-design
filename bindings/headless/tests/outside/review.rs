@@ -113,9 +113,9 @@ async fn library_point_writes_hold_an_existing_local_main() {
             .unwrap();
             let basis = f.basis().await;
             if necessary {
-                let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+                let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
                 file.doc.get_mut(kition_design_doc::NodeId(local)).unwrap().width += 50.0;
-                let bytes = kition_design_format::save_edited(&file, None).unwrap();
+                let bytes = kition_design_format::save_edited(&file).unwrap();
                 std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
             } else {
                 f.colleague(&[("node.set", json!({"id":f.b,"props":{"opacity":0.5}}))]);
@@ -427,7 +427,7 @@ async fn legacy_numeric_thread_and_node_ids_do_not_share_a_guard_identity() {
         let opened = DesignDocument::open(FILE, &f.bytes()).unwrap();
         let mut legacy = opened.session().doc().unwrap().clone();
         legacy.comments[0].id = f.a;
-        let bytes = kition_design_format::save_bytes(&legacy, None).unwrap();
+        let bytes = kition_design_format::save_bytes(&legacy).unwrap();
         std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
         let thread = DesignDocument::open(FILE, &f.bytes()).unwrap().session().doc().unwrap().comments[0].id;
         let basis = f.basis().await;
@@ -514,6 +514,55 @@ async fn pinned_sdk_root_position_hold_also_conflicts_with_parent_size() {
     f.shutdown().await;
 }
 
+/// The version the file's content holds (its seal): a saved version every server that opens the
+/// file reaches, since its replica's history starts there.
+fn file_version(f: &Fixture) -> String {
+    let file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
+    let content = &file.replica.iter().find(|(name, _)| name == kition_design_kdm::file::CONTENT).unwrap().1;
+    let replica = kition_kit::kdm::Replica::load(kition_design_kdm::schema().unwrap(), content, kition_kit::kdm::ActorId::random()).unwrap();
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, replica.version().encode())
+}
+
+// A restore names its version (the content at a replica version, which never changes), never a
+// label, and writes the whole design: the version's content is what it holds, so a colleague's
+// change of a layer it replaces refuses it, and a conversation beside it (kept by the restore)
+// does not.
+#[tokio::test(flavor = "multi_thread")]
+async fn restoring_a_version_holds_its_snapshot_not_just_its_label() {
+    for necessary in [true, false] {
+        let f = Fixture::new(Guard::Premise);
+        rewrite(&f, |d| d.execute("object.rename", json!({"ids":[f.a],"name":"Original"})).unwrap());
+        let version = file_version(&f);
+        let basis = f.basis().await;
+        if necessary {
+            f.colleague(&[("object.rename", json!({"ids":[f.a],"name":"Replaced snapshot"}))]);
+        } else {
+            f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
+        }
+        outcome(&f, &basis, "version.restore", json!({"version":version}), necessary).await;
+        if !necessary {
+            assert_eq!(f.node(f.a)["name"], "Original", "the restore wrote the version's content");
+        }
+        f.shutdown().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn restoring_a_version_holds_the_styles_it_replaces() {
+    for necessary in [true, false] {
+        let f = Fixture::new(Guard::Premise);
+        let version = file_version(&f);
+        let basis = f.basis().await;
+        if necessary {
+            f.colleague(&[("style.update", json!({"style":f.style,"description":"Colleague"}))]);
+        } else {
+            f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
+        }
+        outcome(&f, &basis, "version.restore", json!({"version":version}), necessary).await;
+        f.shutdown().await;
+    }
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn publishing_holds_the_previous_asset_snapshot_not_only_its_manifest() {
     for necessary in [true, false] {
@@ -524,11 +573,11 @@ async fn publishing_holds_the_previous_asset_snapshot_not_only_its_manifest() {
         });
         let basis = f.basis().await;
         if necessary {
-            let mut file = kition_design_format::load_bytes_with_branches(&f.bytes()).unwrap();
+            let mut file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
             let publication = std::sync::Arc::make_mut(file.doc.published.as_mut().unwrap());
             let snapshot = std::sync::Arc::make_mut(&mut publication.doc);
             snapshot.styles.iter_mut().find(|s| json!(s.id) == f.style).unwrap().name = "Replaced snapshot".into();
-            let bytes = kition_design_format::save_edited(&file, None).unwrap();
+            let bytes = kition_design_format::save_edited(&file).unwrap();
             std::fs::write(f.workspace.path().join(FILE), bytes).unwrap();
         } else {
             f.colleague(&[("node.set", json!({"id":f.b,"props":{"opacity":0.5}}))]);

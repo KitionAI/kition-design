@@ -232,7 +232,6 @@ fn queries_answer_the_panels() {
         "styles",
         "variables",
         "framePresets",
-        "versions",
         "prototype",
         "menus",
         "checked",

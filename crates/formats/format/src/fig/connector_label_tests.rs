@@ -127,7 +127,7 @@ fn synthetic_label_style_transform_and_container_opacity_survive_native_roundtri
     assert!(warnings.iter().any(|warning| warning.contains("live endpoint bindings are not retained")));
 
     let (native, _) = crate::rest::import_fig(&rest, &|_| None).unwrap();
-    let bytes = crate::save_bytes(&native, None).unwrap();
+    let bytes = crate::save_bytes(&native).unwrap();
     let (reopened, _) = crate::load_bytes(&bytes).unwrap();
     let frame = find_node(&reopened, "synthetic connector");
     assert_eq!(frame.opacity, 0.5);

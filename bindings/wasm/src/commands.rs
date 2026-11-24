@@ -40,9 +40,6 @@ pub const EXCLUDED: &[&str] = &[
     "file.save",
     "file.saveAs",
     "file.markSaved",
-    "version.duplicate",
-    "branch.open",
-    "branch.review",
     "template.list",
     "view.zoomIn",
     "view.zoomOut",
@@ -91,20 +88,11 @@ pub const EXCLUDED: &[&str] = &[
 pub const EXCLUDED_PREFIXES: &[&str] = &["doc.", "window.", "app.", "help.", "collab.", "plugin.", "plugins.", "online.", "live.", "invite."];
 
 /// Commands the engine does not record as undo steps that still change the file: undo and redo,
-/// batches (their steps edit), the version history and branches saved in the `.kdesign`, widgets and
-/// data fills.
+/// batches (their steps edit), widgets and data fills.
 const EDITS_WITHOUT_HISTORY: &[&str] = &[
     "edit.undo",
     "edit.redo",
     "command.batch",
-    "file.saveVersion",
-    "version.rename",
-    "version.delete",
-    "version.autosave",
-    "branch.create",
-    "branch.merge",
-    "branch.archive",
-    "branch.updateFromMain",
     "widget.insert",
     "widget.click",
     "widget.setText",

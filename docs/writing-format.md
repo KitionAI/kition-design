@@ -112,12 +112,8 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `width` number
   - `x` number
   - `y` number
-- `file.saveVersion` (writes): Snapshots the document into the file's version history with an optional name and description; answers the version.
-  - `description` string
-  - `name` string
-- `file.versionHistory` (reads): Opens the version history panel and answers the versions, as version.list does. No parameters.
-- `branch.create` (writes): Creates a branch: a separate copy of the file to work on, opened in a new tab; answers its id, name and tab index.
-  - `name` string
+- `file.saveVersion` (reads): Opens the version history's save form: the editor saves the version with the host, which keeps saved versions (never the design or its file). No parameters.
+- `file.versionHistory` (reads): Opens the version history panel; the host keeps the saved versions. No parameters.
 - `file.export` (reads): Exports layers (default the selection, else the page) as PNG, JPEG, SVG, PDF, WebP, Android Vector Drawable or the whole .fig, at a scale with print options; answers the data.
   - `bleed` number or string
   - `bleedMarks` boolean
@@ -829,7 +825,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `dev.resolveChange` (writes): Marks changed ready-for-dev frames and sections as resolved, back to Ready for dev, with a reason.
   - `ids` array
   - `reason` string
-- `dev.compare` (reads): Answers what changed in a ready-for-dev frame or section since it was marked (or since a saved version).
+- `dev.compare` (reads): Answers what changed in a ready-for-dev frame or section since it was marked (or since a saved version, by its replica version).
   - `id` integer or string, an id; default the first selected layer
   - `show` boolean
   - `version` string
@@ -852,14 +848,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `ids` array, default the selection, else every layer on the page with export settings
   - `vdCompat` boolean
   - `zip` boolean
-- `version.list` (reads): Answers the file's version history, oldest first, with names, descriptions and times. No parameters.
-- `version.restore` (writes): Replaces the design with a saved version in one undo step, keeping the current state in the history first. No parameters.
-- `version.rename` (writes): Renames a version (an autosave with a title becomes a named version).
-  - `description` string
-  - `name` string
-- `version.delete` (writes): Deletes a version from the file's history. No parameters.
-- `version.preview` (reads): Shows a saved version on the canvas read-only in place of the document; version.exitPreview goes back. No parameters.
-- `version.autosave` (writes): Saves an automatic checkpoint when there are changes since the last version. No parameters.
+- `version.restore` (writes): Gives the design the content it had at a saved version (its replica version, as the host's checkpoint names it) as one undoable edit; the file name, what it published and the comments stay.
+  - `version` required
+- `version.preview` (reads): Shows the design as it was at a saved version (its replica version) on the canvas read-only in place of the document; version.exitPreview goes back.
+  - `id` string
+  - `name`
+  - `time`
+  - `version` required
 - `version.exitPreview` (reads): Ends a version preview and shows the current document again. No parameters.
 - `page.add` (writes): Adds a page (a name starting with a hyphen adds a divider).
   - `name` string
@@ -1584,15 +1579,6 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `to` integer or string, an id (a number, or its digits as text)
 - `measure.padding` (reads): Answers the padding and gap lines of an auto layout frame, as Shift+Alt-hover shows.
   - `id` integer or string, an id; an auto layout frame or a child; default the selection
-- `branch.list` (reads): Answers the file's branches, oldest first, with their names, times and states. No parameters.
-- `branch.updateFromMain` (writes): Brings the main file's changes since the branch was made into the branch, with conflict resolutions.
-  - `id` integer or string, an id
-  - `resolutions` object
-- `branch.merge` (writes): Merges the branch into the main file as one undo step, with conflict resolutions, then archives it.
-  - `id` integer or string, an id
-  - `resolutions` object
-- `branch.archive` (writes): Sets a branch aside without merging and closes its tab.
-  - `id` integer or string, an id
 - `widget.insert` (writes): Inserts a widget drawn by a widget plugin at x, y; answers its state and output.
   - `fuel` integer
   - `plugin` string

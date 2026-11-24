@@ -2,15 +2,12 @@
 //!
 //! A zip archive holding the document's **content** (kition-sdk data model 7.3, rule M16b): its
 //! `kit.design` replica's sealed content snapshot (`kdm/content.bin`, with `kdm/meta.json`
-//! naming the document; [`kition_design_kdm::file`]), `images/<sha256>` for every image the
-//! content (or a branch, or the published library) uses, and an optional `thumbnail.png`. No
-//! history: no change log, no saved versions (the host's history store keeps checkpoints). Branches
-//! are kept as JSON documents: `branches/index.json` (`{"branches": [{id, name, time, client,
-//! state, baseImages, headImages}]}`) plus `branches/<id>/base.json` and `branches/<id>/head.json`;
-//! a branch's own version history is kept under `branches/<id>/versions/` (`index.json` and one
-//! `<id>.json` per version). A published file also holds its library (see [`library`]). Reading
-//! is lenient: damaged branches and libraries are skipped and reported; a file without its content
-//! is damaged.
+//! naming the document; [`kition_design_kdm::file`]) and `images/<sha256>` for every image the
+//! content (or the published library) uses. No history: no change log, no saved versions (the
+//! host's history store keeps checkpoints), no branches (a copy of the file is a new document),
+//! and no thumbnail (a host draws its own). A published file also holds its library (see
+//! [`library`]). Reading is lenient: a damaged library is skipped and reported; a file without its
+//! content is damaged.
 //!
 //! [`rest`] imports the public REST API file JSON; [`fig`] imports `.fig` files (best effort).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -31,7 +28,7 @@ use kition_design_doc::{Document, ImageData};
 use kition_design_kdm::kition_kit::session::MemoryBlobs;
 use serde::de::{Deserializer, IgnoredAny, MapAccess, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::Digest;
 
 pub const EXTENSION: &str = "kdesign";
@@ -39,19 +36,8 @@ pub const FORMAT: &str = "kdesign";
 pub const VERSION: u32 = 1;
 /// Largest archive member we read (guards against zip bombs).
 const MAX_MEMBER: u64 = 512 * 1024 * 1024;
-/// Most versions a document (and a branch) keeps: more are refused, extra entries in a file skipped.
-pub const MAX_VERSIONS: usize = 100;
-/// Longest version name and description kept (chars).
-pub const MAX_VERSION_NAME: usize = 200;
-pub const MAX_VERSION_DESCRIPTION: usize = 2000;
-/// Largest version index and total size of the version snapshots read from one file.
-const MAX_VERSION_INDEX: u64 = 16 * 1024 * 1024;
-const MAX_VERSION_BYTES: u64 = 1024 * 1024 * 1024;
 /// Most images, and image bytes together, read from one file (members past it are left out).
 const IMAGE_BUDGET: ImageBudget = ImageBudget { images: 20_000, bytes: 4 * 1024 * 1024 * 1024 };
-const BRANCH_INDEX: &str = "branches/index.json";
-/// Most branches a file keeps: making more is refused, extra entries in a file are skipped.
-pub const MAX_BRANCHES: usize = 100;
 /// Deflate level of JSON members (see [`json_options`]).
 const JSON_LEVEL: i64 = 3;
 
@@ -74,112 +60,16 @@ impl std::fmt::Display for FormatError {
 
 impl std::error::Error for FormatError {}
 
-/// One entry of a file's version history: a named snapshot of the document.
-#[derive(Clone, Debug)]
-pub struct Version {
-    /// Unique within the file; ASCII letters, digits, `-` and `_` (see [`is_valid_version_id`]).
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    /// When it was saved (Unix seconds).
-    pub time: u64,
-    /// Saved automatically (a checkpoint) rather than by the user.
-    pub auto: bool,
-    snapshot: Snapshot,
-}
-
-#[derive(Clone, Debug)]
-enum Snapshot {
-    /// Saved in this session (or already read).
-    Doc(Arc<Document>),
-    /// As read from a file: its `document.json`-style JSON, parsed on first use, and the images
-    /// it uses.
-    Stored { json: Arc<Vec<u8>>, images: BTreeMap<String, ImageData> },
-}
-
-impl Version {
-    /// A version of `doc`. The name and description are clipped to their maximum lengths.
-    pub fn new(id: impl Into<String>, name: &str, description: &str, time: u64, doc: Arc<Document>) -> Self {
-        Self {
-            id: id.into(),
-            name: clip(name, MAX_VERSION_NAME),
-            description: clip(description, MAX_VERSION_DESCRIPTION),
-            time,
-            auto: false,
-            snapshot: Snapshot::Doc(doc),
-        }
-    }
-
-    /// The snapshot (with its images). Versions read from a file are parsed here, so a damaged
-    /// one fails now rather than when the file opens.
-    pub fn document(&self) -> Result<Arc<Document>, FormatError> {
-        match &self.snapshot {
-            Snapshot::Doc(d) => Ok(d.clone()),
-            Snapshot::Stored { json, images } => {
-                let text = std::str::from_utf8(json).map_err(|e| FormatError::Corrupt(e.to_string()))?;
-                let (mut doc, _) = from_json(text)?;
-                doc.images = images.clone();
-                Ok(Arc::new(doc))
-            }
-        }
-    }
-
-    /// The images the snapshot uses, by hash.
-    pub fn images(&self) -> &BTreeMap<String, ImageData> {
-        match &self.snapshot {
-            Snapshot::Doc(d) => &d.images,
-            Snapshot::Stored { images, .. } => images,
-        }
-    }
-}
-
-/// Where a branch is in its life.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BranchState {
-    Active,
-    /// Merged into the main file (and archived).
-    Merged,
-    /// Archived without merging.
-    Archived,
-}
-
-/// A branch of the file: a copy of the document to work on separately, and the main document as
-/// it was when the branch was made or last updated from it (its base).
-#[derive(Clone, Debug)]
-pub struct Branch {
-    /// Unique among the file's branches; a valid version id ([`is_valid_version_id`]).
-    pub id: String,
-    pub name: String,
-    /// When it was made (Unix seconds).
-    pub time: u64,
-    /// The client id space the branch makes ids in ([`Document::set_client_id`]), so they never
-    /// clash with ids made on the main file or on other branches.
-    pub client: u32,
-    pub state: BranchState,
-    pub base: Arc<Document>,
-    pub head: Arc<Document>,
-    /// The branch's own version history, oldest first.
-    pub versions: Vec<Version>,
-}
-
-/// Whether `id` can name a version (and its archive entry).
-pub fn is_valid_version_id(id: &str) -> bool {
-    (1..=64).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
-}
-
 /// `s` cut to at most `max` chars.
 pub fn clip(s: &str, max: usize) -> String {
     s.chars().take(max).collect()
 }
 
-/// A file as read: the document, the repairs made (and branches skipped), its branches and its
-/// replica entries.
+/// A file as read: the document, the repairs made and its replica entries.
 #[derive(Debug)]
 pub struct Loaded {
     pub doc: Document,
     pub issues: Vec<String>,
-    pub branches: Vec<Branch>,
     pub images_past_budget: usize,
     /// The file's Kition KDM replica entries (`kdm/meta.json`, `kdm/content.bin`): the content
     /// the document was read from, which the engine's bridge opens as the document's replica.
@@ -188,7 +78,7 @@ pub struct Loaded {
 
 impl From<Document> for Loaded {
     fn from(doc: Document) -> Self {
-        Self { doc, issues: Vec::new(), branches: Vec::new(), images_past_budget: 0, replica: Vec::new() }
+        Self { doc, issues: Vec::new(), images_past_budget: 0, replica: Vec::new() }
     }
 }
 
@@ -559,13 +449,8 @@ pub(crate) fn content_options() -> zip::write::SimpleFileOptions {
 
 /// Write a `.kdesign` archive to bytes: `doc`'s content in a new replica (a new document id; the
 /// engine saves its own replica's content with [`save_bytes_with_replica`]).
-pub fn save_bytes(doc: &Document, thumbnail_png: Option<&[u8]>) -> Result<Vec<u8>, FormatError> {
-    save_bytes_with_branches(doc, thumbnail_png, &[])
-}
-
-/// Write a `.kdesign` archive with branches to bytes ([`save_bytes`]).
-pub fn save_bytes_with_branches(doc: &Document, thumbnail_png: Option<&[u8]>, branches: &[Branch]) -> Result<Vec<u8>, FormatError> {
-    save_bytes_with_replica(doc, thumbnail_png, branches, &[])
+pub fn save_bytes(doc: &Document) -> Result<Vec<u8>, FormatError> {
+    save_bytes_with_replica(doc, &[])
 }
 
 /// The content entries of `doc` when no replica holds it: a new replica of it, sealed. Numbers
@@ -579,15 +464,10 @@ fn content_of(doc: &Document) -> Result<Vec<(String, Vec<u8>)>, FormatError> {
     kition_design_kdm::file::content_entries(&Arc::new(clean)).map_err(io_err)
 }
 
-/// [`save_bytes_with_branches`] holding `replica` (the entries of the document's replica,
+/// A `.kdesign` holding `replica` (the entries of the document's replica,
 /// `kition_design_kdm::file::save`) as its content; with none, `doc`'s content in a new replica.
-/// Of the images, those of `doc` (the content's), of the branches and of the published library.
-pub fn save_bytes_with_replica(
-    doc: &Document,
-    thumbnail_png: Option<&[u8]>,
-    branches: &[Branch],
-    replica: &[(String, Vec<u8>)],
-) -> Result<Vec<u8>, FormatError> {
+/// Of the images, those of `doc` (the content's) and of the published library.
+pub fn save_bytes_with_replica(doc: &Document, replica: &[(String, Vec<u8>)]) -> Result<Vec<u8>, FormatError> {
     let made;
     let replica = if replica.is_empty() {
         made = content_of(doc)?;
@@ -605,32 +485,11 @@ pub fn save_bytes_with_replica(
             }
             put(&mut z, name, content_options(), bytes)?;
         }
-        // Every image once, whether the content or a branch uses it.
         let mut written = BTreeSet::new();
-        let branch_images = branches.iter().flat_map(|b| [&b.base.images, &b.head.images].into_iter().chain(b.versions.iter().map(Version::images)));
-        for (hash, img) in std::iter::once(&doc.images).chain(branch_images).flatten() {
+        for (hash, img) in &doc.images {
             if written.insert(hash) {
                 put(&mut z, &format!("images/{hash}"), stored, &img.bytes)?;
             }
-        }
-        if let Some(t) = thumbnail_png {
-            put(&mut z, "thumbnail.png", stored, t)?;
-        }
-        if !branches.is_empty() {
-            let mut ids = BTreeSet::new();
-            let mut index = Vec::with_capacity(branches.len());
-            for b in branches {
-                if !is_valid_version_id(&b.id) || !ids.insert(b.id.as_str()) {
-                    return Err(FormatError::Io(format!("invalid or duplicate branch id `{}`", b.id)));
-                }
-                put_json(&mut z, &format!("branches/{}/base.json", b.id), &b.base)?;
-                put_json(&mut z, &format!("branches/{}/head.json", b.id), &b.head)?;
-                put_versions(&mut z, &format!("branches/{}/versions", b.id), &b.versions)?;
-                let images = |d: &Document| d.images.keys().cloned().collect::<Vec<String>>();
-                index.push(json!({"id": b.id, "name": b.name, "time": b.time, "client": b.client, "state": b.state,
-                    "baseImages": images(&b.base), "headImages": images(&b.head)}));
-            }
-            put(&mut z, BRANCH_INDEX, json_options(), &serde_json::to_vec(&json!({"branches": index})).map_err(io_err)?)?;
         }
         if let Some(lib) = &doc.published {
             library::write(&mut z, lib, &written)?;
@@ -642,46 +501,18 @@ pub fn save_bytes_with_replica(
 
 /// The file `loaded` (as read) holding its document as it is now (`loaded.doc`, edited by
 /// another program): the same document, its replica taking the edit as one `import` transaction
-/// ([`kition_design_kdm::file::rewrite`]), with its branches.
-pub fn save_edited(loaded: &Loaded, thumbnail_png: Option<&[u8]>) -> Result<Vec<u8>, FormatError> {
+/// ([`kition_design_kdm::file::rewrite`]).
+pub fn save_edited(loaded: &Loaded) -> Result<Vec<u8>, FormatError> {
     if loaded.replica.is_empty() {
-        return save_bytes_with_branches(&loaded.doc, thumbnail_png, &loaded.branches);
+        return save_bytes(&loaded.doc);
     }
     let entries = kition_design_kdm::file::rewrite(&loaded.replica, &Arc::new(loaded.doc.clone())).map_err(io_err)?;
-    save_bytes_with_replica(&loaded.doc, thumbnail_png, &loaded.branches, &entries)
-}
-
-/// Write a branch's version history `versions` (oldest first) under `dir`: `<dir>/index.json`
-/// and one `<dir>/<id>.json` snapshot per version. Nothing when there are none.
-fn put_versions<W: Write + Seek>(z: &mut zip::ZipWriter<W>, dir: &str, versions: &[Version]) -> Result<(), FormatError> {
-    if versions.is_empty() {
-        return Ok(());
-    }
-    let mut ids = BTreeSet::new();
-    let mut index = Vec::with_capacity(versions.len());
-    for v in versions {
-        if !is_valid_version_id(&v.id) || !ids.insert(v.id.as_str()) {
-            return Err(FormatError::Io(format!("invalid or duplicate version id `{}`", v.id)));
-        }
-        let name = format!("{dir}/{}.json", v.id);
-        match &v.snapshot {
-            Snapshot::Doc(d) => put_json(z, &name, d)?,
-            Snapshot::Stored { json, .. } => put(z, &name, json_options(), json)?,
-        }
-        let images: Vec<&String> = v.images().keys().collect();
-        let mut entry = json!({"id": v.id, "name": v.name, "description": v.description, "time": v.time, "images": images});
-        if v.auto {
-            entry["auto"] = json!(true);
-        }
-        index.push(entry);
-    }
-    put(z, &format!("{dir}/index.json"), json_options(), &serde_json::to_vec(&json!({"versions": index})).map_err(io_err)?)?;
-    Ok(())
+    save_bytes_with_replica(&loaded.doc, &entries)
 }
 
 /// Read a `.kdesign` archive from bytes. Returns the document and any repairs made.
 pub fn load_bytes(bytes: &[u8]) -> Result<(Document, Vec<String>), FormatError> {
-    load_bytes_with_branches(bytes).map(|l| (l.doc, l.issues))
+    load_with_replica(bytes).map(|l| (l.doc, l.issues))
 }
 
 /// Read archive member `name`, refusing members larger than `limit` bytes.
@@ -706,12 +537,12 @@ pub(crate) struct ImageBudget {
     pub bytes: u64,
 }
 
-/// Read a `.kdesign` archive with its branches and replica entries.
-pub fn load_bytes_with_branches(bytes: &[u8]) -> Result<Loaded, FormatError> {
+/// Read a `.kdesign` archive with its replica entries.
+pub fn load_with_replica(bytes: &[u8]) -> Result<Loaded, FormatError> {
     load_within(bytes, IMAGE_BUDGET)
 }
 
-/// [`load_bytes_with_branches`] reading at most `budget` of images.
+/// [`load_with_replica`] reading at most `budget` of images.
 pub(crate) fn load_within(bytes: &[u8], budget: ImageBudget) -> Result<Loaded, FormatError> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| FormatError::Corrupt(e.to_string()))?;
     let mut issues = Vec::new();
@@ -731,8 +562,7 @@ pub(crate) fn load_within(bytes: &[u8], budget: ImageBudget) -> Result<Loaded, F
         Ok(lib) => doc.published = lib.map(Arc::new),
         Err(e) => issues.push(format!("the published library was skipped: {e}")),
     }
-    let branches = read_branches(&mut z, &images, &mut issues);
-    Ok(Loaded { doc, issues, branches, images_past_budget, replica })
+    Ok(Loaded { doc, issues, images_past_budget, replica })
 }
 
 /// A content that does not open, as a format error.
@@ -765,10 +595,10 @@ pub fn replica_entries(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, FormatErr
 }
 
 /// `bytes` (a `.kdesign` archive) as the file of a new document (`document.fork`): `replica` as
-/// its `kdm/` entries (the new document's content) in place of the archive's, no branches
-/// (earlier states of the document), and of `images/` only those in `images` (the content's) and
-/// those the published library uses. Every other entry (`thumbnail.png`, the published library,
-/// entries this build does not know) is copied as it is, compressed as it was.
+/// its `kdm/` entries (the new document's content) in place of the archive's, and of `images/`
+/// only those in `images` (the content's) and those the published library uses. Every other entry
+/// (the published library, entries this build does not know) is copied as it is, compressed as it
+/// was.
 pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTreeSet<String>) -> Result<Vec<u8>, FormatError> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| FormatError::Corrupt(e.to_string()))?;
     let mut keep = library::used(&mut z)?;
@@ -785,9 +615,8 @@ pub fn replace_replica(bytes: &[u8], replica: &[(String, Vec<u8>)], images: &BTr
         for index in 0..z.len() {
             let file = z.by_index_raw(index).map_err(|e| FormatError::Corrupt(e.to_string()))?;
             let name = file.name();
-            let history = name == "branches" || name.starts_with("branches/");
             let unused = name.strip_prefix("images/").is_some_and(|hash| !keep.contains(hash));
-            if history || unused || is_replica_entry(name) {
+            if unused || is_replica_entry(name) {
                 continue;
             }
             out.raw_copy_file(file).map_err(io_err)?;
@@ -900,131 +729,10 @@ fn report_lost_images(
     }
 }
 
-/// The version history kept under `dir` in an archive (none when it has no index), reading at
-/// most `budget` bytes of snapshots. Damaged entries are skipped and reported in `issues`; nothing
-/// here fails the load.
-fn read_versions<R: Read + Seek>(
-    z: &mut zip::ZipArchive<R>,
-    dir: &str,
-    images: &BTreeMap<String, ImageData>,
-    issues: &mut Vec<String>,
-    budget: &mut u64,
-) -> Vec<Version> {
-    let index_name = format!("{dir}/index.json");
-    if z.index_for_name(&index_name).is_none() {
-        return Vec::new();
-    }
-    let index = match read_member(z, &index_name, MAX_VERSION_INDEX)
-        .and_then(|b| serde_json::from_slice::<Value>(&b).map_err(|e| FormatError::Corrupt(e.to_string())))
-    {
-        Ok(v) => v,
-        Err(e) => {
-            issues.push(format!("the version history was skipped: {e}"));
-            return Vec::new();
-        }
-    };
-    let entries = index.get("versions").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default();
-    let mut out: Vec<Version> = Vec::new();
-    for e in entries {
-        if out.len() >= MAX_VERSIONS {
-            issues.push(format!("only the first {MAX_VERSIONS} versions were kept"));
-            break;
-        }
-        let id = e.get("id").and_then(Value::as_str).unwrap_or_default();
-        if !is_valid_version_id(id) || out.iter().any(|v| v.id == id) {
-            issues.push("a version with an invalid id was skipped".into());
-            continue;
-        }
-        let json = match read_member(z, &format!("{dir}/{id}.json"), (*budget).min(MAX_MEMBER)) {
-            Ok(j) => j,
-            Err(err) => {
-                issues.push(format!("version `{id}` was skipped: {err}"));
-                continue;
-            }
-        };
-        *budget = budget.saturating_sub(json.len() as u64);
-        let text = |k: &str, max: usize| e.get(k).and_then(Value::as_str).map(|s| clip(s, max)).unwrap_or_default();
-        let images = e
-            .get("images")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .filter_map(|h| images.get(h).map(|i| (h.to_string(), i.clone())))
-            .collect();
-        out.push(Version {
-            id: id.to_string(),
-            name: text("name", MAX_VERSION_NAME),
-            description: text("description", MAX_VERSION_DESCRIPTION),
-            time: e.get("time").and_then(Value::as_u64).unwrap_or(0),
-            auto: e.get("auto").and_then(Value::as_bool).unwrap_or(false),
-            snapshot: Snapshot::Stored { json: Arc::new(json), images },
-        });
-    }
-    out
-}
-
-/// The branches of an archive (none when it has no index), parsed. Damaged entries are skipped and
-/// reported in `issues`; nothing here fails the load.
-fn read_branches<R: Read + Seek>(z: &mut zip::ZipArchive<R>, images: &BTreeMap<String, ImageData>, issues: &mut Vec<String>) -> Vec<Branch> {
-    if z.index_for_name(BRANCH_INDEX).is_none() {
-        return Vec::new();
-    }
-    let index = match read_member(z, BRANCH_INDEX, MAX_VERSION_INDEX)
-        .and_then(|b| serde_json::from_slice::<Value>(&b).map_err(|e| FormatError::Corrupt(e.to_string())))
-    {
-        Ok(v) => v,
-        Err(e) => {
-            issues.push(format!("the branches were skipped: {e}"));
-            return Vec::new();
-        }
-    };
-    let entries = index.get("branches").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default();
-    let mut out: Vec<Branch> = Vec::new();
-    let mut budget = MAX_VERSION_BYTES;
-    for e in entries {
-        if out.len() >= MAX_BRANCHES {
-            issues.push(format!("only the first {MAX_BRANCHES} branches were kept"));
-            break;
-        }
-        let id = e.get("id").and_then(Value::as_str).unwrap_or_default();
-        if !is_valid_version_id(id) || out.iter().any(|b| b.id == id) {
-            issues.push("a branch with an invalid id was skipped".into());
-            continue;
-        }
-        let mut snapshot = |part: &str, list: &str| -> Result<Arc<Document>, FormatError> {
-            let json = read_member(z, &format!("branches/{id}/{part}.json"), budget.min(MAX_MEMBER))?;
-            budget = budget.saturating_sub(json.len() as u64);
-            let (mut doc, _) = from_json(std::str::from_utf8(&json).map_err(|e| FormatError::Corrupt(e.to_string()))?)?;
-            let hashes = e.get(list).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str);
-            doc.images = hashes.filter_map(|h| images.get(h).map(|i| (h.to_string(), i.clone()))).collect();
-            Ok(Arc::new(doc))
-        };
-        let (base, head) = match (snapshot("base", "baseImages"), snapshot("head", "headImages")) {
-            (Ok(b), Ok(h)) => (b, h),
-            (Err(err), _) | (_, Err(err)) => {
-                issues.push(format!("branch `{id}` was skipped: {err}"));
-                continue;
-            }
-        };
-        out.push(Branch {
-            id: id.to_string(),
-            name: e.get("name").and_then(Value::as_str).map(|s| clip(s, MAX_VERSION_NAME)).unwrap_or_default(),
-            time: e.get("time").and_then(Value::as_u64).unwrap_or(0),
-            client: e.get("client").and_then(Value::as_u64).and_then(|c| u32::try_from(c).ok()).unwrap_or(0),
-            state: e.get("state").and_then(|s| BranchState::deserialize(s).ok()).unwrap_or(BranchState::Active),
-            versions: read_versions(z, &format!("branches/{id}/versions"), images, issues, &mut budget),
-            base,
-            head,
-        });
-    }
-    out
-}
-
 /// Save atomically: write a staging file next to `path`, then rename over it.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn save_file(doc: &Document, path: &std::path::Path, thumbnail_png: Option<&[u8]>) -> Result<(), FormatError> {
-    let bytes = save_bytes(doc, thumbnail_png)?;
+pub fn save_file(doc: &Document, path: &std::path::Path) -> Result<(), FormatError> {
+    let bytes = save_bytes(doc)?;
     write_file_atomic(path, &bytes).map_err(|e| FormatError::Io(format!("{}: {e}", path.display())))
 }
 
@@ -1077,8 +785,6 @@ pub fn load_file(path: &std::path::Path) -> Result<(Document, Vec<String>), Form
 }
 
 #[cfg(test)]
-mod branch_tests;
-#[cfg(test)]
 mod image_budget_tests;
 #[cfg(test)]
 mod image_tests;
@@ -1093,6 +799,7 @@ mod thumbnail_tests;
 mod tests {
     use super::*;
     use kition_design_doc::NodeKind;
+    use serde_json::json;
 
     fn png() -> Vec<u8> {
         let img = image::RgbaImage::from_pixel(3, 2, image::Rgba([255, 0, 0, 255]));
@@ -1108,7 +815,7 @@ mod tests {
         d.create(p, NodeKind::Rectangle, "R", 1.0, 2.0, 3.0, 4.0).unwrap();
         let (hash, w, h) = add_image(&mut d, png()).unwrap();
         assert_eq!((w, h), (3, 2));
-        let bytes = save_bytes(&d, None).unwrap();
+        let bytes = save_bytes(&d).unwrap();
         let (back, issues) = load_bytes(&bytes).unwrap();
         assert!(issues.is_empty());
         assert_eq!(back.name, "My file");
@@ -1127,7 +834,7 @@ mod tests {
 
     #[test]
     fn a_file_without_its_content_is_damaged() {
-        let bytes = save_bytes(&Document::new("x"), None).unwrap();
+        let bytes = save_bytes(&Document::new("x")).unwrap();
         let mut z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
         let meta = read_member(&mut z, kition_design_kdm::file::META, u64::MAX).unwrap();
         let only_meta = zip_files([(kition_design_kdm::file::META, meta.as_slice())]).unwrap();
@@ -1146,11 +853,11 @@ mod tests {
         let mut d = Document::new("NaN");
         let p = d.first_page().unwrap();
         let r = d.create(p, NodeKind::Rectangle, "R", 1.0, 2.0, 3.0, 4.0).unwrap();
-        assert!(save_bytes(&d, None).is_ok());
+        assert!(save_bytes(&d).is_ok());
         d.get_mut(r).unwrap().width = f64::NAN;
         d.get_mut(r).unwrap().opacity = f32::INFINITY;
         // Saving never fails; non-finite numbers are written as 0 and the file reopens.
-        let bytes = save_bytes(&d, None).unwrap();
+        let bytes = save_bytes(&d).unwrap();
         let (back, _) = load_bytes(&bytes).unwrap();
         assert_eq!(back.node_count(), d.node_count());
         let n = back.get(r).unwrap();

@@ -11,6 +11,7 @@ import { useUiRequest } from '../kit/requests'
 import type { Rect } from '../kit/types'
 import { Button, IconButton } from '../ui'
 import { focusOn, statusColor } from './DevPanel'
+import { loadCheckpoint, refusal, useCheckpoints } from './checkpoints'
 import { STATUS_COLORS, openVersionHistory, relativeTime, setDev, useDev, type FocusState } from './store'
 import { MenuDropdown, toBytes } from './widgets'
 import './dev.css'
@@ -19,7 +20,7 @@ import './dev.css'
 export function DevHost() {
   const { run, invoke, refresh, ui } = useDesignKit()
   const dev = useDev()
-  useUiRequest('panel.versionHistory', () => openVersionHistory())
+  useUiRequest('panel.versionHistory', (data) => openVersionHistory((data as { save?: boolean } | null)?.save === true))
   useUiRequest('view.devCompare', (data) => {
     const d = data as { id?: number; version?: string | null } | null
     if (typeof d?.id === 'number') setDev({ compare: { id: d.id, version: d.version ?? null } })
@@ -45,7 +46,7 @@ export function DevHost() {
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
   }, [focus, run])
-  const preview = useQuery<{ id: string; name: string; time: number } | null>('version.previewState')
+  const preview = useQuery<{ id: string; name: string; time: number; version: string } | null>('version.previewState')
   return (
     <>
       {preview ? <VersionBanner version={preview} /> : focus ? <FocusBar focus={focus} /> : null}
@@ -54,22 +55,24 @@ export function DevHost() {
   )
 }
 
-function VersionBanner({ version }: { version: { id: string; name: string; time: number } }) {
+function VersionBanner({ version }: { version: { id: string; name: string; time: number; version: string } }) {
   const { t, run, toast } = useDesignKit()
+  const name = version.name || t('Untitled version')
   return (
     <div className="design-dev-banner" data-testid="design-version-banner">
       <span className="design-dev-banner-icon">
         <Icon name="Clock" size={14} />
       </span>
-      <span className="design-dev-banner-name">{t('Viewing “{name}”', { name: version.name })}</span>
-      <span className="design-dev-banner-dim">{relativeTime(t, version.time)}</span>
+      <span className="design-dev-banner-name">{t('Viewing “{name}”', { name })}</span>
+      <span className="design-dev-banner-dim">{relativeTime(t, version.time / 1000)}</span>
       <Button onClick={() => void run('version.exitPreview', {})} testId="design-version-back">
         {t('Back to current')}
       </Button>
       <Button
         variant="primary"
         onClick={async () => {
-          if ((await run('version.restore', { id: version.id })) != null) toast(t('Restored “{name}”', { name: version.name }))
+          // The preview gave the engine this version's blobs already.
+          if ((await run('version.restore', { version: version.version })) != null) toast(t('Restored “{name}”', { name }))
         }}
         testId="design-version-restore"
       >
@@ -117,7 +120,7 @@ function FocusBar({ focus }: { focus: FocusState }) {
 type Change = { id: number; name: string; type: string; change: 'changed' | 'added' | 'removed'; depth: number; layers: number; properties: Array<{ text: string }> }
 /** One side's picture (`dev.compare`'s `before` / `after`): its size in pixels and the outlined layers. */
 type Side = { area: Rect; scale: number; width: number; height: number; boxes: Array<{ id: number; change: Change['change']; rect: [number, number, number, number] }> }
-type Comparison = { id: number; name: string; changed: boolean; snapshot: boolean; truncated: boolean; changes: Change[]; added: number; removed: number; modified: number; version: string | null; versions: Array<{ id: string; name: string; time: number }>; before: Side | null; after: Side | null }
+type Comparison = { id: number; name: string; changed: boolean; snapshot: boolean; truncated: boolean; changes: Change[]; added: number; removed: number; modified: number; version: string | null; before: Side | null; after: Side | null }
 type Box = { id: number; kind: Change['change']; rect: Rect }
 
 const KIND_COLORS = { added: '#087d4f', removed: '#f24822', changed: STATUS_COLORS.changed } as const
@@ -159,7 +162,8 @@ function useSidePicture(id: number, version: string | null, side: 'before' | 'af
 const boxesOf = (side: Side | null): Box[] => (side ? side.boxes.map((b) => ({ id: b.id, kind: b.change, rect: { x: b.rect[0] / side.width, y: b.rect[1] / side.height, width: (b.rect[2] - b.rect[0]) / side.width, height: (b.rect[3] - b.rect[1]) / side.height } })) : [])
 
 function CompareWindow({ id, version }: { id: number; version: string | null }) {
-  const { t, run, toast } = useDesignKit()
+  const designKit = useDesignKit()
+  const { t, run, toast } = designKit
   const [mode, setMode] = useState<'side' | 'overlay'>('side')
   const [against, setAgainst] = useState<string | null>(version)
   const [hot, setHot] = useState<number | null>(null)
@@ -181,8 +185,9 @@ function CompareWindow({ id, version }: { id: number; version: string | null }) 
   }, [])
   const before = useSidePicture(id, against, 'before', cmp?.before != null)
   const after = useSidePicture(id, against, 'after', cmp?.after != null)
-  const versions = cmp?.versions ?? []
-  const versionName = against ? (versions.find((v) => v.id === against)?.name ?? null) : null
+  // The saved versions (the host's checkpoints) the design's history here still reaches.
+  const versions = useCheckpoints(true).list.filter((v) => v.available)
+  const versionName = against ? (versions.find((v) => v.version === against)?.label ?? t('Saved version')) : null
   const width = Math.max(560, Math.min(1120, window.innerWidth - 64))
   const height = Math.max(320, Math.min(700, window.innerHeight - 96))
   const summary = !cmp
@@ -297,7 +302,18 @@ function CompareWindow({ id, version }: { id: number; version: string | null }) 
             testId="design-compare-with"
             items={() => [
               ...(ready ? [{ label: t('When marked ready'), checked: against == null, onSelect: () => setAgainst(null) }] : []),
-              ...versions.map((v) => ({ label: v.name, checked: against === v.id, shortcut: relativeTime(t, v.time), onSelect: () => setAgainst(v.id) })),
+              ...versions.map((v) => ({
+                label: v.label || t('Untitled version'),
+                checked: against === v.version,
+                shortcut: relativeTime(t, v.time / 1000),
+                onSelect: async () => {
+                  try {
+                    setAgainst((await loadCheckpoint(designKit, v)).version)
+                  } catch (error) {
+                    toast(refusal(t, error))
+                  }
+                },
+              })),
             ]}
           />
           <span className="design-dev-spacer" />

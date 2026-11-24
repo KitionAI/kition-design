@@ -200,7 +200,7 @@ fn the_timer_and_votes_save_and_old_files_open() {
     ex(&mut s, "board.vote", json!({"action": "start", "on": "stickies"}));
     ex(&mut s, "board.vote", json!({"action": "cast", "id": a}));
     let doc = s.doc().unwrap().clone();
-    let bytes = kition_design_format::save_bytes(&doc, None).unwrap();
+    let bytes = kition_design_format::save_bytes(&doc).unwrap();
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!((back.timer, &back.vote, &back.votes), (doc.timer, &doc.vote, &doc.votes));
     // A file from before: none of the fields.

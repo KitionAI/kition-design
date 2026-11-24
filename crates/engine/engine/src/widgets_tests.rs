@@ -191,7 +191,7 @@ fn widgets_survive_save_reload_duplicating_and_export() {
     let mut s = session();
     let (w, _) = insert(&mut s);
     click(&mut s, w, "inc");
-    let bytes = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let bytes = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     let mut t = session();
     t.ds_mut().unwrap().doc = std::sync::Arc::new(back);

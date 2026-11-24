@@ -762,7 +762,7 @@ fn a_data_blob_past_the_blobs_stays_a_placeholder() {
 fn other_files_are_not_fig() {
     assert!(try_import(b"{\"document\": {}}", "x").is_none());
     assert!(try_import(b"", "x").is_none());
-    let native = crate::save_bytes(&kition_design_doc::Document::new("N"), None).unwrap();
+    let native = crate::save_bytes(&kition_design_doc::Document::new("N")).unwrap();
     assert!(try_import(&native, "x").is_none());
 }
 

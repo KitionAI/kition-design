@@ -40,10 +40,10 @@ fn library_versions() -> (Vec<u8>, Vec<u8>) {
         json!({ "collection": theme, "name": "Primary", "type": "color", "values": { "Light": "#ffffff", "Dark": "#000000" } }),
     );
     ex(&mut s, "library.publish", json!({ "description": "Synthetic test library" }));
-    let v1 = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let v1 = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     ex(&mut s, "node.set", json!({ "id": button, "props": { "fill": "#ff0000" } }));
     ex(&mut s, "library.publish", json!({}));
-    let v2 = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let v2 = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     (v1, v2)
 }
 
@@ -306,7 +306,7 @@ fn icons() -> Vec<u8> {
     let f = ex(&mut s, "frame.create", json!({ "x": 0, "y": 0, "width": 24, "height": 24, "name": "Icon" }))["id"].clone();
     ex(&mut s, "component.create", json!({ "ids": [f] }));
     ex(&mut s, "library.publish", json!({}));
-    kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap()
+    kition_design_format::save_bytes(s.doc().unwrap()).unwrap()
 }
 
 /// Regression (`docs/features/kdm.md` V10): the person who made the library store undoes it after another
@@ -404,10 +404,10 @@ fn card_versions() -> (Vec<u8>, Vec<u8>) {
     ex(&mut s, "node.set", json!({ "id": dot, "props": { "name": "Dot" } }));
     ex(&mut s, "component.create", json!({ "ids": [f] }));
     ex(&mut s, "library.publish", json!({}));
-    let v1 = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let v1 = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     ex(&mut s, "node.set", json!({ "id": dot, "props": { "fill": "#ff0000" } }));
     ex(&mut s, "library.publish", json!({}));
-    let v2 = kition_design_format::save_bytes(s.doc().unwrap(), None).unwrap();
+    let v2 = kition_design_format::save_bytes(s.doc().unwrap()).unwrap();
     (v1, v2)
 }
 

@@ -5,9 +5,8 @@ intent: >-
   Through the real kition-design process: document.identity answers the docId a .kdesign carries
   (the one kdm/meta.json's copy names), and a byte copy answers the same one; document.fork writes
   a new document to a new file: a new docId in the replica and in meta.json, the same objects, ids
-  and values (model.batch), a replica that travels as a draft, no change entries, no saved
-  versions or branches, only the pictures the design uses, document.json and the thumbnail as
-  they were; the name of a layer deleted before the fork is in the source's bytes and not the
+  and values (model.batch), a replica that travels as a draft, no change entries, only the
+  pictures the design uses, and no thumbnail (no file carries one); the name of a layer deleted before the fork is in the source's bytes and not the
   fork's; the fork edits, saves and reopens under its own id; a fork of the fork is a third
   document; a fork never replaces an existing file.
 layer: gate

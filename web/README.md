@@ -41,7 +41,7 @@ draws the player); Preview runs `proto.preview`.
 | `src/design/` | `DesignPanel`: the section router and the structure sections |
 | `src/paint/` | `PaintSections`: Typography, Fill, Stroke, Effects; the colour picker (`ColorPicker`, and `TargetColorPicker` on engine paints) and its canvas handles |
 | `src/prototype/` | `PrototypePanel`, the interaction editor and the player |
-| `src/dev/` | `DevPanel`, Dev Mode's Inspect, and version history |
+| `src/dev/` | `DevPanel`, Dev Mode's Inspect, and version history (the host's checkpoints, `checkpoints.ts`) |
 | `src/menus/` | `MainMenu` and the top bar's menus from one model (`model.ts`), the keymap and key dispatcher, `ActionsPalette`, the canvas context menu, `MenusHost` (mounted in the canvas cell) |
 | `src/dialogs/` | the dialogs (`openDialog(kind, data)`), the dialog window |
 | `src/comments/` | comment pins, threads and the Comments panel (Comment tool) |
@@ -110,10 +110,6 @@ zh-CN). The editor follows the host's locale changes.
 - `chrome` lists no page guides: `guides::segment` answers nothing for a page, so a guide on the
   page (not in a top-level frame) is neither drawn nor right-clickable; upstream draws page guides
   across the whole canvas.
-- `branch.create` (File ▸ Create branch…) is offered while `branch.open` and `branch.review` are
-  left out: the version panel hides its Branches section where `branch.open` is not offered, so a
-  branch made from the File menu cannot be seen. Leave `branch.create` out too while branches are
-  deferred.
 
 ## kit-editor and Tessera requests
 

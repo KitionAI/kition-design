@@ -236,8 +236,9 @@ fn range_edit_keeps_a_node_binding_that_other_characters_inherit() {
 fn selection_color_edits_respect_read_only_version_previews() {
     let mut s = Session::new();
     let a = rectangle(&mut s, "#ff0000");
-    run(&mut s, "file.saveVersion", json!({"name":"Before"}));
-    run(&mut s, "version.preview", json!({"index":0}));
+    s.enable_kdm();
+    let version = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, s.version().unwrap().encode());
+    run(&mut s, "version.preview", json!({"version": version}));
     let red = group(&s, &[a], "FF0000");
     let before = s.undo_depth();
     assert!(s.execute("selection.setPaint", &json!({"targets":red.targets,"paint":"#0000ff"})).is_err());

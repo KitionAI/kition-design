@@ -16,7 +16,8 @@
     "test:left": "node tests/left.mjs chromium && node tests/left.mjs webkit",
     "test:menus": "node tests/menus.mjs chromium && node tests/menus.mjs webkit",
     "test:paint": "node tests/paint.mjs chromium && node tests/paint.mjs webkit",
-    "test:canvas": "node tests/canvas.mjs chromium && node tests/canvas.mjs webkit"
+    "test:canvas": "node tests/canvas.mjs chromium && node tests/canvas.mjs webkit",
+    "test:versions": "node tests/versions.mjs chromium && node tests/versions.mjs webkit"
   },
   "dependencies": {
     "@kition/sdk": "npm:@kitionstage/sdk@0.5.2-stage.18",

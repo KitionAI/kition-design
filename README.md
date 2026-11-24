@@ -189,7 +189,7 @@ there.
 | Works today | Partly there | Not yet |
 | --- | --- | --- |
 | Frames, shapes and text | Prototyping: interactions and flows | Live sharing from the editor (the Share button is off; co-editing goes through Kition) |
-| Auto layout that hugs its content | Dev Mode: inspect, code and measurements | Plug-ins, widgets and branches |
+| Auto layout that hugs its content | Dev Mode: inspect, code and measurements | Plug-ins and widgets |
 | Components and instances | Comments and version history | Spell check |
 | Fills, strokes, shadows and paint styles | Vector editing and boolean operations | Video fills |
 | Variables bound to properties | `.fig` and `.sketch` import | Checks against real-world `.fig` files |

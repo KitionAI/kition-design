@@ -144,7 +144,7 @@ fn a_kdesign_carries_its_replicas_content() {
     // A second save holds the content as it is now, and still no history.
     rect(&mut s, 100.0, "Later");
     let again = sealed_bytes(&mut s);
-    let loaded = kition_design_format::load_bytes_with_branches(&again).unwrap();
+    let loaded = kition_design_format::load_with_replica(&again).unwrap();
     let names: Vec<&str> = loaded.replica.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT]);
     assert!(loaded.doc.nodes().any(|n| n.name == "Later"));

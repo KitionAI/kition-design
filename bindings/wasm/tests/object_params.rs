@@ -16,10 +16,7 @@ const ALLOW: &[(&str, &str, &str)] = &[
     ("select.previous", "id", "select_sibling reads the selection, not this extra schema member"),
     ("select.layersAt", "id", "layersAt picks at a point; this extra schema member is unused"),
     ("dev.unfocus", "id", "unfocus clears the editor focus; this extra schema member is unused"),
-    ("version.restore", "id", "a saved-history record outside the KDM replica; held through the root's derived history"),
-    ("version.rename", "id", "a saved-history record outside the KDM replica; held through the root's derived history"),
-    ("version.delete", "id", "a saved-history record outside the KDM replica; held through the root's derived history"),
-    ("version.preview", "id", "a saved-history record outside the KDM replica; held through the root's derived history"),
+    ("version.preview", "id", "the host's checkpoint id, shown in the banner; the content comes from `version`"),
     ("guide.move", "id", "guides are addressed by index and owner; this extra schema member is unused"),
     ("guide.clear", "id", "guides are addressed by owner; this extra schema member is unused"),
     ("text.edit.selectWord", "id", "uses the active text editor; this extra schema member is unused"),
@@ -57,7 +54,6 @@ const ALLOW: &[(&str, &str, &str)] = &[
     ("annotation.editCategory", "id", "a category token in settings, not a KDM object id"),
     ("annotation.removeCategory", "id", "a category token in settings, not a KDM object id"),
     ("devMode.removeMeasurement", "id", "reads from; this extra schema member is unused"),
-    ("branch.archive", "id", "a saved branch record outside the KDM replica; held through the root's derived branches"),
     ("widget.click", "target", "a callback target string inside the widget, not a node id"),
     ("widget.list", "id", "lists widgets; this extra schema member is unused"),
     ("board.sticky", "id", "creates a sticky; this extra schema member is unused"),
@@ -89,25 +85,15 @@ fn every_integer_id_parameter_is_marked() {
 }
 
 #[test]
-fn saved_branch_and_version_ids_are_strings_not_node_targets() {
+fn saved_version_ids_are_strings_not_node_targets() {
     let doc = DesignDocument::create("Records.kdesign", 320, 240).unwrap();
-    for command in doc.commands().into_iter().filter(|c| {
-        matches!(
-            c.id.as_str(),
-            "branch.open"
-                | "branch.review"
-                | "branch.archive"
-                | "branch.merge"
-                | "branch.updateFromMain"
-                | "version.restore"
-                | "version.rename"
-                | "version.delete"
-                | "version.preview"
-        )
-    }) {
-        assert!(command.targets.is_none(), "{}: saved record, not a layer: {:?}", command.id, command.targets);
-        assert_eq!(command.schema.as_ref().unwrap()["id"]["type"], "string", "{}", command.id);
+    for command in doc.commands().into_iter().filter(|c| matches!(c.id.as_str(), "version.restore" | "version.preview")) {
+        assert!(command.targets.is_none(), "{}: saved version, not a layer: {:?}", command.id, command.targets);
+        assert!(command.schema.as_ref().unwrap().get("version").is_some(), "{}: names the replica version", command.id);
+        assert!(!command.objects.contains(&"version"), "{}: a replica version, not an object", command.id);
     }
+    let preview = doc.commands().into_iter().find(|c| c.id == "version.preview").unwrap();
+    assert_eq!(preview.schema.as_ref().unwrap()["id"]["type"], "string", "the host's checkpoint id");
 }
 
 #[test]

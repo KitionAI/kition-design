@@ -229,8 +229,19 @@ fn build() -> Fixture {
         ("$LibBlue", lib_blue),
         ("$LibTokens", lib_tokens),
         ("$Img", img),
+        // The version the file's content holds (a saved version every opening of the file reaches).
+        ("$Ver", json!(file_version(&bytes))),
     ];
     (bytes, roles)
+}
+
+/// The version a `.kdesign`'s content holds (its seal), base64: where the history of every opening
+/// of the file starts.
+fn file_version(bytes: &[u8]) -> String {
+    let file = kition_design_format::load_with_replica(bytes).unwrap();
+    let content = &file.replica.iter().find(|(name, _)| name == kition_design_kdm::file::CONTENT).unwrap().1;
+    let replica = kition_kit::kdm::Replica::load(kition_design_kdm::schema().unwrap(), content, kition_kit::kdm::ActorId::random()).unwrap();
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, replica.version().encode())
 }
 
 /// `@FIG` in a row: base64 of a `.fig` file of one rectangle (copied design layers).
@@ -859,23 +870,9 @@ const COMMENT_PICKS: &str = "visible,kind,frame,~hierarchy";
 const ROWS: &[Row] = &[
     // ---- Reading 1 ----
     // edit.undo: takes back the agent's last step (a rename of $E): rests on the history and on the field that step wrote, which it puts back
-    s(
-        r##"[["object.rename", {"ids": ["$E"], "name": "Oval"}]]"##,
-        "edit.undo",
-        r##"{}"##,
-        &[],
-        "",
-        &[("design", "~history", false), ("$E", "name", false)],
-    ),
+    s(r##"[["object.rename", {"ids": ["$E"], "name": "Oval"}]]"##, "edit.undo", r##"{}"##, &[], "", &[("$E", "name", false)]),
     // edit.redo: re-applies the undone rename: rests on the redo history and $E's name, which it replaces
-    s(
-        r##"[["object.rename", {"ids": ["$E"], "name": "Oval"}], ["edit.undo", {}]]"##,
-        "edit.redo",
-        r##"{}"##,
-        &[],
-        "",
-        &[("design", "~history", false), ("$E", "name", false)],
-    ),
+    s(r##"[["object.rename", {"ids": ["$E"], "name": "Oval"}], ["edit.undo", {}]]"##, "edit.redo", r##"{}"##, &[], "", &[("$E", "name", false)]),
     // Reviewed after behavior tests: read_defects::an_agents_cut_by_id_can_be_pasted proves the
     // clipboard survives bracketed cuts (fixed by this card), so its whole source is read.
     r("edit.cut", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "*", true)]),
@@ -4316,10 +4313,6 @@ const ROWS: &[Row] = &[
         "part",
         &[("$P1", "-", false), ("$Img", "-", false)],
     ),
-    // file.saveVersion: snapshots the whole design (and the current page it opens on) into the version history
-    r("file.saveVersion", r##"{"name": "v1"}"##, &[], "part", &[("design", "*", false), ("design", "~snapshots", false)]),
-    // UNSURE: branch.create: the branch's base and head are a copy of the whole design; the branch list grows (name default from its count); it opens the branch tab
-    r("branch.create", r##"{"name": "Try"}"##, &[], "", &[("design", "*", false), ("design", "~branches", false)]),
     // file.rename: replaces the document name
     r("file.rename", r##"{"name": "Renamed"}"##, &[], "", &[("design", "settings.name", false)]),
     // UNSURE: cannot run on the fixture: the converting path rewrites every layer (node_mut), library copy $LK included, so check_read_only (assets/library.rs:1440-1461, run from session/exec.rs:143) refuses it whenever a library copy exists
@@ -4388,39 +4381,16 @@ const ROWS: &[Row] = &[
         "selection",
         &[("$F", "dev", false)],
     ),
-    // version.restore: replaces the whole design with the saved version (name, published, comments kept from the current design and re-pinned); may first keep the current design as an autosave
+    // version.restore: the whole design takes the content at the version (name, published, comments kept from the current design and re-pinned); the version's content never changes
     // Reviewed after behavior tests: restore_version keeps conversation and publication while
     // replacing these design fields; outside/review.rs verifies a new comment remains independent.
     s(
-        r##"[["file.saveVersion", {"name": "v1"}]]"##,
-        "version.restore",
-        r##"{"index": 0}"##,
-        &[],
-        "",
-        &[("design", "settings,nodes,libraryStore,styles,collections,variables,libraries,libraryCopies,images,~history,~snapshots", false)],
-    ),
-    // version.rename: the version at the index gets the name (and becomes a named version)
-    // Reviewed after behavior tests: file.rs's setter replaces version metadata, never reads
-    // its saved design; the outside history-label test holds ~history rather than snapshot bytes.
-    s(
-        r##"[["file.saveVersion", {"name": "v1"}]]"##,
-        "version.rename",
-        r##"{"index": 0, "name": "First"}"##,
-        &[],
-        "",
-        &[("design", "~history", false)],
-    ),
-    // version.delete: removes the version at the index. Reviewed against file.rs:259-266:
-    // version_index and preview comparison read the ordered identities, not snapshot contents.
-    s(r##"[["file.saveVersion", {"name": "v1"}]]"##, "version.delete", r##"{"index": 0}"##, &[], "", &[("design", "~versionIds", false)]),
-    // version.autosave: after an edit, the whole design is snapshotted as an autosave (dirty state / undo history and pref.autoSave decide whether it saves)
-    s(
         r##"[["node.set", {"id": "$R", "props": {"opacity": 0.5}}]]"##,
-        "version.autosave",
-        r##"{}"##,
+        "version.restore",
+        r##"{"version": "$Ver"}"##,
         &[],
-        "part,mode",
-        &[("design", "*", false), ("design", "~snapshots,~history", false)],
+        "",
+        &[("design", "settings,nodes,libraryStore,styles,collections,variables,libraries,libraryCopies,images", false)],
     ),
     // page.add: a new page appended last, with the current page's background; it becomes the current page
     r("page.add", r##"{"name": "Page 3"}"##, &[], "part", &[("$P1", "kind", false)]),
@@ -4746,31 +4716,6 @@ const ROWS: &[Row] = &[
         "",
         &[("$R", "dev.measurements", false)],
     ),
-    // UNSURE: branch.updateFromMain: three-way merge of base, branch and main; the branch tab's design and the branch's base/head are replaced (rests on the whole main design and the branch); cross-tab, the active tab after branch.create is the branch
-    // Reviewed after behavior tests: merge::merges excludes file-name/current-page changes,
-    // and diff drops publication; branch_combination_holds_main_resources verifies that boundary.
-    // Comment entries do merge (collab/docprops.rs:61), so their list remains a real input.
-    s(
-        r##"[["branch.create", {"name": "Try"}]]"##,
-        "branch.updateFromMain",
-        r##"{}"##,
-        &[],
-        "",
-        &[("design", "settings,nodes,libraryStore,styles,collections,variables,libraries,libraryCopies,images,comments,~branches", false)],
-    ),
-    // UNSURE: branch.merge: merges the branch into the main design (whole main design rests), adds versions, marks the branch merged and closes its tab
-    // Reviewed after behavior tests: the same three-way plan merges design and comment entries;
-    // publication is outside the plan, and version snapshot contents are not read to append history.
-    s(
-        r##"[["branch.create", {"name": "Try"}]]"##,
-        "branch.merge",
-        r##"{}"##,
-        &[],
-        "",
-        &[("design", "settings,nodes,libraryStore,styles,collections,variables,libraries,libraryCopies,images,comments,~branches", false)],
-    ),
-    // UNSURE: branch.archive: the branch's state (must be active) becomes archived; its tab closes
-    s(r##"[["branch.create", {"name": "Try"}]]"##, "branch.archive", r##"{}"##, &[], "", &[("design", "~branches", false)]),
     // UNSURE: widget.insert: needs an installed widget plugin (none in the fixture; this row cannot succeed as is): a new widget frame on top of the current page (view centre without x,y), the plugin given the selection
     r("widget.insert", r##"{"plugin": "example.widget", "x": 1600, "y": 0}"##, &[], "part,mode,selection", &[("$P1", "-", false)]),
     // UNSURE: widget.click: needs a widget (none in the fixture; $W stands for one): the plugin is called with its state and the selection, and the widget is rebuilt (children replaced, root props, name, state, menu)
@@ -6603,7 +6548,7 @@ pub fn board() -> &'static Fixture {
     BOARD.get_or_init(|| {
         let mut session = kition_design_engine::Session::empty();
         session.execute("file.newBoard", &json!({ "name": "Board" })).unwrap();
-        let bytes = kition_design_format::save_bytes(session.doc().unwrap(), None).unwrap();
+        let bytes = kition_design_format::save_bytes(session.doc().unwrap()).unwrap();
         let mut d = DesignDocument::open("Board.kdesign", &bytes).unwrap();
         let page = d.inspect().unwrap()["page"].clone();
         let mut ex = |c: &str, p: Value| d.execute(c, p.clone()).unwrap_or_else(|e| panic!("{c} {p}: {e}"));
@@ -6694,10 +6639,10 @@ fn review_noop_text_paths_do_not_reflow_the_parent() {
         if command == "text.fit" {
             doc.execute("node.set", json!({"id":text.0,"props":{"width":200}})).unwrap();
         }
-        let mut file = kition_design_format::load_bytes_with_branches(&doc.seal_and_save(None).unwrap()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&doc.seal_and_save(None).unwrap()).unwrap();
         let width = file.doc.node(parent).unwrap().width;
         file.doc.get_mut(parent).unwrap().child_layout.min_w = Some(width + 100.0);
-        let bytes = kition_design_format::save_edited(&file, None).unwrap();
+        let bytes = kition_design_format::save_edited(&file).unwrap();
         let mut doc = open(&bytes);
         let before = doc.session().doc().unwrap().node(text).unwrap().kind.clone();
         let params = if command == "text.fit" { json!({"ids":[text.0],"maxLines":1,"minSize":4}) } else { json!({"ids":[text.0]}) };

@@ -42,7 +42,7 @@ fn rebuild(bytes: &[u8], edit: impl Fn(&str, Vec<u8>) -> Option<Vec<u8>>) -> Vec
 #[test]
 fn an_intact_file_loads_without_image_issues() {
     let (d, hash) = doc_with_image();
-    let (loaded, issues) = load_bytes(&save_bytes(&d, None).unwrap()).unwrap();
+    let (loaded, issues) = load_bytes(&save_bytes(&d).unwrap()).unwrap();
     assert!(issues.is_empty(), "{issues:?}");
     assert!(loaded.images.contains_key(&hash));
 }
@@ -50,7 +50,7 @@ fn an_intact_file_loads_without_image_issues() {
 #[test]
 fn a_missing_image_member_is_reported() {
     let (d, hash) = doc_with_image();
-    let bytes = rebuild(&save_bytes(&d, None).unwrap(), |n, data| (!n.starts_with("images/")).then_some(data));
+    let bytes = rebuild(&save_bytes(&d).unwrap(), |n, data| (!n.starts_with("images/")).then_some(data));
     let (loaded, issues) = load_bytes(&bytes).unwrap();
     assert!(!loaded.images.contains_key(&hash));
     assert!(issues.iter().any(|i| i.contains(&hash) && i.contains("missing") && i.contains("drops it")), "{issues:?}");
@@ -59,7 +59,7 @@ fn a_missing_image_member_is_reported() {
 #[test]
 fn a_damaged_image_member_is_reported_with_its_reason() {
     let (d, hash) = doc_with_image();
-    let bytes = save_bytes(&d, None).unwrap();
+    let bytes = save_bytes(&d).unwrap();
     // The member's bytes change but not its checksum: reading it fails.
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
     let name = format!("images/{hash}");
@@ -81,7 +81,7 @@ fn many_lost_images_are_counted_not_listed_one_by_one() {
         img.write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png).unwrap();
         add_image(&mut d, out).unwrap();
     }
-    let bytes = rebuild(&save_bytes(&d, None).unwrap(), |n, data| (!n.starts_with("images/")).then_some(data));
+    let bytes = rebuild(&save_bytes(&d).unwrap(), |n, data| (!n.starts_with("images/")).then_some(data));
     let (_, issues) = load_bytes(&bytes).unwrap();
     assert_eq!(issues.len(), MAX_IMAGE_ISSUES + 1, "{issues:?}");
     assert_eq!(issues.last().map(String::as_str), Some("20 more images couldn't be loaded"));
@@ -90,7 +90,7 @@ fn many_lost_images_are_counted_not_listed_one_by_one() {
 #[test]
 fn image_members_with_path_like_names_are_dropped_and_not_saved_back() {
     let (d, hash) = doc_with_image();
-    let bytes = save_bytes(&d, None).unwrap();
+    let bytes = save_bytes(&d).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
     let names: Vec<String> = z.file_names().map(str::to_string).collect();
     let mut buf = std::io::Cursor::new(Vec::new());
@@ -107,11 +107,11 @@ fn image_members_with_path_like_names_are_dropped_and_not_saved_back() {
     }
     w.finish().unwrap();
     let hostile = buf.into_inner();
-    let loaded = load_bytes_with_branches(&hostile).unwrap();
+    let loaded = load_with_replica(&hostile).unwrap();
     assert!(loaded.doc.images.keys().all(|k| k != "../../x" && k != "a/b"), "{:?}", loaded.doc.images.keys());
     assert!(loaded.doc.images.contains_key(&hash));
     assert!(!loaded.issues.is_empty());
-    let saved = save_bytes_with_branches(&loaded.doc, None, &loaded.branches).unwrap();
+    let saved = save_bytes(&loaded.doc).unwrap();
     let z = zip::ZipArchive::new(std::io::Cursor::new(saved)).unwrap();
     assert!(z.file_names().all(|n| !n.contains("..") && n.matches('/').count() <= 1), "{:?}", z.file_names().collect::<Vec<_>>());
 }

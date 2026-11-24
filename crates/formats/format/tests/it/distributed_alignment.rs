@@ -11,7 +11,7 @@ fn distributed_alignment_round_trip() {
         let page = doc.first_page().unwrap();
         let frame = doc.create(page, NodeKind::Frame, "Frame", 0.0, 0.0, 200.0, 40.0).unwrap();
         doc.node_mut(frame).unwrap().layout = Some(AutoLayout { main_align: expected, ..Default::default() });
-        let (native, _) = kition_design_format::load_bytes(&kition_design_format::save_bytes(&doc, None).unwrap()).unwrap();
+        let (native, _) = kition_design_format::load_bytes(&kition_design_format::save_bytes(&doc).unwrap()).unwrap();
         assert_eq!(native.node(frame).unwrap().layout.as_ref().unwrap().main_align, expected);
         let (bytes, export_warnings) = fig::export(&doc, None).unwrap();
         let (imported, import_warnings) = fig::import(&bytes, "Alignment").unwrap();

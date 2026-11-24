@@ -1,0 +1,22 @@
+format: 1
+id: design.version.history/restore-premises
+feature: design.version.history
+intent: >-
+  An agent's version.restore names its version by the replica version (the content there, which
+  never changes) and writes the whole design: with a basis, a colleague's change of a layer or a
+  style the restore replaces refuses it, and a comment added beside it does not (comments stay).
+  The engine restores a version as one undoable change of the replica, refuses a version its
+  history does not reach, and keeps nothing about versions in the session's document or file.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: bindings/headless/tests/outside/review.rs, crates/engine/engine/src/version_tests.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-design, test: outside, filter: "review::restoring_a_version_" }
+  - cargo-test: { package: "kition-design-engine", filter: "version_tests::" }
+expected:
+  - { actual: exit, compare: exit, value: 0 }
+since: "2026-11-23"

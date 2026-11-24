@@ -196,7 +196,7 @@ fn files_dialogs_history_and_plugins_are_off_limits() {
     assert!(!dir.exists(), "nothing was written");
     assert!(ex(&mut s, "plugin.list", json!({}))["plugins"].as_array().unwrap().len() == 1, "the plugin didn't remove itself");
     // The read-only exceptions are open.
-    install(&mut s, manifest("org.test.reads", "read", &[]), &script(&[("doc.list", json!({})), ("version.list", json!({}))], OnRefusal::Fail, ""));
+    install(&mut s, manifest("org.test.reads", "read", &[]), &script(&[("doc.list", json!({}))], OnRefusal::Fail, ""));
     ex(&mut s, "plugin.run", json!({"id": "org.test.reads"}));
 }
 

@@ -150,21 +150,20 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     assert_ne!(draft["documentId"], state["documentId"], "{draft}");
     kit.request("document.close", json!({ "documentId": state["documentId"] }), LIMIT).await.unwrap();
 
-    // The fork's file: the new id in meta.json, its content, no branches, only the pictures it
-    // uses; the thumbnail as it was.
+    // The fork's file: the new id in meta.json, its content, only the pictures it uses, and no
+    // thumbnail (no file carries one).
     let fork_bytes = std::fs::read(dir.join("Fork.kdesign")).unwrap();
     let fork_meta = meta(&fork_bytes);
     assert_eq!(fork_meta["docId"], json!(fork_id), "meta.json's copy of the docId is the fork's");
     let fork_names = names(&fork_bytes);
     assert!(fork_names.iter().filter(|name| name.starts_with("kdm/")).eq(["kdm/content.bin", "kdm/meta.json"].iter()), "{fork_names:?}");
     assert!(!fork_names.iter().any(|name| name.starts_with("versions/") || name.starts_with("branches/")), "{fork_names:?}");
-    let forked = kition_design_format::load_bytes_with_branches(&fork_bytes).unwrap();
-    assert!(forked.branches.is_empty());
+    let forked = kition_design_format::load_with_replica(&fork_bytes).unwrap();
     let used: BTreeSet<String> = forked.doc.images.keys().cloned().collect();
     assert!(!used.is_empty(), "the placed picture");
     assert_eq!(images(&fork_bytes), used, "the pictures the design uses, and no others");
     assert_eq!(images(&source_bytes), used, "the source holds the same pictures");
-    assert_eq!(entry(&fork_bytes, "thumbnail.png"), entry(&source_bytes, "thumbnail.png"), "the thumbnail is kept");
+    assert_eq!((entry(&fork_bytes, "thumbnail.png"), entry(&source_bytes, "thumbnail.png")), (None, None), "no file carries a thumbnail");
 
     // The fork edits, saves and opens again as any design, under its own id.
     let mut opened = DesignDocument::open("Fork.kdesign", &fork_bytes).unwrap();
@@ -216,8 +215,8 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
     // A replica that does not load, and replica entries that are not a design's, are refused,
     // never answered with no identity.
     let saved = DesignDocument::create("Plan.kdesign", 800, 600).unwrap().seal_and_save(None).unwrap();
-    let loaded = kition_design_format::load_bytes_with_branches(&saved).unwrap();
-    let rewrite = |replica: Vec<(String, Vec<u8>)>| kition_design_format::save_bytes_with_replica(&loaded.doc, None, &[], &replica).unwrap();
+    let loaded = kition_design_format::load_with_replica(&saved).unwrap();
+    let rewrite = |replica: Vec<(String, Vec<u8>)>| kition_design_format::save_bytes_with_replica(&loaded.doc, &replica).unwrap();
     let with = |name: &str, bytes: &[u8]| -> Vec<(String, Vec<u8>)> {
         loaded.replica.iter().map(|(entry, data)| (entry.clone(), if entry == name { bytes.to_vec() } else { data.clone() })).collect()
     };
