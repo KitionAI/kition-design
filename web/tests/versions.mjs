@@ -70,11 +70,14 @@ try {
   step('the host keeps versions: the panel can save them', (await openPanel()) && (await kit.getByTestId('design-version-unavailable').count()) === 0)
 
   // Two versions, each of the design as it is then.
-  await run('shape.rectangle', { x: -3000, y: -3000, width: 40, height: 40, name: 'Version A' })
+  await run('shape.rectangle', { x: -3000, y: -3000, width: 40, height: 40, props: { name: 'Version A' } })
+  await until(async () => (await layers()).includes('Version A'))
   const first = await layers()
   step('saves a first version (the design saved, the host records it)', await save('First'))
-  await run('shape.rectangle', { x: -2900, y: -3000, width: 40, height: 40, name: 'Version B' })
+  await run('shape.rectangle', { x: -2900, y: -3000, width: 40, height: 40, props: { name: 'Version B' } })
+  await until(async () => (await layers()).includes('Version B'))
   const second = await layers()
+  step('the design changed between the versions', first.includes('Version A') && second.includes('Version B') && !first.includes('Version B'), JSON.stringify(second))
   step('saves a second version', await save('Second'))
   const recorded = await labelled()
   step('both are the kit\'s, newest first, at the replica versions saved', recorded.length === 2 && recorded[0].label === 'Second' && recorded[1].label === 'First' && recorded.every((c) => c.origin === 'kit' && c.available && c.version), JSON.stringify(recorded))

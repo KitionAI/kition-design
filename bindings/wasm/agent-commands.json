@@ -1651,10 +1651,60 @@
   }
  },
  "file.saveVersion": {
-  "description": "Opens the version history's save form: the editor saves the version with the host, which keeps saved versions (never the design or its file)."
+  "description": "Opens the version history's save form: the editor saves the version with the host, which keeps saved versions (never the design or its file).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
  },
  "file.versionHistory": {
-  "description": "Opens the version history panel; the host keeps the saved versions."
+  "description": "Opens the version history panel; the host keeps the saved versions.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    },
+    "uiRequests": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "data": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
  },
  "fill.add": {
   "description": "Adds a fill paint (default light grey, white for frames) on top of the selected or given layers' fills.",

@@ -314,7 +314,6 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "codeConnect.import"
         | "codeConnect.remove"
         | "codeConnect.set"
-        | "component.combineVariants"
         | "component.editProperty"
         | "component.playground"
         | "edit.pasteDesignLayers"
@@ -454,7 +453,6 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "edit.findReplace"
         | "file.exportFramesPdf"
         | "file.placeImage"
-        | "file.saveVersion"
         | "guide.add"
         | "guide.clear"
         | "guide.move"
@@ -634,7 +632,9 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "vector.outlineStroke"
         | "vector.reverse"
         | "vector.reverseLoop"
-        | "vector.simplify" => SELECTION,
+        | "vector.simplify"
+        // Its code reads the selected sets alone.
+        | "component.combineVariants" => SELECTION,
         "annotation.list"
         | "board.reattach"
         | "component.create"
