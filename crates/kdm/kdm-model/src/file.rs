@@ -62,14 +62,11 @@ impl FileBase {
 /// The replica entries of a file, as `(name, bytes)` pairs.
 pub type Entries = Vec<(String, Vec<u8>)>;
 
-/// A save: the entries, what the file then holds, and the seal the fallback made.
+/// A save: the entries and what the file then holds.
 #[derive(Clone, Debug)]
 pub struct Saved {
     pub entries: Entries,
     pub base: FileBase,
-    /// The seal of the fallback in [`save`] (a replica nobody sealed): changes to import into the
-    /// session once the file is stored. `None` on the direct path.
-    pub seal: Option<Vec<u8>>,
 }
 
 fn damaged(why: impl std::fmt::Display) -> KitError {
@@ -156,40 +153,19 @@ pub fn read_content(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result
     Ok((**session.document()).clone())
 }
 
-/// An actor derived from `version` alone, so the fallback seals one version the same way.
-fn seal_actor(version: &Version) -> ActorId {
-    let bytes = version.encode();
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in bytes {
-        h ^= u64::from(b);
-        h = h.wrapping_mul(0x0100_0000_01b3);
-    }
-    ActorId::from_u64(h >> 1).unwrap_or_else(|_| ActorId::random())
-}
-
 /// The replica entries `session` saves: its sealed content snapshot (the same bytes for the same
-/// version), and what the file then holds.
-///
-/// The direct path: the host sealed the session (`KitDocument::prepare_save`,
-/// [`DesignSession::seal`]) and its own content snapshot is written.
+/// version), and what the file then holds. The host seals the session first
+/// (`KitDocument::prepare_save`, [`DesignSession::seal`]); a replica nobody sealed is refused
+/// (`not-sealed`), never saved.
 pub fn save(session: &DesignSession) -> Result<Saved> {
     let replica = session.replica();
+    if !replica.is_sealed() {
+        return Err(KitError::new("not-sealed: the design was not sealed for this save (prepare_save first)"));
+    }
     let meta = meta_of(replica);
     let doc_id = meta.doc_id.clone();
-    if replica.is_sealed() {
-        let entries = entries_of(&meta, replica.sealed_content_snapshot().map_err(kit_err)?)?;
-        return Ok(Saved { entries, base: FileBase { version: replica.version(), doc_id }, seal: None });
-    }
-    // FALLBACK, delete once a kit-editor release that calls prepareSave is in web/pnpm-lock.yaml:
-    // until then the editor saves a session nobody sealed, and `save` sees it read-only. The
-    // content of a copy sealed under an actor derived from the version (the same version gives
-    // the same bytes); `mark_saved` imports the seal.
-    let version = replica.version();
-    let mut sealed = replica.fork(seal_actor(&version)).map_err(kit_err)?;
-    sealed.seal().map_err(kit_err)?;
-    let seal = sealed.export_changes(&version).map_err(kit_err)?;
-    let entries = entries_of(&meta, sealed.sealed_content_snapshot().map_err(kit_err)?)?;
-    Ok(Saved { entries, base: FileBase { version: sealed.version(), doc_id }, seal: Some(seal) })
+    let entries = entries_of(&meta, replica.sealed_content_snapshot().map_err(kit_err)?)?;
+    Ok(Saved { entries, base: FileBase { version: replica.version(), doc_id } })
 }
 
 /// The replica entries of a document no session holds (a file written without the bridge): a new

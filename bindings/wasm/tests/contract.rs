@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 fn fixture() -> Vec<u8> {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80 })).unwrap();
-    doc.save(None).unwrap()
+    doc.seal_and_save(None).unwrap()
 }
 
 fn layers(doc: &DesignDocument) -> u64 {
@@ -26,8 +26,9 @@ fn keeps_the_kit_contract() {
         doc.execute(
             "shape.ellipse",
             json!({ "x": 200, "y": 120, "width": 80, "height": 60, "props": { "fills": [{ "type": "solid", "color": "#ff0000" }] } }),
-        )
-        .map(|_| ())
+        )?;
+        // The seal a host makes before the save the contract checks (`prepare_save`: no edit).
+        doc.prepare_save()
     })
     .unwrap();
 }
@@ -41,8 +42,8 @@ fn keeps_the_contract_on_a_real_example_file() {
         doc.execute(
             "shape.rectangle",
             json!({ "x": area.x + 110.0, "y": area.y + 110.0, "width": 64, "height": 64, "props": { "fills": [{ "type": "solid", "color": "#ff00ff" }] } }),
-        )
-        .map(|_| ())
+        )?;
+        doc.prepare_save()
     })
     .unwrap();
 }
@@ -93,7 +94,7 @@ fn saving_writes_kdesign_and_leaves_the_document_dirty_until_marked() {
     doc.execute("select.all", json!({})).unwrap();
     doc.execute("object.group", json!({})).unwrap();
     assert!(doc.dirty());
-    let bytes = doc.save(Some("Design.kdesign")).unwrap();
+    let bytes = doc.seal_and_save(Some("Design.kdesign")).unwrap();
     assert_eq!(&bytes[..2], b"PK", "a .kdesign is a zip");
     assert!(doc.dirty());
     doc.mark_saved();

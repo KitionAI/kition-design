@@ -4,7 +4,7 @@ use super::*;
 fn prepare(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let out = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
     out
 }
 
@@ -31,7 +31,7 @@ async fn pruning_reads_alias_edges_and_not_unrelated_literal_values() {
         library.execute("variable.createCollection", json!({"name":"Library Tokens"})).unwrap();
         library.execute("variable.create", json!({"collection":"Library Tokens","name":"size","type":"number","value":4})).unwrap();
         library.execute("library.publish", json!({})).unwrap();
-        let bytes = library.save(None).unwrap();
+        let bytes = library.seal_and_save(None).unwrap();
         std::fs::write(f.workspace.path().join(path), &bytes).unwrap();
         let made = prepare(&f, |d| {
             d.lend_library(path, Some(&bytes)).unwrap();

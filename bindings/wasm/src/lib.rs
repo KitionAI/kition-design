@@ -518,9 +518,8 @@ impl KitDocument for DesignDocument {
 
     /// The design as `.kdesign` bytes: its content (the replica's sealed content snapshot: no
     /// history, rule M16b), thumbnail and branches. Hosts call [`KitDocument::prepare_save`]
-    /// first; a session nobody sealed saves the content of a sealed copy, whose seal
-    /// [`KitDocument::mark_saved`] takes in (`kition_design_kdm::file::save`). Other extensions
-    /// are exports (`file.export`), not saves.
+    /// first; a save the replica was not sealed for is refused (`not-sealed`,
+    /// `kition_design_kdm::file::save`). Other extensions are exports (`file.export`), not saves.
     fn save(&self, name: Option<&str>) -> Result<Vec<u8>, String> {
         if let Some(name) = name {
             let ext = extension(name);
@@ -595,6 +594,14 @@ pub fn add_font(bytes: &[u8]) -> usize {
 }
 
 impl DesignDocument {
+    /// The design's file as a host saves it: [`KitDocument::prepare_save`] (the seal), then
+    /// [`KitDocument::save`]. For code that holds the document itself (tests, fixture builders);
+    /// a host calls the two itself.
+    pub fn seal_and_save(&mut self, name: Option<&str>) -> Result<Vec<u8>, String> {
+        self.prepare_save()?;
+        self.save(name)
+    }
+
     /// `query(name, params)`: the editor's panels' answers ([`query`]).
     pub fn query(&self, name: &str, params: &Value) -> Result<Value, String> {
         query::query(self, name, params)

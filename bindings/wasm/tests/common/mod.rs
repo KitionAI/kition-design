@@ -365,7 +365,7 @@ impl KitAdapter for DesignKit {
 
     fn export_file(&self, d: &mut DesignDocument) -> Result<Option<Vec<u8>>> {
         d.prepare_save()?;
-        d.save(None).map(Some)
+        d.seal_and_save(None).map(Some)
     }
 
     /// The largest example design, as a person opens it.

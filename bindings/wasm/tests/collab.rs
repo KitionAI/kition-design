@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 fn fixture() -> Vec<u8> {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     doc.execute("shape.rectangle", json!({ "x": 40, "y": 40, "width": 120, "height": 80 })).unwrap();
-    doc.save(None).unwrap()
+    doc.seal_and_save(None).unwrap()
 }
 
 fn layers(doc: &DesignDocument) -> u64 {
@@ -41,7 +41,7 @@ fn the_kdesign_keeps_the_documents_identity() {
     let mut a = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
     let id = a.doc_id().unwrap();
     rect(&mut a, 200.0);
-    let bytes = a.save(None).unwrap();
+    let bytes = a.seal_and_save(None).unwrap();
     a.mark_saved();
     let mut b = DesignDocument::open("Design.kdesign", &bytes).unwrap();
     assert_eq!(b.doc_id(), Some(id.clone()));
@@ -71,7 +71,7 @@ fn a_replica_opens_without_a_file_and_converges() {
     let mut b = DesignDocument::open_with_replica("Shared.kdesign", &[], &changes, &a.blobs().unwrap()).unwrap();
     assert_eq!(b.doc_id(), a.doc_id());
     assert_eq!(b.state_json().unwrap(), a.state_json().unwrap());
-    assert!(DesignDocument::open("Shared.kdesign", &b.save(None).unwrap()).is_ok());
+    assert!(DesignDocument::open("Shared.kdesign", &b.seal_and_save(None).unwrap()).is_ok());
     assert!(DesignDocument::open_with_replica("Shared.kdesign", &[], b"not a replica", &[]).is_err());
 
     // Edits on both sides, exchanged both ways.
@@ -144,7 +144,7 @@ fn images_travel_as_blobs() {
     b.import_changes(&changes).unwrap();
     b.add_blobs(&a.blobs_since(&since).unwrap()).unwrap();
     assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    let saved = b.save(None).unwrap();
+    let saved = b.seal_and_save(None).unwrap();
     assert!(DesignDocument::open("Design.kdesign", &saved).is_ok());
 }
 

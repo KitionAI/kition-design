@@ -18,9 +18,10 @@ pub fn thumbnail(doc: &Document) -> Option<Vec<u8>> {
     kition_design_render::encode_png(&pix).ok()
 }
 
-/// The `.kdesign` file for a document: its content, thumbnail and branches (no history).
+/// The `.kdesign` file for a document: its content, thumbnail and branches (no history). Its
+/// replica must be sealed for the save ([`DocState::prepare_save`]).
 pub fn file_bytes(ds: &DocState) -> Result<Vec<u8>> {
-    FileSnapshot::of(ds).encode()
+    FileSnapshot::of(ds)?.encode()
 }
 
 /// A document's file as it is at one moment, so the slow part of saving it (the thumbnail and the
@@ -39,19 +40,18 @@ pub struct FileSnapshot {
 }
 
 impl FileSnapshot {
-    pub fn of(ds: &DocState) -> Self {
-        Self {
+    /// The file of `ds` now; its replica must be sealed for the save ([`DocState::prepare_save`]):
+    /// an unsealed one is refused (`not-sealed`), never left out of the file.
+    pub fn of(ds: &DocState) -> Result<Self> {
+        Ok(Self {
             uid: ds.uid,
             path: ds.path.clone(),
             revision: ds.revision,
             doc: ds.doc.clone(),
             saved: ds.saved_doc.clone(),
             branches: ds.branches.clone(),
-            replica: ds.replica_entries().unwrap_or_else(|e| {
-                log::warn!("the replica is not saved with the file: {e}");
-                Vec::new()
-            }),
-        }
+            replica: ds.replica_entries()?,
+        })
     }
 
     /// The file's bytes: the content, the thumbnail and the branches.
@@ -146,12 +146,18 @@ fn save_to(s: &mut Session, path: Option<String>) -> Result<Value> {
         return export_fig(s, &json!({"path": path}));
     }
     let i = crate::branches::file_tab(s);
+    let (origin, bridged) = (s.origin(), s.kdm_enabled());
     let ds = s.docs.get_mut(i).ok_or(EngineError::NoDocument)?;
     // A download (no path) writes over no file.
     if let Some(path) = path.as_deref() {
         refuse_dropping_images(ds, path)?;
     }
-    let mut snapshot = FileSnapshot::of(ds);
+    // The engine's own save seals the replica first, as a host does before it saves (without the
+    // bridge there is no replica: the file gets a new one).
+    if bridged {
+        ds.prepare_save(&origin)?;
+    }
+    let mut snapshot = FileSnapshot::of(ds)?;
     let follows_path = ds.path.as_deref().map_or(ds.doc.name == "Untitled", |old| ds.doc.name == file_stem(old));
     if let Some(path) = path.as_deref()
         && follows_path

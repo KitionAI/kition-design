@@ -4,7 +4,7 @@ use super::*;
 fn rewrite(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let out = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
     out
 }
 
@@ -41,7 +41,7 @@ fn library(f: &Fixture) -> Value {
     let component = lib.inspect().unwrap()["tree"][0]["id"].clone();
     lib.execute("component.create", json!({"ids":[component]})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
-    let bytes = lib.save(None).unwrap();
+    let bytes = lib.seal_and_save(None).unwrap();
     std::fs::write(f.workspace.path().join("Library.kdesign"), &bytes).unwrap();
     rewrite(f, |d| {
         d.lend_library("Library.kdesign", Some(&bytes)).unwrap();

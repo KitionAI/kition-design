@@ -4,7 +4,7 @@ use super::*;
 fn prepare(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let value = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
     value
 }
 

@@ -5,6 +5,7 @@ each package is published with a `package-v<version>` tag.
 
 ## Unreleased
 
+- The editor is on `@kitionstage/sdk` 0.5.2-stage.18, whose editor seals the design before every save (`prepareSave`): a save the replica was not sealed for is now refused (`not-sealed`) instead of sealing a copy (task schema-freeze round 4).
 - A `.kdesign` holds the design's content, not its history (task schema-freeze, kition-sdk rule M16b): `kdm/content.bin` (the replica's sealed content snapshot), `kdm/meta.json` naming the document, and the images the content uses. `document.json`, the change log and saved versions (`versions/`) are gone; branches, the thumbnail and the published library stay as they were. Hosts seal before saving (`prepareSave`); the history is the replica the host stores. Saved versions live in the session until the host offers kits a checkpoint store. kition-sdk 82a3224.
 - Schema 1 (task schema-freeze): a text layer's characters are `Node.text` (a KDM text with marks), paints and effects are `Paint` and `Effect` objects with their bindings, each voter's ballot is its own settings key, and who has read a comment thread is no longer replicated. Files and stored replicas of earlier schemas do not open as such (no migration).
 

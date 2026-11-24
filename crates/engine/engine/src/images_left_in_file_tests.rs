@@ -47,7 +47,7 @@ fn a_snapshot_encoded_in_the_background_does_not_save_over_it() {
     let (dir, path, mut s) = opened_with_images_left_in_file("snapshot");
     let before = std::fs::read(&path).unwrap();
     rect(&mut s, 20.0);
-    let file = FileSnapshot::of(s.ds().unwrap());
+    let file = FileSnapshot::of(s.ds().unwrap()).unwrap();
     let bytes = file.encode().unwrap();
     assert!(file.save(&mut s, &bytes).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), before);

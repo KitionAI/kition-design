@@ -347,11 +347,11 @@ the session's (`DocState::versions`) until the host offers kits a store for labe
 - **Save**: hosts call `prepareSave` first (engine contract E4): the session's committed edits are
   written and the replica is sealed, a `system` change that is no undo step (an undo after it takes
   back the last person's or agent's step). The save writes the replica's sealed content snapshot,
-  the same bytes while the design is at the file's version. One fallback, until the kit editor's
-  release that calls `prepareSave` is in `web/pnpm-lock.yaml`: a save nobody sealed for writes the
-  content of a copy sealed under an actor derived from the version, and `markSaved` imports that
-  seal (`kition_design_kdm::file::save`). A document the bridge never held (the engine's own tests,
-  `kition_design_format::save_bytes`) is written as a new replica of it, sealed.
+  the same bytes while the design is at the file's version. A save the replica was not sealed for
+  is refused (`not-sealed`, `kition_design_kdm::file::save`); the engine's own `file.save` seals
+  first, and code that holds a document saves with `DesignDocument::seal_and_save`. A document the
+  bridge never held (the engine's own tests, `kition_design_format::save_bytes`) is written as a
+  new replica of it, sealed.
 - `openWithReplica(name, bytes, snapshot, blobs)`: a `.kdesign` of the same document as the
   host's stored replica is taken into it (`kition_kit::session::take_file`): nothing when the
   replica has the file's version, the file's changes when its history starts at a version the

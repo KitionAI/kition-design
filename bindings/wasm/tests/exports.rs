@@ -29,8 +29,8 @@ fn every_creates_entry_makes_a_clean_design() {
     for entry in manifest()["creates"].as_array().unwrap() {
         let name = format!("{}.{}", entry["baseName"].as_str().unwrap(), entry["extension"].as_str().unwrap());
         let size = &entry["size"];
-        let doc = DesignDocument::create(&name, size["width"].as_u64().unwrap() as u32, size["height"].as_u64().unwrap() as u32).unwrap();
-        let reopened = DesignDocument::open(&name, &doc.save(None).unwrap()).unwrap();
+        let mut doc = DesignDocument::create(&name, size["width"].as_u64().unwrap() as u32, size["height"].as_u64().unwrap() as u32).unwrap();
+        let reopened = DesignDocument::open(&name, &doc.seal_and_save(None).unwrap()).unwrap();
         assert!(reopened.check().is_empty(), "{name}: {:?}", reopened.check());
         assert_eq!(reopened.inspect().unwrap()["layers"], 1, "{name}: one frame");
         let ds = reopened.session().ds().unwrap();
@@ -70,7 +70,7 @@ fn every_exports_entry_writes_a_file_a_reader_reads_back() {
     let extensions: Vec<&str> = exports.iter().map(|entry| entry["extension"].as_str().unwrap()).collect();
     assert_eq!(extensions, ["png", "jpg", "svg", "pdf"]);
     let mut doc = basic();
-    let (revision, saved) = (doc.revision(), doc.save(None).unwrap());
+    let (revision, saved) = (doc.revision(), doc.seal_and_save(None).unwrap());
     for entry in exports {
         let (extension, command) = (entry["extension"].as_str().unwrap(), entry["command"].as_str().unwrap());
         let listed = doc.commands().into_iter().find(|c| c.id == command).unwrap();
@@ -95,7 +95,7 @@ fn every_exports_entry_writes_a_file_a_reader_reads_back() {
     // Every engine command moves the view's revision; the design and its history stay as they were.
     assert!(doc.revision() >= revision && !doc.dirty(), "exports change nothing");
     assert_eq!(doc.inspect().unwrap()["canUndo"], false);
-    assert_eq!(doc.save(None).unwrap(), saved);
+    assert_eq!(doc.seal_and_save(None).unwrap(), saved);
 }
 
 #[test]

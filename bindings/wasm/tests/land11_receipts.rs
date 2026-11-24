@@ -69,7 +69,7 @@ fn command_receipts_equal_the_saved_files_difference_on_fixtures() {
             let receipt = exchange.replica(&mut doc).unwrap().changes_since(&since).unwrap().without_texts().to_json();
             let memory = model(&mut doc);
             let engine_memory = doc.session().doc().unwrap().clone();
-            let bytes = doc.save(None).unwrap();
+            let bytes = doc.seal_and_save(None).unwrap();
             let mut reopened = DesignDocument::open(name, &bytes).unwrap();
             let saved = model(&mut reopened);
             for node in engine_memory.ids() {

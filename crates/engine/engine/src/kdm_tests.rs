@@ -116,12 +116,19 @@ fn two_sessions_converge_and_keep_each_others_edits() {
     assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
 }
 
+/// The file of `s`'s document as a host saves it: sealed first (`prepare_save`), then the bytes.
+fn sealed_bytes(s: &mut Session) -> Vec<u8> {
+    let origin = s.origin();
+    s.ds_mut().unwrap().prepare_save(&origin).unwrap();
+    cmd::file::file_bytes(s.ds().unwrap()).unwrap()
+}
+
 #[test]
 fn a_kdesign_carries_its_replicas_content() {
     let mut s = session();
     rect(&mut s, 0.0, "Saved");
     let id = s.doc_id().unwrap();
-    let bytes = cmd::file::file_bytes(s.ds().unwrap()).unwrap();
+    let bytes = sealed_bytes(&mut s);
     s.ds_mut().unwrap().mark_saved();
     let version = s.version().unwrap();
 
@@ -136,7 +143,7 @@ fn a_kdesign_carries_its_replicas_content() {
 
     // A second save holds the content as it is now, and still no history.
     rect(&mut s, 100.0, "Later");
-    let again = cmd::file::file_bytes(s.ds().unwrap()).unwrap();
+    let again = sealed_bytes(&mut s);
     let loaded = kition_design_format::load_bytes_with_branches(&again).unwrap();
     let names: Vec<&str> = loaded.replica.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT]);

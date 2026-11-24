@@ -104,7 +104,7 @@ fn a_file_encoded_elsewhere_is_saved_as_of_its_snapshot() {
     let mut s = Session::new();
     s.execute("file.save", &json!({"path": path})).unwrap();
     rect(&mut s, 0.0);
-    let file = FileSnapshot::of(s.ds().unwrap());
+    let file = FileSnapshot::of(s.ds().unwrap()).unwrap();
     let bytes = file.encode().unwrap();
     rect(&mut s, 50.0);
     assert!(file.save(&mut s, &bytes).unwrap());
@@ -113,7 +113,7 @@ fn a_file_encoded_elsewhere_is_saved_as_of_its_snapshot() {
     t.execute("file.open", &json!({"path": path})).unwrap();
     assert_eq!(t.ds().unwrap().doc.page_content_bounds(t.ds().unwrap().page).unwrap().x1, 10.0, "the file is the snapshot");
     // Saved meanwhile: the older bytes never overwrite the newer file.
-    let file = FileSnapshot::of(s.ds().unwrap());
+    let file = FileSnapshot::of(s.ds().unwrap()).unwrap();
     let bytes = file.encode().unwrap();
     rect(&mut s, 100.0);
     s.execute("file.save", &json!({})).unwrap();

@@ -103,9 +103,11 @@ fn the_file_entries_reopen_the_replica() {
     let page = d.first_page().unwrap();
     d.get_mut(page).unwrap().name = "Edited".into();
     s.record(&person(), &Arc::new(d)).unwrap();
+    let error = crate::file::save(&s).unwrap_err().to_string();
+    assert!(error.contains("not-sealed"), "a session nobody sealed is not saved: {error}");
     s.seal().unwrap();
     let saved = crate::file::save(&s).unwrap();
-    assert!(saved.seal.is_none(), "a sealed session saves its own content");
+    assert_eq!(saved.base.version(), &s.version(), "a sealed session saves its own content");
     let names: Vec<&str> = saved.entries.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, [crate::file::META, crate::file::CONTENT], "the content and what identifies it, no change log");
     // An unchanged save writes the same bytes.

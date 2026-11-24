@@ -22,7 +22,7 @@ fn build() -> Vec<u8> {
         doc.execute("frame.create", json!({ "x": 0, "y": 0, "width": 200, "height": 120, "parent": page, "name": "Card" })).unwrap()["id"].clone();
     doc.execute("text.create", json!({ "text": "Hello", "x": 16, "y": 16, "parent": card })).unwrap();
     doc.execute("variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] })).unwrap();
-    doc.save(Some("cards.kdesign")).unwrap()
+    doc.seal_and_save(Some("cards.kdesign")).unwrap()
 }
 
 /// The child's half: builds the drawing into the file `OUT` names (nothing without it).

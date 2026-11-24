@@ -68,7 +68,7 @@ fn reverting_loads_the_changes_made_on_disk_and_saves_again() {
 fn auto_save_leaves_changes_made_on_disk_alone() {
     let path = temp_file("auto");
     let mut app = app_and_cli(&path);
-    let snapshot = FileSnapshot::of(app.ds().unwrap());
+    let snapshot = FileSnapshot::of(app.ds().unwrap()).unwrap();
     let bytes = snapshot.encode().unwrap();
     assert!(snapshot.save(&mut app, &bytes).is_err());
     assert_eq!(page_on_disk(&path), "CLI VENCEU");

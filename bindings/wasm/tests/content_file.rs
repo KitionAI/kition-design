@@ -4,9 +4,7 @@
 //! the same bytes; a file opened without a store is the same document and takes edits; a replica
 //! from the file and one with the whole history converge; undo after a save takes back the last
 //! edit; and a file opens on top of a stored replica, which keeps its history. Hosts seal before
-//! saving (`prepare_save`, the direct path); the one fallback, a save nobody sealed for (the kit
-//! editor before its release that calls `prepareSave`), seals a copy and `mark_saved` takes the
-//! seal in.
+//! saving (`prepare_save`); a save nobody sealed for is refused (`not-sealed`), never written.
 //!
 //! The needles below are written once each and share no run of four characters with anything else
 //! in the design, so each stays literal in the KDM bytes that hold it: every test checks the
@@ -178,21 +176,20 @@ fn undo_after_a_save_takes_back_the_last_edit() {
 }
 
 #[test]
-fn a_save_nobody_sealed_for_seals_a_copy_and_mark_saved_takes_the_seal() {
-    // FALLBACK, delete with it once a kit-editor release that calls prepareSave is in
-    // web/pnpm-lock.yaml.
+fn a_save_nobody_sealed_for_is_refused() {
     let (mut doc, _) = design_with_history();
-    let bytes = doc.save(Some(FILE)).unwrap();
+    let version = doc.version().unwrap();
+    let error = doc.save(Some(FILE)).unwrap_err();
+    assert!(error.contains("not-sealed"), "{error}");
+    assert_eq!(doc.version().unwrap(), version, "a refused save changes nothing");
+    assert!(doc.dirty(), "and leaves the edits unsaved");
+    // Sealed, the same design saves: its content, of its history only the seal.
+    let bytes = host_save(&mut doc);
     for needle in NEEDLES {
         assert!(!contains(&content(&bytes), needle), "the file holds {needle}");
     }
     assert_eq!(Replica::snapshot_origins(&content(&bytes)).unwrap(), vec![Some(Origin::system("content-seal"))]);
-    assert_eq!(doc.save(Some(FILE)).unwrap(), bytes, "the same version seals the same way");
-    assert_ne!(doc.version().unwrap(), file_version(&bytes), "the seal is the copy's until the save is stored");
-    doc.mark_saved();
-    assert_eq!(doc.version().unwrap(), file_version(&bytes), "mark_saved took the seal in");
-    let back = DesignDocument::open(FILE, &bytes).unwrap();
-    assert_eq!(tree(&back), tree(&doc));
+    assert_eq!(doc.version().unwrap(), file_version(&bytes), "the seal is in the replica the host stores");
 }
 
 #[test]

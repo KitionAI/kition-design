@@ -18,7 +18,7 @@ async fn measure(children: usize, form: &str) {
                 .clone(),
         );
     }
-    std::fs::write(workspace.path().join("Size.kdesign"), doc.save(None).unwrap()).unwrap();
+    std::fs::write(workspace.path().join("Size.kdesign"), doc.seal_and_save(None).unwrap()).unwrap();
     let kit = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
     let kits = KitManager::new(Some(workspace.path().to_path_buf()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-design"))))]);
     let (command, params) = match form {

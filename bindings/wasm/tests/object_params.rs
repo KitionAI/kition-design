@@ -169,7 +169,7 @@ fn resources_keep_their_command_ids_in_the_model_after_reopen() {
         doc.execute("variable.create", serde_json::json!({"collection":collection, "name":"Spacing", "type":"number", "value":8})).unwrap()["id"]
             .clone();
     let thread = doc.execute("comment.add", serde_json::json!({"text":"Review", "x":5, "y":5})).unwrap()["id"].clone();
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.seal_and_save(None).unwrap();
     for mut doc in [doc, DesignDocument::open("Ids.kdesign", &bytes).unwrap()] {
         let mut exchange = Exchange::new();
         let loaded = exchange

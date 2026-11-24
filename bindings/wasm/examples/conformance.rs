@@ -269,7 +269,7 @@ fn fixture(name: &str, build: Build, damage: Option<Damage>, drop_images: bool) 
     build(&mut doc)?;
     run(&mut doc, "select.none", json!({}))?;
     doc.prepare_save()?;
-    let bytes = doc.save(None)?;
+    let bytes = doc.seal_and_save(None)?;
     Ok(if damage.is_some() || drop_images {
         rewrite(&bytes, damage, if drop_images { |name: &str| !name.starts_with("images/") } else { |_: &str| true })
     } else {

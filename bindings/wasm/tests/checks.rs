@@ -122,12 +122,12 @@ fn each_fix_is_an_offered_command_and_clears_its_code() {
 fn checking_changes_nothing() {
     for entry in catalogue() {
         let name = entry["fixture"].as_str().unwrap();
-        let doc = fixture(name);
-        let (revision, dirty, inspected, saved) = (doc.revision(), doc.dirty(), doc.inspect().unwrap(), doc.save(None).unwrap());
+        let mut doc = fixture(name);
+        let (revision, dirty, inspected, saved) = (doc.revision(), doc.dirty(), doc.inspect().unwrap(), doc.seal_and_save(None).unwrap());
         let _ = doc.check();
         assert_eq!((doc.revision(), doc.dirty()), (revision, dirty), "{name}");
         assert_eq!(doc.inspect().unwrap(), inspected, "{name}");
-        assert_eq!(doc.save(None).unwrap(), saved, "{name}");
+        assert_eq!(doc.seal_and_save(None).unwrap(), saved, "{name}");
     }
 }
 

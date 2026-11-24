@@ -4,7 +4,7 @@ use super::*;
 fn rewrite(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let out = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
     out
 }
 
@@ -26,7 +26,7 @@ fn library(f: &Fixture, path: &str) -> Value {
     lib.execute("component.create", json!({"ids":[main]})).unwrap();
     lib.execute("node.create", json!({"type":"rectangle","parent":main,"width":10,"height":10})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
-    let bytes = lib.save(None).unwrap();
+    let bytes = lib.seal_and_save(None).unwrap();
     std::fs::write(f.workspace.path().join(path), &bytes).unwrap();
     rewrite(f, |d| {
         d.lend_library(path, Some(&bytes)).unwrap();
@@ -43,7 +43,7 @@ fn update_library(f: &Fixture, path: &str) {
     let main = lib.inspect().unwrap()["tree"][0]["id"].clone();
     lib.execute("node.set", json!({"id":main,"props":{"width":120}})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
-    std::fs::write(f.workspace.path().join(path), lib.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(path), lib.seal_and_save(None).unwrap()).unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread")]

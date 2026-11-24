@@ -173,7 +173,7 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     opened
         .execute("node.create", json!({ "type": "rectangle", "parent": frame, "name": "New", "x": 20, "y": 200, "width": 40, "height": 40 }))
         .unwrap();
-    let edited = opened.save(None).unwrap();
+    let edited = opened.seal_and_save(None).unwrap();
     let reopened = DesignDocument::open("Fork.kdesign", &edited).unwrap();
     assert_eq!(reopened.doc_id().as_deref(), Some(fork_id.as_str()));
     assert_eq!(reopened.inspect().unwrap()["tree"], opened.inspect().unwrap()["tree"]);
@@ -201,7 +201,7 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
     let kit = launch(&dir).await;
     // An empty `.kdesign` (a file made for the kit before it saved one) and bytes that are no
     // archive hold no replica: no identity, and their forks are the same bytes.
-    let doc = kition_design_format::load_bytes(&DesignDocument::create("Plain.kdesign", 800, 600).unwrap().save(None).unwrap()).unwrap().0;
+    let doc = kition_design_format::load_bytes(&DesignDocument::create("Plain.kdesign", 800, 600).unwrap().seal_and_save(None).unwrap()).unwrap().0;
     let mut json = Vec::new();
     kition_design_format::write_json(&doc, &mut json).unwrap();
     for (name, bytes) in [("New.kdesign", Vec::new()), ("Bare.kdesign", json)] {
@@ -215,7 +215,7 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
 
     // A replica that does not load, and replica entries that are not a design's, are refused,
     // never answered with no identity.
-    let saved = DesignDocument::create("Plan.kdesign", 800, 600).unwrap().save(None).unwrap();
+    let saved = DesignDocument::create("Plan.kdesign", 800, 600).unwrap().seal_and_save(None).unwrap();
     let loaded = kition_design_format::load_bytes_with_branches(&saved).unwrap();
     let rewrite = |replica: Vec<(String, Vec<u8>)>| kition_design_format::save_bytes_with_replica(&loaded.doc, None, &[], &replica).unwrap();
     let with = |name: &str, bytes: &[u8]| -> Vec<(String, Vec<u8>)> {

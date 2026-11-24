@@ -180,7 +180,7 @@ fn the_editor_lends_library_bytes_and_the_path_travels_with_the_file() {
     assert_eq!(fill_of(&doc, &instance), "ff0000");
 
     // Saved and opened again: the link is still the relative path, read from what is lent.
-    let saved = doc.save(None).unwrap();
+    let saved = doc.seal_and_save(None).unwrap();
     let mut again = DesignDocument::open("Design.kdesign", &saved).unwrap();
     assert_eq!(again.query("library.files", &json!({})).unwrap()["files"][0]["path"], "Design System.kdesign");
     assert!(again.query("library.list", &json!({})).unwrap()["libraries"][0]["error"].is_string(), "not lent to this document yet");
@@ -207,7 +207,7 @@ fn a_library_is_published_from_the_open_file() {
     doc.execute("component.create", json!({ "ids": [frame] })).unwrap();
     let published = doc.execute("library.publish", json!({ "description": "Cards" })).unwrap();
     assert_eq!(published["version"], 1, "{published}");
-    let saved = doc.save(None).unwrap();
+    let saved = doc.seal_and_save(None).unwrap();
     // Another design uses it.
     let (mut other, _) = design();
     other.lend_library("Cards.kdesign", Some(&saved)).unwrap();

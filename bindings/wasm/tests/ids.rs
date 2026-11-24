@@ -43,10 +43,10 @@ fn inspect_lists_every_page_with_its_id_name_and_index() {
 
 #[test]
 fn layer_and_page_ids_survive_saving_and_opening_again() {
-    let doc = two_pages();
+    let mut doc = two_pages();
     let before = layers(&doc);
     let pages: Vec<Value> = doc.inspect().unwrap()["pages"].as_array().unwrap().iter().map(|p| p["id"].clone()).collect();
-    let mut again = DesignDocument::open("Design.kdesign", &doc.save(None).unwrap()).unwrap();
+    let mut again = DesignDocument::open("Design.kdesign", &doc.seal_and_save(None).unwrap()).unwrap();
     assert_eq!(layers(&again), before, "every layer and page keeps its id");
     let reopened: Vec<Value> = again.inspect().unwrap()["pages"].as_array().unwrap().iter().map(|p| p["id"].clone()).collect();
     assert_eq!(reopened, pages);
@@ -58,8 +58,8 @@ fn layer_and_page_ids_survive_saving_and_opening_again() {
 
 #[test]
 fn the_object_model_answers_and_takes_the_layer_ids() {
-    let doc = two_pages();
-    let mut doc = DesignDocument::open("Design.kdesign", &doc.save(None).unwrap()).unwrap();
+    let mut doc = two_pages();
+    let mut doc = DesignDocument::open("Design.kdesign", &doc.seal_and_save(None).unwrap()).unwrap();
     let before = layers(&doc);
     let mut exchange = Exchange::new();
     let answer = exchange.batch(&mut doc, &json!({ "ops": [], "load": [{ "target": "root", "fields": ["nodes"] }] }), false).unwrap();

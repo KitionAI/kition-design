@@ -4,7 +4,7 @@ use super::*;
 fn prepare(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let made = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
     made
 }
 
@@ -78,7 +78,7 @@ async fn a_local_paste_reads_its_copied_main_and_not_unrelated_library_links() {
             let main = library.inspect().unwrap()["tree"][0]["id"].clone();
             library.execute("component.create", json!({"ids":[main]})).unwrap();
             library.execute("library.publish", json!({})).unwrap();
-            let bytes = library.save(None).unwrap();
+            let bytes = library.seal_and_save(None).unwrap();
             std::fs::write(f.workspace.path().join("Unrelated.kdesign"), &bytes).unwrap();
             prepare(f, |d| {
                 d.lend_library("Unrelated.kdesign", Some(&bytes)).unwrap();

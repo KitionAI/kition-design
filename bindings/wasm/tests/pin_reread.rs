@@ -16,10 +16,10 @@ fn rectangle(doc: &mut DesignDocument, name: &str, x: f64) -> Value {
 }
 
 /// `live`'s file as another program saved it after `edit`, read again.
-fn saved_elsewhere(live: &DesignDocument, edit: impl FnOnce(&mut DesignDocument)) -> DesignDocument {
-    let mut writer = DesignDocument::open(FILE, &live.save(None).unwrap()).unwrap();
+fn saved_elsewhere(live: &mut DesignDocument, edit: impl FnOnce(&mut DesignDocument)) -> DesignDocument {
+    let mut writer = DesignDocument::open(FILE, &live.seal_and_save(None).unwrap()).unwrap();
     edit(&mut writer);
-    DesignDocument::open(FILE, &writer.save(None).unwrap()).unwrap()
+    DesignDocument::open(FILE, &writer.seal_and_save(None).unwrap()).unwrap()
 }
 
 fn x_of(doc: &DesignDocument, id: &Value) -> f64 {
@@ -32,7 +32,7 @@ fn the_file_read_again_restores_the_previous_selection_and_page() {
     let a = rectangle(&mut live, "A", 20.0);
     live.execute("select.set", json!({"ids":[a]})).unwrap();
     let saved = live.editor_state();
-    let mut fresh = saved_elsewhere(&live, |_| {});
+    let mut fresh = saved_elsewhere(&mut live, |_| {});
     fresh.carry_replica_objects(&live).unwrap();
     fresh.restore_editor_state(&saved).unwrap();
     assert_eq!(fresh.inspect().unwrap()["selection"], json!([a]));
@@ -45,7 +45,7 @@ fn the_file_read_again_refuses_a_deleted_active_target_and_changes_nothing() {
     let a = rectangle(&mut live, "A", 20.0);
     live.execute("select.set", json!({"ids":[a]})).unwrap();
     let saved = live.editor_state();
-    let mut fresh = saved_elsewhere(&live, |writer| {
+    let mut fresh = saved_elsewhere(&mut live, |writer| {
         writer.execute("edit.delete", json!({"ids":[a]})).unwrap();
     });
     fresh.carry_replica_objects(&live).unwrap();
@@ -54,10 +54,10 @@ fn the_file_read_again_refuses_a_deleted_active_target_and_changes_nothing() {
     assert!(error.contains("deleted active target"), "{error}");
     assert_eq!(fresh.inspect().unwrap()["selection"], before["selection"]);
     // The live design keeps the state, and reconciling with that file is refused untouched.
-    let kept = live.save(None).unwrap();
+    let kept = live.seal_and_save(None).unwrap();
     let error = live.reconcile_reread(&fresh).unwrap_err();
     assert!(error.contains("deleted active target"), "{error}");
-    assert_eq!(live.save(None).unwrap(), kept);
+    assert_eq!(live.seal_and_save(None).unwrap(), kept);
     assert_eq!(live.inspect().unwrap()["selection"], json!([a]));
 }
 
@@ -69,7 +69,7 @@ fn an_outside_save_keeps_the_agents_undo_and_the_colleagues_edit() {
     live.mark_saved();
     assert_eq!(x_of(&live, &a), 50.0);
     let mut b = Value::Null;
-    let fresh = saved_elsewhere(&live, |writer| b = rectangle(writer, "B", 200.0));
+    let fresh = saved_elsewhere(&mut live, |writer| b = rectangle(writer, "B", 200.0));
     assert!(live.reconcile_reread(&fresh).unwrap());
     assert!(!live.dirty(), "a reconciled design is the file as saved");
     assert_eq!(x_of(&live, &b), 200.0, "the colleague's layer is in");
