@@ -3,7 +3,6 @@
 //! the design as it was there ([`content_at`]) to show it (`version.preview`), restore it
 //! (`version.restore`) or compare with it (`dev.compare`).
 
-use base64::Engine as _;
 use kition_design_kdm::kition_kit::kdm::Version as ReplicaVersion;
 
 use super::*;

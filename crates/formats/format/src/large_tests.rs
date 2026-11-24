@@ -1,5 +1,5 @@
 //! A large document round-trips exactly through a `.kdesign` (its content) and through the
-//! document JSON branches keep; layer fields at their defaults are left out of the JSON (and come
+//! document JSON; layer fields at their defaults are left out of the JSON (and come
 //! back), JSON that spells every field out still reads, and its header is read without building
 //! the document.
 
@@ -8,6 +8,8 @@ use kition_design_doc::geom::Affine;
 use kition_design_doc::{
     AutoLayout, ChildLayout, Document, Effect, EffectKind, ExportSetting, Node, NodeKind, Shadow, Sizing, StrokeAlign, TextAlignH, TextData,
 };
+
+use serde_json::json;
 
 use super::*;
 

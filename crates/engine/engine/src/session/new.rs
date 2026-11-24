@@ -47,7 +47,7 @@ impl Session {
             return;
         }
         for ds in &mut self.docs {
-            let untouched = ds.path.is_none() && ds.history.undo.is_empty() && ds.history.redo.is_empty() && !ds.is_dirty() && ds.versions.is_empty();
+            let untouched = ds.path.is_none() && ds.history.undo.is_empty() && ds.history.redo.is_empty() && !ds.is_dirty();
             let pages = ds.doc.pages.clone();
             let blank = pages.iter().all(|p| {
                 ds.doc.node(*p).is_some_and(|n| {
