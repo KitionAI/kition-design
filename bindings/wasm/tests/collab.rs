@@ -45,7 +45,9 @@ fn the_kdesign_keeps_the_documents_identity() {
     a.mark_saved();
     let mut b = DesignDocument::open("Design.kdesign", &bytes).unwrap();
     assert_eq!(b.doc_id(), Some(id.clone()));
-    assert_eq!(b.version().unwrap(), a.version().unwrap());
+    // The same version (its encoding lists the actors in no fixed order).
+    let decoded = |bytes: Vec<u8>| kition_kit::kdm::Version::decode(&bytes).unwrap();
+    assert_eq!(decoded(b.version().unwrap()), decoded(a.version().unwrap()));
     assert!(!b.dirty());
     // A host's stored replica does not override the file's own.
     let other = DesignDocument::create("Other.kdesign", 100, 100).unwrap().snapshot_of();
