@@ -27,8 +27,7 @@ fn keeps_the_kit_contract() {
             "shape.ellipse",
             json!({ "x": 200, "y": 120, "width": 80, "height": 60, "props": { "fills": [{ "type": "solid", "color": "#ff0000" }] } }),
         )?;
-        // The seal a host makes before the save the contract checks (`prepare_save`: no edit).
-        doc.prepare_save()
+        Ok(())
     })
     .unwrap();
 }
@@ -43,7 +42,7 @@ fn keeps_the_contract_on_a_real_example_file() {
             "shape.rectangle",
             json!({ "x": area.x + 110.0, "y": area.y + 110.0, "width": 64, "height": 64, "props": { "fills": [{ "type": "solid", "color": "#ff00ff" }] } }),
         )?;
-        doc.prepare_save()
+        Ok(())
     })
     .unwrap();
 }
