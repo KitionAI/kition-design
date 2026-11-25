@@ -372,10 +372,13 @@ impl DocState {
             // The replica may have fewer steps of the scope left than the history counts (its
             // undo drops a step a merge emptied): it steps as far as it can, and its result is the
             // document either way.
-            for _ in 0..steps {
-                match if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) } {
-                    Ok(true) => {}
-                    Ok(false) => break,
+            // A call may also pass over steps with nothing left to change (UndoOutcome): they
+            // count towards this step's.
+            let mut left = steps as usize;
+            while left > 0 {
+                match kdm.step_in(scope, undo) {
+                    Ok(outcome) if outcome.is_done() => left = left.saturating_sub(outcome.steps()),
+                    Ok(_) => break,
                     Err(error) => {
                         log::warn!("the document replica refused an undo or redo: {error}");
                         self.detach_kdm();
@@ -566,6 +569,46 @@ impl Session {
             ds.detach_kdm();
         }
         result.map_err(kdm_error)
+    }
+
+    /// Writes `write` (a draft's merge or a restored state, written on the active document's
+    /// replica by object id) as one undo step labelled `label` of `origin`'s scope (none for a
+    /// `system` or `import` origin): local edits not written yet are written first, the document
+    /// follows the replica as after an import, and one Undo takes the whole write back. Answers
+    /// whether it changed the replica; a refused write changes nothing.
+    pub fn take_in(&mut self, origin: &Origin, label: &str, write: impl FnOnce(&mut DesignSession) -> kition_design_kdm::Result<()>) -> Result<bool> {
+        let uid = self.ds()?.uid;
+        if let Some(why) = self.live_read_only(uid) {
+            return Err(EngineError::Disabled(label.into(), why.into()));
+        }
+        let own = self.origin();
+        let ds = self.ds_mut()?;
+        if ds.preview.is_some() {
+            return Err(EngineError::Disabled(label.into(), PREVIEW_READ_ONLY.into()));
+        }
+        ds.sync_kdm(&own);
+        let (doc, selection, page) = (ds.committed(), ds.selection.clone(), ds.page);
+        let kdm = ds.link.kdm.as_mut().ok_or_else(no_replica)?;
+        let before = kdm.version();
+        let result = write(kdm);
+        let changed = kdm.version() != before;
+        if !changed {
+            result.map_err(kdm_error)?;
+            return Ok(false);
+        }
+        if result.is_err() && !kdm.view_loaded() {
+            ds.detach_kdm();
+            return result.map_err(kdm_error).map(|()| true);
+        }
+        ds.follow_kdm();
+        if kition_design_kdm::undoable(origin) {
+            ds.push_undo(label, doc, selection, page, scope_of(origin));
+            if let Some(top) = ds.history.undo.last_mut() {
+                top.steps = 1;
+            }
+        }
+        ds.mark();
+        result.map_err(kdm_error).map(|()| true)
     }
 
     /// Takes in what another program saved to the active document's file while the document was

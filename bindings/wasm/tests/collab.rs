@@ -395,3 +395,101 @@ fn a_checkpoints_snapshot_restores_as_one_undo_step() {
     assert!(doc.restore_state(&other, &person).is_err(), "another document's snapshot");
     assert_eq!(layers(&doc), before + 2);
 }
+
+/// `mergeChanges`: a draft (a replica of the design's taken from its snapshot) merges in as one
+/// step of the person's Undo: the engine's design follows, an edit made here meanwhile stays, the
+/// summary names what the merge did, and a refused merge changes nothing.
+#[test]
+fn a_draft_merges_in_as_one_undo_step_and_the_design_follows() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let base = doc.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+    draft.execute("shape.ellipse", json!({ "x": 300, "y": 150, "width": 30, "height": 30 })).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    doc.execute("file.rename", json!({ "name": "Meanwhile" })).unwrap();
+    let before = layers(&doc);
+    let person = kition_design_engine::kdm::local_person();
+    let answer = doc.merge_changes(&changes, &person).unwrap();
+    assert_ne!(answer["damage"], json!("none"), "{answer}");
+    assert!(answer["summary"].is_object(), "{answer}");
+    assert_eq!(layers(&doc), before + 1, "the engine's design follows the merge");
+    assert_eq!(doc.session().ds().unwrap().doc.name, "Meanwhile", "the edit made here stays");
+    assert!(doc.dirty());
+    assert!(doc.undo().unwrap().0);
+    assert_eq!(layers(&doc), before, "one undo takes the whole draft back");
+    assert_eq!(doc.session().ds().unwrap().doc.name, "Meanwhile");
+    assert!(doc.redo().unwrap().0);
+    assert_eq!(layers(&doc), before + 1, "and redo brings it back");
+    let at = doc.version().unwrap();
+    assert!(doc.merge_changes(b"not changes", &person).is_err());
+    assert_eq!(doc.version().unwrap(), at, "a refused merge changes nothing");
+}
+
+/// `compareChanges`: what a draft's merge would change, named before it runs; nothing changes.
+#[test]
+fn comparing_a_draft_changes_nothing_and_names_what_the_merge_does() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let base = doc.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+    draft.execute("shape.ellipse", json!({ "x": 300, "y": 150, "width": 30, "height": 30 })).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    let state = doc.state_json().unwrap();
+    let preview = doc.compare_changes(&changes).unwrap();
+    assert_eq!(doc.version().unwrap(), base, "comparing changes nothing");
+    assert_eq!(doc.state_json().unwrap(), state);
+    let person = kition_design_engine::kdm::local_person();
+    let merged = doc.merge_changes(&changes, &person).unwrap();
+    assert_eq!(merged["summary"], preview, "the comparison named what the merge did: {merged}");
+    assert!(doc.compare_changes(b"not changes").is_err());
+}
+
+/// `changesSince`: a receipt names what changed since a version, or why it cannot.
+#[test]
+fn changes_since_answers_a_receipt_or_why_not() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let since = doc.version().unwrap();
+    rect(&mut doc, 200.0);
+    let receipt = doc.changes_since(&since);
+    assert!(receipt["changes"].is_object(), "{receipt}");
+    let now = doc.version().unwrap();
+    assert_ne!(receipt["changes"], doc.changes_since(&now)["changes"], "the edit is in the receipt: {receipt}");
+    let other = DesignDocument::open("Design.kdesign", &fixture()).unwrap().version().unwrap();
+    let refused = doc.changes_since(&other);
+    assert!(refused["changes"].is_null() && refused["unavailable"].is_string(), "{refused}");
+}
+
+/// `modelReply`: an agent's reply names objects by their tool ids; text that holds an id stays.
+#[test]
+fn a_reply_names_objects_by_their_tool_ids() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let state = doc.state_json().unwrap();
+    let node = state["objects"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .find(|(_, object)| object["$type"] == "Node")
+        .map(|(id, _)| id.clone())
+        .unwrap_or_else(|| panic!("a layer object: {state}"));
+    let shown: Value =
+        serde_json::from_str(&doc.model_reply(&json!({ "target": node, "note": format!("about {node}") }).to_string()).unwrap()).unwrap();
+    assert_ne!(shown["target"], json!(node), "the layer is named by its tool id: {shown}");
+    assert!(shown["target"].is_string() || shown["target"].is_number(), "{shown}");
+    assert_eq!(shown["note"], json!(format!("about {node}")), "text that holds an id stays");
+    assert!(doc.model_reply("not json").is_err());
+}
+
+/// `modelDescribe` and `modelBatch` as the editor's worker calls them: the object model, and a
+/// batch that runs in the engine; a batch that is not JSON is refused with the error's JSON.
+#[test]
+fn the_object_model_members_describe_and_run_a_batch() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let described = doc.model_describe().unwrap();
+    assert_eq!(described["capability"], "KitObjectModel 1.0");
+    assert_eq!(described["kit"], "kit.design");
+    let before = layers(&doc);
+    let request = json!({ "ops": [{ "op": "command", "id": "shape.ellipse", "params": { "x": 10, "y": 10, "width": 20, "height": 20 } }] });
+    doc.model_batch(&request.to_string()).unwrap();
+    assert_eq!(layers(&doc), before + 1, "the batch ran in the engine");
+    let refused = doc.model_batch("not json").unwrap_err();
+    assert!(refused.contains("invalid-op"), "{refused}");
+}

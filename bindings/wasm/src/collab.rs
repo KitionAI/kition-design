@@ -171,15 +171,78 @@ impl DesignDocument {
         if *origin == kition_design_engine::kdm::local_person() { run(self) } else { self.aside(run) }
     }
 
-    /// Writes the design a saved version holds (`snapshot`: a KDM snapshot or this document's
-    /// content, as a host's checkpoint keeps it; Kit UI protocol `replica/restore`) over the design
-    /// as one change of `origin`: `version.restore`, one undo step of the person for a person's
-    /// origin (the file name, what it published and the comments stay). Add the snapshot's blobs
-    /// first. Refuses another document's snapshot.
+    /// Writes the state a saved version holds (`snapshot`: a KDM snapshot or this document's
+    /// content, as a host's checkpoint keeps it; the Kit UI protocol's `replica/restore`, as
+    /// `kition-sdk`'s `export_kit_session!` answers `restoreState`) over the design by object id,
+    /// as one undo step of `origin`'s scope: the engine's design follows, and one Undo takes the
+    /// restore back. Add the snapshot's blobs first. Nothing changes when the states are equal;
+    /// another document's snapshot is refused.
     pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage, String> {
-        let snapshot = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, snapshot);
-        self.execute_as("version.restore", json!({ "snapshot": snapshot }), origin)?;
-        Ok(Damage::Full)
+        let wrote = self.aside(|doc| {
+            doc.session.take_in(origin, "Restore version", |kdm| kdm.restore_state(snapshot, origin).map(|_| ())).map_err(engine_error)
+        })?;
+        Ok(if wrote { Damage::Full } else { Damage::None })
+    }
+
+    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of
+    /// `origin`'s scope (`mergeChanges`, as `export_kit_session!` answers it): the engine's design
+    /// follows, and one Undo takes the whole draft back. Add the draft's blobs first. Answers
+    /// `{"damage", "summary"}`, `summary` the `StateDiff` of the replicated state before and after.
+    /// A refused merge changes nothing and fails with the KDM's message.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
+        let before = self.state_json()?;
+        let wrote = self.aside(|doc| doc.session.take_in(origin, "Merge draft", |kdm| kdm.merge_changes(bytes, origin)).map_err(engine_error))?;
+        let after = self.state_json()?;
+        let damage = if wrote { Damage::Full } else { Damage::None };
+        Ok(json!({ "damage": damage, "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json() }))
+    }
+
+    /// What merging a draft's changes would change in the design now, as `StateDiff` JSON; nothing
+    /// changes. Refuses what [`DesignDocument::merge_changes`] refuses.
+    pub fn compare_changes(&self, bytes: &[u8]) -> Result<Value, String> {
+        let kdm = self.session.kdm().ok_or("the design has no replica, so no draft of it")?;
+        let before = kdm.replica().state_json().map_err(engine_error)?;
+        let after = kdm.replica().merged_state(bytes).map_err(engine_error)?;
+        Ok(kition_kit::kdm::diff::diff_states(&before, &after).to_json())
+    }
+
+    /// What changed since the version `since` (empty bytes: since the replica began), a receipt as
+    /// `export_kit_session!`'s `changesSince` answers it: `{"changes": StateDiff}`, or
+    /// `{"changes": null, "unavailable": "<why>"}` when the replica's log does not hold `since`
+    /// (or there is no replica), never an empty change set in its place.
+    pub fn changes_since(&self, since: &[u8]) -> Value {
+        let Some(kdm) = self.session.kdm() else { return json!({ "changes": null, "unavailable": "the design has no replica" }) };
+        let replica = kdm.replica();
+        let since = if since.is_empty() { Ok(Version::empty()) } else { Version::decode(since) };
+        match since.and_then(|since| replica.changes_since(&since)) {
+            Ok(changes) => json!({ "changes": changes.to_recorded_json(replica.schema()) }),
+            Err(error) => json!({ "changes": null, "unavailable": error.to_string() }),
+        }
+    }
+
+    /// An agent's reply (JSON text) with every object id it holds as a value or a key named as
+    /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
+    /// or when the schema declares no tool ids.
+    pub fn model_reply(&self, value: &str) -> Result<String, String> {
+        let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
+        let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
+        let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
+        Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
+    }
+
+    /// `model/describe` (`KitObjectModel 1.0`) as JSON, through the change exchange `kition-design`
+    /// serves it with headless. A failure's message is the error's JSON (`{"code", "index",
+    /// "message"}`).
+    pub fn model_describe(&mut self) -> Result<Value, String> {
+        kition_kit::session::model::Exchange::new().describe(self).map_err(|failure| failure.to_json().to_string())
+    }
+
+    /// `model/batch`: the request and the answer as JSON, one undo step; a failure's message is
+    /// the error's JSON (`{"code", "index", "message"}`).
+    pub fn model_batch(&mut self, request: &str) -> Result<Value, String> {
+        let request: Value = serde_json::from_str(request)
+            .map_err(|failure| json!({ "code": "invalid-op", "index": null, "message": format!("the batch is not JSON: {failure}") }).to_string())?;
+        kition_kit::session::model::Exchange::new().batch(self, &request, false).map_err(|failure| failure.to_json().to_string())
     }
 
     /// Every blob the replica holds, as one buffer a peer feeds into [`DesignDocument::add_blobs`].
@@ -298,6 +361,11 @@ pub mod web {
         JsError::new(&message)
     }
 
+    /// An origin in the KDM's commit form, the JSON array `[kind, principal, label]`.
+    fn origin_of(origin: &str) -> Result<kition_kit::kdm::Origin, JsError> {
+        kition_kit::kdm::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))
+    }
+
     #[wasm_bindgen(js_class = "DesignDocument", wasm_bindgen = kition_kit::wasm_bindgen)]
     impl WebDocument {
         pub fn version(&mut self) -> Result<Vec<u8>, JsError> {
@@ -348,8 +416,47 @@ pub mod web {
         /// damage JSON (Kit UI protocol `replica/restore`).
         #[wasm_bindgen(js_name = restoreState)]
         pub fn restore_state(&mut self, snapshot: &[u8], origin: &str) -> Result<String, JsError> {
-            let origin = kition_kit::kdm::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))?;
+            let origin = origin_of(origin)?;
             self.0.restore_state(snapshot, &origin).map(|damage| serde_json::to_string(&damage).unwrap_or_else(|_| "null".to_owned())).map_err(error)
+        }
+
+        /// A draft's changes taken in as one undo step, recorded with `origin` (`[kind, principal,
+        /// label]`): `{"damage", "summary"}`. A refusal fails with the KDM's message.
+        #[wasm_bindgen(js_name = mergeChanges)]
+        pub fn merge_changes(&mut self, changes: &[u8], origin: &str) -> Result<String, JsError> {
+            let origin = origin_of(origin)?;
+            self.0.merge_changes(changes, &origin).map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// What merging a draft's changes would change now, as `StateDiff` JSON; changes nothing.
+        #[wasm_bindgen(js_name = compareChanges)]
+        pub fn compare_changes(&self, changes: &[u8]) -> Result<String, JsError> {
+            self.0.compare_changes(changes).map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// What changed since the version `since` (a receipt): `{"changes": StateDiff}`, or
+        /// `{"changes": null, "unavailable"}` when the replica's log does not hold it.
+        #[wasm_bindgen(js_name = changesSince)]
+        pub fn changes_since(&self, since: &[u8]) -> String {
+            self.0.changes_since(since).to_string()
+        }
+
+        /// An agent's reply (JSON text) with its object ids named as the tool interface names them.
+        #[wasm_bindgen(js_name = modelReply)]
+        pub fn model_reply(&self, value: &str) -> Result<String, JsError> {
+            self.0.model_reply(value).map_err(error)
+        }
+
+        /// `model/describe` (the object model) as JSON text.
+        #[wasm_bindgen(js_name = modelDescribe)]
+        pub fn model_describe(&mut self) -> Result<String, JsError> {
+            self.0.model_describe().map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// `model/batch`: the request and the answer as JSON text, one undo step.
+        #[wasm_bindgen(js_name = modelBatch)]
+        pub fn model_batch(&mut self, request: &str) -> Result<String, JsError> {
+            self.0.model_batch(request).map(|answer| answer.to_string()).map_err(error)
         }
 
         pub fn blobs(&mut self) -> Result<Vec<u8>, JsError> {
