@@ -143,10 +143,10 @@ fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
         }
     }
 
-    // V11: copies of one library asset taken at once (before V1 and V3, so V3 never renames a
+    // V11: copies of one library asset taken by a draft and meanwhile (before V1 and V3, so V3 never renames a
     // copy into a style or variable of the design's own).
     wrote |= one_copy_per_asset(tx)?;
-    // V12: copies of one library component placed at once become one (after V11, which leaves
+    // V12: copies of one library component placed by a draft and meanwhile become one (after V11, which leaves
     // one record per copy; before V1, V3 and V10, which see the new copy).
     if crate::merge::one_copy_per_component(tx, texts)? {
         wrote = true;
@@ -183,10 +183,11 @@ fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     }
     wrote |= unique_images(tx)?;
     wrote |= unique_threads(tx)?;
-    // V9: one library added twice (two people added the same library file at once).
+    // V9: one library added twice (a draft added the library file added meanwhile).
     wrote |= unique_libraries(tx)?;
 
-    // V13: paint and effect objects no live layer lists (added to a layer deleted at once), and
+    // V13: paint and effect objects no live layer lists (a redo made one after its layer was
+    // deleted), and
     // list entries naming a deleted item or one item twice.
     wrote |= items_of_live_layers(tx)?;
 
@@ -195,7 +196,7 @@ fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     wrote |= moved;
     wrote |= into_containers(tx, STORE_TREE, &store_entries)?;
 
-    // V8: no page left to open (two people deleted the last two pages at once).
+    // V8: no page left to open (a draft deleted one of the last two pages, the document the other).
     let added = keep_a_page(tx)?;
     wrote |= added;
     // V4 for the roots of `Design.nodes`: a layer there that is no page (after V8, so a page exists).
@@ -438,10 +439,9 @@ pub(crate) fn fnv64(text: &str) -> u64 {
 }
 
 /// V8: a design keeps a page that is not a divider (the engine refuses to delete the last one
-/// locally; concurrent deletes can still remove them all). The repair adds an empty page under an
-/// object id derived from the roots the tree holds (deleted pages included), so every replica that
-/// repairs this state makes the same object: the KDM keeps one of the objects one id names, and
-/// M10b (V7) keeps one of the tree nodes.
+/// locally; a draft deleting one of the last two pages merged with the other's deletion still
+/// removes them all). The repair adds an empty page under an object id derived from the roots the
+/// tree holds (deleted pages included), so repairing one state always makes the same object.
 fn keep_a_page(tx: &mut Tx<'_>) -> KdmResult<bool> {
     let root = root_id();
     let entries = tx.tree(&root, "nodes")?;

@@ -198,30 +198,6 @@ impl DesignSession {
         self.settle()
     }
 
-    /// Writes the state `snapshot` holds (a snapshot or content of this document, as a host's
-    /// checkpoint keeps it) over the replica as one transaction of `origin`, keyed by object id
-    /// (`kition_kit::session::write_state`), so every object the two share keeps its id. Repairs the
-    /// result and patches the view as an import does. Answers whether it wrote anything (nothing
-    /// when the states are equal). Refuses another document's snapshot. Add its blobs first.
-    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<bool> {
-        let schema = schema()?;
-        let loaded = Replica::load(Arc::clone(&schema), snapshot, ActorId::random()).map_err(kit_err)?;
-        if loaded.doc_id() != self.replica.doc_id() {
-            return Err(kit_err(KdmError::WrongDocument { expected: self.replica.doc_id().to_string(), found: loaded.doc_id().to_string() }));
-        }
-        let (now, then) = (kition_kit::session::state(&self.replica)?, kition_kit::session::state(&loaded)?);
-        if now == then {
-            return Ok(false);
-        }
-        let result = transact(&mut self.replica, origin, |tx| kition_kit::session::write_state(tx, &schema, &now, &then).map(|()| true));
-        if let Err(error) = result {
-            self.replica.take_changed();
-            return Err(error);
-        }
-        self.settle()?;
-        Ok(true)
-    }
-
     pub fn can_undo_in(&self, scope: UndoScope) -> bool {
         self.replica.can_undo_in(scope)
     }

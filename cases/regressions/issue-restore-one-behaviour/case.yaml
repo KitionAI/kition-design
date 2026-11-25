@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-restore-one-behaviour
+feature: design.version.history
+intent: >-
+  A restore of a saved version behaves one way however it is started. The host's `restoreState`
+  (Kit UI protocol `replica/restore`) wrote the whole checkpoint by object id, so it put back the
+  file name and the comments of the version, while the kit's own `version.restore` keeps the
+  current name, what the file published and the comments. `restoreState` now runs
+  `version.restore`: the name, the publication and the comments stay, everything else is what the
+  version holds, one Undo gives back the exact state before, and restoring what the design holds
+  changes nothing (test a_restore_through_the_host_keeps_the_name_the_publication_and_the_comments).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: independent review of the plain model (schema-freeze round 6, 2026-11-25)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: collab
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-25"

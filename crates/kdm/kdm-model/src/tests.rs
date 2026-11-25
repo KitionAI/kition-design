@@ -484,3 +484,59 @@ fn a_layer_created_without_a_key_gets_one() {
     let reopened = DesignSession::open(&s.snapshot().unwrap(), &[], s.blobs().clone()).unwrap();
     assert_eq!(reopened.state_hash().unwrap(), s.state_hash().unwrap(), "the repair is done once");
 }
+
+/// A draft of `doc`'s replica (a replica of its snapshot) and the version it was made at.
+fn draft_of(doc: &DesignSession) -> (DesignSession, Version) {
+    (DesignSession::open(&doc.snapshot().unwrap(), &[], doc.blobs().clone()).unwrap(), doc.version())
+}
+
+/// V8: a draft deletes one of the design's two pages while the document deletes the other. The
+/// merge applies (data model 6.6: each side took a different node out of the tree and deleted
+/// different objects) and would leave no page; the repair gives the design one empty page, which
+/// a later repair (reopening it) leaves alone.
+#[test]
+fn a_draft_deleting_the_other_of_the_last_two_pages_leaves_one_page() {
+    let doc = Arc::new(sample());
+    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
+    let (mut draft, base) = draft_of(&a);
+    let pages = a.document().pages.clone();
+    assert_eq!(pages.len(), 2);
+    for (session, page) in [(&mut a, pages[0]), (&mut draft, pages[1])] {
+        let mut d = (**session.document()).clone();
+        d.remove(page).unwrap();
+        d.take_dirty();
+        session.record(&person(), &Arc::new(d)).unwrap();
+    }
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    let v = a.document();
+    assert_eq!(v.pages.len(), 1, "{:?}", v.pages);
+    assert!(!pages.contains(&v.pages[0]), "a new page: {:?}", v.pages);
+    let page = v.node(v.pages[0]).unwrap();
+    assert!(page.is_page() && page.children.is_empty() && !v.is_divider(page.id));
+    let (back, _) = read_document(a.replica(), a.blobs()).unwrap();
+    assert!(same_content(&back, v), "the view is what the replica holds");
+    // The page is a layer like any other: a later repair leaves it alone.
+    let hash = a.state_hash().unwrap();
+    let reopened = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
+    assert_eq!(reopened.state_hash().unwrap(), hash);
+}
+
+/// V9: a draft adds a library the document added meanwhile (two `Library` objects of one
+/// library: both sides inserted a different object into `Design.libraries`, which merges). The
+/// repair keeps one link.
+#[test]
+fn a_draft_adding_a_library_the_document_added_meanwhile_keeps_one_link() {
+    let doc = Arc::new(sample());
+    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
+    let (mut draft, base) = draft_of(&a);
+    let da = with_library(a.document(), "lib-c", "C.kdesign");
+    a.record(&person(), &da).unwrap();
+    let dd = with_library(draft.document(), "lib-c", "C.kdesign");
+    draft.record(&person(), &dd).unwrap();
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    let links = &a.document().libraries.enabled;
+    assert_eq!(links.iter().map(|l| (l.id.as_str(), l.path.as_str())).collect::<Vec<_>>(), [("lib-c", "C.kdesign")], "{links:?}");
+    let r = a.replica();
+    assert_eq!(r.list(&crate::root_id(), "libraries").unwrap().len(), 1);
+    assert_eq!(r.objects_of_type("Library").len(), 1, "the other link object is deleted");
+}

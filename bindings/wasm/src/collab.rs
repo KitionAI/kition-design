@@ -171,39 +171,47 @@ impl DesignDocument {
         if *origin == kition_design_engine::kdm::local_person() { run(self) } else { self.aside(run) }
     }
 
-    /// Writes the state a saved version holds (`snapshot`: a KDM snapshot or this document's
-    /// content, as a host's checkpoint keeps it; the Kit UI protocol's `replica/restore`, as
-    /// `kition-sdk`'s `export_kit_session!` answers `restoreState`) over the design by object id,
-    /// as one undo step of `origin`'s scope: the engine's design follows, and one Undo takes the
-    /// restore back. Add the snapshot's blobs first. Nothing changes when the states are equal;
-    /// another document's snapshot is refused.
+    /// Restores a saved version (`snapshot`: a KDM snapshot or this document's content, as a
+    /// host's checkpoint keeps it; the Kit UI protocol's `replica/restore`, as `kition-sdk`'s
+    /// `export_kit_session!` answers `restoreState`) through the kit's own `version.restore`, so a
+    /// restore behaves one way however it is started: the design takes the content the version
+    /// holds, and the file name, what the file published and the comments stay. One undo step of
+    /// `origin`'s scope; nothing changes when the design already holds that. Add the snapshot's
+    /// blobs first. Another document's snapshot is refused.
     pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage, String> {
-        let wrote = self.aside(|doc| {
-            doc.session.take_in(origin, "Restore version", |kdm| kdm.restore_state(snapshot, origin).map(|_| ())).map_err(engine_error)
+        let params = json!({ "snapshot": base64::Engine::encode(&base64::engine::general_purpose::STANDARD, snapshot) });
+        let before = self.session.version().map_err(engine_error)?;
+        self.aside(|doc| {
+            let previous = doc.session.set_origin(Some(origin.clone()));
+            let result = doc.run("version.restore", &params);
+            doc.session.set_origin(previous);
+            result
         })?;
-        Ok(if wrote { Damage::Full } else { Damage::None })
+        let after = self.session.version().map_err(engine_error)?;
+        Ok(if after == before { Damage::None } else { Damage::Full })
     }
 
-    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of
-    /// `origin`'s scope (`mergeChanges`, as `export_kit_session!` answers it): the engine's design
-    /// follows, and one Undo takes the whole draft back. Add the draft's blobs first. Answers
-    /// `{"damage", "summary"}`, `summary` the `StateDiff` of the replicated state before and after.
-    /// A refused merge changes nothing and fails with the KDM's message.
+    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of the
+    /// person (`mergeChanges`, as `export_kit_session!` answers it; M12a: the person accepts the
+    /// draft, also one an agent made, `origin`): the engine's design follows, and the person's one
+    /// Undo takes the whole draft back. Add the draft's blobs first. Answers `{"damage",
+    /// "summary"}`, `summary` what the merge and the repair after it changed (`StateDiff`, read
+    /// only at the objects they wrote, `Replica::diff_since`). A refused merge changes nothing and
+    /// fails with the KDM's message.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
-        let before = self.state_json()?;
-        let wrote = self.aside(|doc| doc.session.take_in(origin, "Merge draft", |kdm| kdm.merge_changes(bytes, origin)).map_err(engine_error))?;
-        let after = self.state_json()?;
+        let (wrote, since) = self.aside(|doc| doc.session.merge_draft(bytes, origin).map_err(engine_error))?;
+        let kdm = self.session.kdm().ok_or("the design left its replica")?;
+        let summary = kdm.replica().diff_since(&since).map_err(engine_error)?;
         let damage = if wrote { Damage::Full } else { Damage::None };
-        Ok(json!({ "damage": damage, "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json() }))
+        Ok(json!({ "damage": damage, "summary": summary.to_json() }))
     }
 
-    /// What merging a draft's changes would change in the design now, as `StateDiff` JSON; nothing
-    /// changes. Refuses what [`DesignDocument::merge_changes`] refuses.
+    /// What merging a draft's changes would change in the design now, as `StateDiff` JSON, read
+    /// only at the objects the merge would write (`Replica::compare_changes`); nothing changes.
+    /// Refuses what [`DesignDocument::merge_changes`] refuses.
     pub fn compare_changes(&self, bytes: &[u8]) -> Result<Value, String> {
         let kdm = self.session.kdm().ok_or("the design has no replica, so no draft of it")?;
-        let before = kdm.replica().state_json().map_err(engine_error)?;
-        let after = kdm.replica().merged_state(bytes).map_err(engine_error)?;
-        Ok(kition_kit::kdm::diff::diff_states(&before, &after).to_json())
+        Ok(kdm.replica().compare_changes(bytes).map_err(engine_error)?.to_json())
     }
 
     /// What changed since the version `since` (empty bytes: since the replica began), a receipt as
@@ -221,13 +229,14 @@ impl DesignDocument {
     }
 
     /// An agent's reply (JSON text) with every object id it holds as a value or a key named as
-    /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
-    /// or when the schema declares no tool ids.
+    /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica,
+    /// when the schema declares no tool ids or when it names no object. Only the objects the
+    /// reply names are read (`ToolIds::show_reply`), never the whole document's tool ids: the
+    /// editor sends every `ai/inspect`, `document/check` and `ai/run` reply through it.
     pub fn model_reply(&self, value: &str) -> Result<String, String> {
         let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
         let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
-        let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
-        Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
+        Ok(kition_kit::kdm::tool_ids::ToolIds::show_reply(kdm.replica(), &value).to_string())
     }
 
     /// `model/describe` (`KitObjectModel 1.0`) as JSON, through the change exchange `kition-design`

@@ -86,14 +86,15 @@ existing type later).
   `Node.strokes` are lists of `Paint` objects and `Node.effects` a list of `Effect` objects, one
   per item, in the engine's order (bottom first). A variable bound to a field of an item (the
   engine's `fills/<i>/color`, `fills/<i>/stops/<j>/color`, `effects/<i>/radius`) is a key of the
-  item's `bound` map, so it follows its paint: one person recolouring a paint, another adding,
-  removing or reordering paints, and a third binding a paint's colour all keep their edits. The
+  item's `bound` map, so it follows its paint: a reorder moves the binding with its paint, and a
+  draft that reorders, adds or removes paints merges with the person's recolouring or binding of
+  a paint meanwhile (each side changed a different field). The
   engine's paints have no ids: the writer tells which object a paint of the new list is by an
   equal paint first, else the paint at the same place (a recolour keeps its object, an added
   paint is a new object, a reorder moves objects). A paint or effect object no live layer lists
   is deleted by the repair (V13).
-- **Ballots are keys.** Each voter's ballot is its own settings key, `votes/<voter>`, so people
-  voting at once all count.
+- **Ballots are keys.** Each voter's ballot is its own settings key, `votes/<voter>`, so a
+  draft's ballot and one cast meanwhile are different keys and both count.
 
 ### 2.2 Identity: engine ids are data
 
@@ -267,22 +268,23 @@ making `Node.kind` optional would misstate the model. All 100 generated tasks ea
   `Library` object in `Design.libraries`, in the order the Libraries view lists them: `key` is the
   library's id, `path` the library file as the document names it, a workspace path relative to
   the document's folder (or from the workspace root with a leading `/`, never a computer's path:
-  `library::lent_path`), so the design keeps its libraries wherever the workspace is. Two people
-  adding two libraries at once both keep theirs; one removing a library while another accepts its
-  updates keeps both changes; the same library added twice at once is kept once (V9). The kit
+  `library::lent_path`), so the design keeps its libraries wherever the workspace is. A draft
+  that adds a library merges with another library added meanwhile (both are kept); a draft that
+  adds the library added meanwhile leaves two links of one library, which the repair keeps once
+  (V9). The kit
   reads the files through its host's lent files (`bindings/wasm/src/libraries.rs`).
 - **Library copies**: each record of a copy taken from a library (a component copy's root,
   asset, version and layer ids; a style, collection or variable copy's local id, asset and
   version) is a `LibraryCopy` object in `Design.libraryCopies`, named by its kind and local id, in
-  the engine's order (components, styles, collections, variables). Two people placing library
-  components at once both keep their copies (in the one store) and their records; two copies of
-  one component placed at once become one copy with one record (V12), which every instance of
-  either uses with its overrides. A component's record keeps `merged` (each merged layer's former
+  the engine's order (components, styles, collections, variables). A draft that places library
+  components merges with placements made meanwhile (each side's copies are its own objects in
+  the one store, with their records); when both placed one component, the repair makes the two
+  copies one copy with one record (V12), which every instance of either uses with its overrides. A component's record keeps `merged` (each merged layer's former
   id → the copy's layer) so a reference to a merged copy that arrives later follows it. The
   engine counts an update once per component, however many copies a design holds
   (`library::pending`), and updates every copy (`library::import`). Style, collection and variable
   copies have ids derived from the asset (`<library>:<key>`, the engine's), so the same asset copied
-  at once is one copy (V11).
+  by a draft and meanwhile is one copy once the repair keeps one object of the key (V11).
 - **Comments** follow M23: each design thread is a `CommentThread` whose `anchor` names the anchor
   layer's (or the page's) object and adds design's keys (`id`, `page`, `x`, `y`, `node`);
   its first message and replies are `Comment`s (`author`, `body`, `created` as ISO 8601 UTC, and
@@ -340,8 +342,9 @@ the editor saves one with `saveCheckpoint`, lists, renames and deletes them with
 shows or restores one by giving the engine the checkpoint's blobs and the snapshot it carries
 (`version.preview`, `version.restore`, `dev.compare` take `snapshot`, base64), from which the
 engine reads the design it holds (`DesignSession::document_at`; another design's snapshot is
-refused). A restore is one undoable change of the replica; a host's `replica/restore` runs it
-too (`restoreState`). Files with `branches/` or
+refused). A restore is one undoable change of the replica that keeps the file name, what the file
+published and the comments; a host's `replica/restore` (`restoreState`) runs the same
+`version.restore`, so a restore behaves one way however it is started. Files with `branches/` or
 `thumbnail.png` from before are not read for them.
 
 - **Open**: load `content.json` (refused as damaged when it is missing or `meta.json` names
@@ -420,9 +423,11 @@ component, so peers receive the propagated instance layers as ordinary changes.
 
 ## 5. Validation and repair (E14)
 
-Since the plain model (kition-sdk 91cf510) replicas take changes in order and nothing merges: the
-rules stay as the check of what a file, an import or an agent's batch holds, and the concurrent
-edits the table names are how such a state arose before.
+Since the plain model (kition-sdk 91cf510) replicas take changes in order; the states the table
+names arise from a draft merged with what the document changed meanwhile (data model 6.6, rules
+D1 to D9: the merge applies when the two sides changed different fields, list items or tree
+nodes), from an undo or redo carried over later changes, and from what a file, an import or an
+agent's batch holds. The tests name each rule's state and how it arises.
 
 Run after open, every import, undo and redo, in one `system` transaction labelled `repair`,
 only when something is wrong. Every rule depends on the state alone. A repair drops, clears,
@@ -440,12 +445,12 @@ both trees, `Design.nodes` and
 | V5 | A `Node` object no tree node names (created under a page deleted concurrently) | delete it (delete wins over edit) |
 | V6 | A `CommentThread` with no comments | delete it |
 | V7 | (gone with the plain model: a tree holds an object once, `Tx::tree_create` refuses a second node) | — |
-| V8 | No page left that is not a divider (two people deleted the last two pages at once; the engine refuses deleting the last one locally) | add an empty page (the engine's new page, "Page 1") as the last root, object id `page-` plus a 64-bit FNV-1a hash of the sorted object ids of the tree's roots (the deleted pages included), key in the repair space (probed past live keys, as V3); nothing when that id is taken |
-| V9 | Two `Library` objects with one key (two people added the same library file at once) | the object whose id sorts first stays; the others are deleted and their list entries dropped |
+| V8 | No page left that is not a divider (a draft deleted one of the last two pages while the document deleted the other; the engine refuses deleting the last one locally) | add an empty page (the engine's new page, "Page 1") as the last root, object id `page-` plus a 64-bit FNV-1a hash of the sorted object ids of the tree's roots (the deleted pages included), key in the repair space (probed past live keys, as V3); nothing when that id is taken |
+| V9 | Two `Library` objects with one key (a draft added the library file the document added meanwhile) | the object whose id sorts first stays; the others are deleted and their list entries dropped |
 | V10 | Layers in `Design.libraryStore` but no store root in the `libraries` setting (the person who made the store undid it after another added a copy to it) | the setting names the root under the key `2^21 - 1` (the repair space) `<< 32` plus the 32-bit FNV-1a hash of `libraryStore`, and a missing `libraryStore` setting gets the engine's new store's registers; the reader reads the same store before the repair |
-| V11 | Copies of one library asset taken at once: two `LibraryCopy` objects of one kind and local id, or two `Style`, `Collection` or `Variable` objects of one key that a `LibraryCopy` names (run before V1 and V3) | records: the one of the lowest library version stays (then the object id that sorts first), so an update is offered when either copy is older; objects: the one whose id sorts first stays (a collection with its modes); the others are deleted and their list entries dropped |
-| V12 | Copies of one library component placed at once: two `LibraryCopy` objects of kind `component` with one library and asset whose root layers are in the store (run after V11, before V1, V3 and V10) | one new copy replaces them (F17): the copy of the lowest library version (then the record whose object id sorts first) is made again under object ids derived from the merged records' sorted ids (`copy-` plus a 64-bit FNV-1a hash; a layer's adds its old object id), with keys in the repair space (probed past live keys and the store root's), as the last root of `Design.libraryStore`, and one record under the derived id at the first merged record's place (`merged` names every merged layer and the aliases the merged records held); the merged copies' layers and records are deleted. Every layer that names a merged copy's layer (main, mirrored layer, instance swap value, preferred component, prototype destination, measurement, pattern source) names the new copy's layer for the same library layer instead, rewriting only those registers (a mirrored layer's is `mirrors`, F18); overrides and the rest stay. A copy left alone points late references to the layers its `merged` names (layers no live layer holds) at its own. When the record's derived id was an object's before (M8 refuses it again), the merge is left out |
-| V13 | Paint and effect objects of a layer deleted at once, or list entries of a layer's `fills`, `strokes` or `effects` naming a deleted object or an object listed before (run after V12) | the entries are dropped (an object listed twice keeps its first entry, in tree order); `Paint` and `Effect` objects no live layer lists are deleted |
+| V11 | Copies of one library asset taken by a draft and meanwhile: two `LibraryCopy` objects of one kind and local id, or two `Style`, `Collection` or `Variable` objects of one key that a `LibraryCopy` names (run before V1 and V3) | records: the one of the lowest library version stays (then the object id that sorts first), so an update is offered when either copy is older; objects: the one whose id sorts first stays (a collection with its modes); the others are deleted and their list entries dropped |
+| V12 | Copies of one library component placed by a draft and meanwhile: two `LibraryCopy` objects of kind `component` with one library and asset whose root layers are in the store (run after V11, before V1, V3 and V10) | one new copy replaces them (F17): the copy of the lowest library version (then the record whose object id sorts first) is made again under object ids derived from the merged records' sorted ids (`copy-` plus a 64-bit FNV-1a hash; a layer's adds its old object id), with keys in the repair space (probed past live keys and the store root's), as the last root of `Design.libraryStore`, and one record under the derived id at the first merged record's place (`merged` names every merged layer and the aliases the merged records held); the merged copies' layers and records are deleted. Every layer that names a merged copy's layer (main, mirrored layer, instance swap value, preferred component, prototype destination, measurement, pattern source) names the new copy's layer for the same library layer instead, rewriting only those registers (a mirrored layer's is `mirrors`, F18); overrides and the rest stay. A copy left alone points late references to the layers its `merged` names (layers no live layer holds) at its own. When the record's derived id was an object's before (M8 refuses it again), the merge is left out |
+| V13 | Paint and effect objects of a layer deleted since (a redo makes a paint again after another scope deleted its layer), or list entries of a layer's `fills`, `strokes` or `effects` naming a deleted object or an object listed before (run after V12) | the entries are dropped (an object listed twice keeps its first entry, in tree order); `Paint` and `Effect` objects no live layer lists are deleted |
 
 Not repaired: references to deleted objects inside registers (section 2.2), a missing blob
 (it may arrive late; the image reads as missing until it does), and a register or setting the

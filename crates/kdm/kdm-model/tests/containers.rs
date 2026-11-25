@@ -9,7 +9,7 @@ use std::sync::Arc;
 use kition_design_doc::color::{Color, Paint};
 use kition_design_doc::{Comment, Document, ListStyle, Message, NodeId, NodeKind, TextData};
 use kition_design_kdm::{DesignSession, read_document, same_content};
-use kition_kit::kdm::{ObjectId, Origin, Version};
+use kition_kit::kdm::{ObjectId, Origin, UndoScope, Version};
 use serde_json::json;
 
 fn root_id() -> ObjectId {
@@ -98,6 +98,113 @@ fn recolouring_a_paint_and_adding_one_keep_both() {
     let items = a.replica().list(&object, "fills").unwrap();
     assert_eq!(items.len(), 2, "one Paint object per paint");
     assert_eq!(a.replica().object_type(&items[0]).unwrap(), "Paint");
+}
+
+/// The fills of `rect` as the replica holds them: each Paint object's colour binding.
+fn fill_bindings(s: &DesignSession, rect: NodeId) -> Vec<Option<String>> {
+    let object = s.ids().node_object(rect).unwrap().clone();
+    let paints = s.replica().list(&object, "fills").unwrap();
+    paints
+        .iter()
+        .map(|paint| {
+            assert_eq!(s.replica().object_type(paint).unwrap(), "Paint");
+            let bound = s.replica().map_entries(paint, "bound").unwrap();
+            bound.iter().find(|(k, _)| k == "color").and_then(|(_, v)| v.as_str().map(str::to_owned))
+        })
+        .collect()
+}
+
+/// The node's own bindings register holds no paint's binding: that is the Paint object's.
+fn no_paint_binding_on_the_node(s: &DesignSession, rect: NodeId) {
+    let object = s.ids().node_object(rect).unwrap().clone();
+    let bindings = s.replica().get(&object, "bindings").unwrap_or(serde_json::Value::Null);
+    assert!(bindings.get("bound").is_none(), "a paint's binding is the paint object's: {bindings}");
+}
+
+/// A variable binding lives on its Paint object: a reorder of the paints moves it with its paint
+/// (the engine names it by the new place), and a recolour of the other paint leaves it.
+#[test]
+fn a_binding_moves_with_its_paint_on_a_reorder_and_stays_on_a_recolour() {
+    let (mut doc, _, rect) = doc();
+    doc.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0)));
+    doc.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:brand".into());
+    let (mut a, mut b) = pair(doc);
+    let blue = a.document().node(rect).unwrap().fills[1].clone();
+    assert_eq!(fill_bindings(&a, rect), [None, Some("V:brand".to_owned())]);
+    edit(&mut a, |d| d.get_mut(rect).unwrap().fills.swap(0, 1));
+    let n = a.document().node(rect).unwrap();
+    assert_eq!(n.fills[0], blue);
+    assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:brand"), "the binding followed its paint: {:?}", n.bound);
+    assert!(!n.bound.contains_key("fills/1/color"));
+    assert_eq!(fill_bindings(&a, rect), [Some("V:brand".to_owned()), None]);
+    let green = Paint::solid(Color::new(0.0, 1.0, 0.0, 1.0));
+    edit(&mut a, |d| d.get_mut(rect).unwrap().fills[1] = green.clone());
+    relayed(&mut a, &mut b);
+    for s in [&a, &b] {
+        let n = s.document().node(rect).unwrap();
+        assert_eq!(n.fills, vec![blue.clone(), green.clone()]);
+        assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:brand"), "{:?}", n.bound);
+        assert!(!n.bound.contains_key("fills/1/color"), "{:?}", n.bound);
+        assert_eq!(fill_bindings(s, rect), [Some("V:brand".to_owned()), None]);
+        no_paint_binding_on_the_node(s, rect);
+    }
+}
+
+/// A draft reorders the paints while the person rebinds the blue paint to another variable: the
+/// merge applies (only the draft changed the list, only the document the Paint's binding) and
+/// the new binding is on the blue paint at its new place.
+#[test]
+fn a_draft_reordering_paints_while_the_person_rebinds_keeps_the_binding_on_its_paint() {
+    let (mut doc, _, rect) = doc();
+    doc.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0)));
+    doc.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:brand".into());
+    let (mut a, mut draft) = pair(doc);
+    let base = a.version();
+    let (red, blue) = {
+        let n = a.document().node(rect).unwrap();
+        (n.fills[0].clone(), n.fills[1].clone())
+    };
+    edit(&mut draft, |d| d.get_mut(rect).unwrap().fills.swap(0, 1));
+    edit(&mut a, |d| {
+        d.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:accent".into());
+    });
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    let n = a.document().node(rect).unwrap();
+    assert_eq!(n.fills, vec![blue, red], "the draft's reorder");
+    assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:accent"), "the person's binding, on its paint: {:?}", n.bound);
+    assert!(!n.bound.contains_key("fills/1/color"), "{:?}", n.bound);
+    assert_eq!(fill_bindings(&a, rect), [Some("V:accent".to_owned()), None]);
+    no_paint_binding_on_the_node(&a, rect);
+    let (back, _) = read_document(a.replica(), a.blobs()).unwrap();
+    assert!(same_content(&back, a.document()), "the view is what the replica holds");
+}
+
+/// V13: a paint whose layer is gone. The person adds a paint to the box and takes it back; an
+/// agent deletes the box; the person's Redo makes the paint again, but its place in the box's
+/// fills went with the box (data model 6.5: an operation whose object is gone is skipped). The
+/// repair deletes the paint no live layer lists.
+#[test]
+fn a_paint_redone_after_its_layer_was_deleted_goes_with_it() {
+    let (doc, _, rect) = doc();
+    let (mut a, _) = pair(doc);
+    edit(&mut a, |d| d.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0))));
+    assert!(a.undo_in(UndoScope::Person).unwrap());
+    let mut d = (**a.document()).clone();
+    d.remove(rect).unwrap();
+    d.take_dirty();
+    assert_eq!(a.record(&Origin::agent("agent:test"), &Arc::new(d)).unwrap(), 1);
+    let mut paints_before = a.replica().objects_of_type("Paint");
+    paints_before.sort();
+    assert!(a.redo_in(UndoScope::Person).unwrap(), "the redo makes the paint again");
+    assert!(a.document().node(rect).is_none());
+    let r = a.replica();
+    let listed: Vec<ObjectId> = r.objects_of_type("Node").iter().flat_map(|n| r.list(n, "fills").unwrap()).collect();
+    let mut paints = r.objects_of_type("Paint");
+    paints.sort();
+    assert!(paints.iter().all(|p| listed.contains(p)), "V13 deletes the paints no live layer lists: {paints:?}, listed {listed:?}");
+    assert_eq!(paints, paints_before, "only the live layers' paints are left");
+    let (back, _) = read_document(r, a.blobs()).unwrap();
+    assert!(same_content(&back, a.document()));
 }
 
 #[test]

@@ -5,7 +5,7 @@
 use kition_design_kit::DesignDocument;
 use kition_design_kit::collab::{decode_blobs, encode_blobs};
 use kition_kit::KitDocument;
-use kition_kit::kdm::Origin;
+use kition_kit::kdm::{Origin, UndoScope};
 use kition_kit::session::MemoryBlobs;
 use kition_kit::session::model::{Exchange, ModelErrorCode};
 use serde_json::{Value, json};
@@ -258,7 +258,7 @@ fn the_rect(doc: &DesignDocument) -> Value {
 
 fn x_of(doc: &DesignDocument, id: &Value) -> f64 {
     let ds = doc.session().ds().unwrap();
-    ds.doc.world_bounds(kition_design_doc::NodeId(id.as_u64().unwrap())).unwrap().x0
+    ds.doc.world_bounds(node_id(id)).unwrap().x0
 }
 
 fn set_x(doc: &mut DesignDocument, id: &Value, x: f64) {
@@ -396,6 +396,86 @@ fn a_checkpoints_snapshot_restores_as_one_undo_step() {
     assert_eq!(layers(&doc), before + 2);
 }
 
+/// The design part of a canonical state: everything but the file name (`settings.name`) and the
+/// comments, which a restore keeps.
+fn design_part(state: &Value) -> Value {
+    let mut state = state.clone();
+    let objects = state["objects"].as_object_mut().unwrap();
+    objects.retain(|_, object| object["$type"] != "CommentThread" && object["$type"] != "Comment");
+    let root = objects.values_mut().find(|object| object["$type"] == "Design").unwrap().as_object_mut().unwrap();
+    root.remove("comments");
+    if let Some(settings) = root.get_mut("settings").and_then(Value::as_object_mut) {
+        settings.remove("name");
+    }
+    state
+}
+
+/// The layer a command answered (`id`, else the first of `ids`).
+fn new_id(answer: &Value) -> Value {
+    answer.get("id").or_else(|| answer.get("ids").and_then(|ids| ids.get(0))).cloned().unwrap_or_else(|| panic!("no id in {answer}"))
+}
+
+fn node_id(id: &Value) -> kition_design_doc::NodeId {
+    kition_design_engine::params::id_of(id).unwrap_or_else(|| panic!("not a layer id: {id}"))
+}
+
+fn view(doc: &DesignDocument) -> std::sync::Arc<kition_design_doc::Document> {
+    doc.session().ds().unwrap().doc.clone()
+}
+
+/// A restore behaves one way however it is started: through the host (`restoreState`) as through
+/// the kit's own "Restore this version" (`version.restore`), the design takes what the saved
+/// version holds and the file name, what the file published and the comments stay (a comment on
+/// a layer the version does not have stays where it was). It is one undo step: Undo gives back
+/// the exact state and view before it, Redo the restored state. Restoring what the design already
+/// holds changes nothing.
+#[test]
+fn a_restore_through_the_host_keeps_the_name_the_publication_and_the_comments() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let card = the_rect(&doc);
+    doc.execute("component.create", json!({ "ids": [card] })).unwrap();
+    doc.execute("file.rename", json!({ "name": "Shop" })).unwrap();
+    let saved = doc.snapshot().unwrap();
+    let then = DesignDocument::open_with_replica("Design.kdesign", &[], &saved, &doc.blobs().unwrap()).unwrap().state_json().unwrap();
+
+    let added = doc.execute("shape.rectangle", json!({ "x": 200, "y": 150, "width": 30, "height": 30 })).unwrap();
+    let added = new_id(&added);
+    let thread = doc.execute("comment.add", json!({ "x": 210, "y": 160, "text": "Is this box needed?", "author": "Sam", "anchor": added })).unwrap()
+        ["id"]
+        .as_u64()
+        .unwrap();
+    doc.execute("comment.reply", json!({ "id": thread, "text": "Yes", "author": "Ada" })).unwrap();
+    doc.execute("file.rename", json!({ "name": "Shop v2" })).unwrap();
+    doc.execute("library.publish", json!({})).unwrap();
+    let published = view(&doc).published.clone();
+    assert!(published.is_some());
+    let (before, before_view) = (doc.state_json().unwrap(), view(&doc));
+
+    let person = kition_design_engine::kdm::local_person();
+    let damage = doc.restore_state(&saved, &person).unwrap();
+    assert_ne!(serde_json::to_value(&damage).unwrap(), json!("none"));
+    let d = view(&doc);
+    assert!(!d.contains(node_id(&added)), "the design the version holds");
+    assert_eq!(d.name, "Shop v2", "the file keeps its current name");
+    assert_eq!(d.published, published, "what the file published stays");
+    let comment = d.comment(thread).unwrap();
+    assert_eq!((comment.first.text.as_str(), comment.replies.len(), comment.anchor), ("Is this box needed?", 1, None), "the comments stay");
+    let restored = doc.state_json().unwrap();
+    assert_eq!(design_part(&restored), design_part(&then), "everything else is what the version holds");
+
+    assert!(doc.undo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), before, "one Undo gives back the exact state before");
+    assert!(kition_design_kdm::same_content(&view(&doc), &before_view), "and the engine's own design");
+    assert!(doc.redo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), restored, "Redo gives back the restored state");
+
+    let steps = doc.query("history", &json!({})).unwrap();
+    let damage = doc.restore_state(&saved, &person).unwrap();
+    assert_eq!(serde_json::to_value(&damage).unwrap(), json!("none"), "the design already holds it");
+    assert_eq!(doc.state_json().unwrap(), restored);
+    assert_eq!(doc.query("history", &json!({})).unwrap(), steps, "no undo step");
+}
+
 /// `mergeChanges`: a draft (a replica of the design's taken from its snapshot) merges in as one
 /// step of the person's Undo: the engine's design follows, an edit made here meanwhile stays, the
 /// summary names what the merge did, and a refused merge changes nothing.
@@ -423,6 +503,46 @@ fn a_draft_merges_in_as_one_undo_step_and_the_design_follows() {
     let at = doc.version().unwrap();
     assert!(doc.merge_changes(b"not changes", &person).is_err());
     assert_eq!(doc.version().unwrap(), at, "a refused merge changes nothing");
+}
+
+/// M12a: a draft an agent made (the host passes the agent's origin, kit-editor `draft/merge`)
+/// merges in as one undo step of the person who accepts it, while the person added a rectangle
+/// meanwhile (both sides added to the same layer tree: both are there). The replica and the
+/// engine record it in the person's scope; the agent's Undo does not take it back; the person's
+/// one Undo gives back the exact state and view before the merge, and Redo the merged ones.
+#[test]
+fn an_agents_draft_merges_as_one_undo_step_of_the_person_and_undoes_exactly() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let base = doc.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+    let ellipse = new_id(&draft.execute("shape.ellipse", json!({ "x": 300, "y": 150, "width": 30, "height": 30 })).unwrap());
+    let changes = draft.export_changes(&base).unwrap();
+    let meanwhile = new_id(&doc.execute("shape.rectangle", json!({ "x": 200, "y": 150, "width": 30, "height": 30 })).unwrap());
+    let (before, before_view) = (doc.state_json().unwrap(), view(&doc));
+    let count = layers(&doc);
+
+    let agent = Origin::agent("agent:drafter");
+    let answer = doc.merge_changes(&changes, &agent).unwrap();
+    assert_ne!(answer["damage"], json!("none"), "{answer}");
+    assert_eq!(layers(&doc), count + 1, "{answer}");
+    for id in [&ellipse, &meanwhile] {
+        assert!(view(&doc).contains(node_id(id)), "both sides' layers are there: {id}");
+    }
+    let (merged, merged_view) = (doc.state_json().unwrap(), view(&doc));
+    let history = doc.query("history", &json!({})).unwrap();
+    assert!(history["undo"].as_array().unwrap().contains(&json!("Merge draft")), "the person's step: {history}");
+    assert_eq!(doc.query("history", &json!({ "scope": "agent" })).unwrap()["undo"], json!([]), "not the agent's");
+    let kdm = doc.session().kdm().unwrap();
+    assert!(kdm.can_undo_in(UndoScope::Person) && !kdm.can_undo_in(UndoScope::Agent), "the replica's history agrees");
+
+    let _ = doc.execute_as("edit.undo", json!({}), &agent);
+    assert_eq!(doc.state_json().unwrap(), merged, "the agent's Undo does not take the person's merge back");
+    assert!(doc.undo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), before, "one Undo gives back the exact state before the merge");
+    assert!(kition_design_kdm::same_content(&view(&doc), &before_view), "and the engine's own design");
+    assert!(doc.redo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), merged, "Redo gives back the merged state");
+    assert!(kition_design_kdm::same_content(&view(&doc), &merged_view));
 }
 
 /// `compareChanges`: what a draft's merge would change, named before it runs; nothing changes.
@@ -476,6 +596,30 @@ fn a_reply_names_objects_by_their_tool_ids() {
     assert!(shown["target"].is_string() || shown["target"].is_number(), "{shown}");
     assert_eq!(shown["note"], json!(format!("about {node}")), "text that holds an id stays");
     assert!(doc.model_reply("not json").is_err());
+}
+
+/// `modelReply` reads only what a reply names: in a design of many layers, a reply naming one
+/// gives the same tool id as the whole document's table, and a reply naming none comes back as
+/// it is.
+#[test]
+fn a_reply_naming_one_layer_of_many_gives_its_tool_id() {
+    let mut doc = DesignDocument::create("Many.kdesign", 4000, 400).unwrap();
+    for i in 0..120 {
+        rect(&mut doc, f64::from(i) * 32.0);
+    }
+    let state = doc.state_json().unwrap();
+    let nodes: Vec<String> =
+        state["objects"].as_object().unwrap().iter().filter(|(_, object)| object["$type"] == "Node").map(|(id, _)| id.clone()).collect();
+    assert!(nodes.len() > 120, "{}", nodes.len());
+    let one = nodes[nodes.len() / 2].clone();
+    let reply = json!({ "target": one, "list": [one] });
+    let shown: Value = serde_json::from_str(&doc.model_reply(&reply.to_string()).unwrap()).unwrap();
+    let full = kition_kit::kdm::tool_ids::ToolIds::of_replica(doc.session().kdm().unwrap().replica());
+    assert_eq!(shown, full.show_json(&reply), "the same ids as the whole document's table");
+    assert_ne!(shown["target"], json!(one), "{shown}");
+    let none = json!({ "note": "no layer named here", "count": 3, "rows": [{ "name": "Rectangle" }] });
+    let back: Value = serde_json::from_str(&doc.model_reply(&none.to_string()).unwrap()).unwrap();
+    assert_eq!(back, none, "a reply naming no object comes back as it is");
 }
 
 /// `modelDescribe` and `modelBatch` as the editor's worker calls them: the object model, and a

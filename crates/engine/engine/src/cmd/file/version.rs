@@ -48,7 +48,10 @@ pub(super) fn preview_version(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// `version.restore`: the design takes the content a saved version holds, as one undoable
 /// edit (a new change of the replica, so it reaches everyone editing the design). The file name,
-/// what the file published and the comments stay.
+/// what the file published and the comments stay. A host's restore (`restoreState`, Kit UI
+/// protocol `replica/restore`) runs this command too, so a restore behaves one way however it
+/// is started. Nothing changes (no undo step, `changed: false`) when the design already holds
+/// what the restore would give.
 pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "version.restore";
     // Refused before anything changes.
@@ -69,6 +72,9 @@ pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     crate::cmd::comment::follow_anchors(d, &ds.doc);
     // The content is already consistent: nothing to re-normalise.
     d.take_dirty();
+    if kition_design_kdm::same_content(d, &ds.doc) {
+        return Ok(json!({"restored": true, "changed": false, "version": version}));
+    }
     // Stay on the current page when the version has it.
     ds.page = Some(ds.page)
         .filter(|pg| d.pages.contains(pg))
@@ -79,7 +85,7 @@ pub(super) fn restore_version(s: &mut Session, p: &Value) -> Result<Value> {
     ds.selection.clear();
     ds.text_edit = None;
     ds.vector_edit = None;
-    Ok(json!({"restored": true, "version": version}))
+    Ok(json!({"restored": true, "changed": true, "version": version}))
 }
 
 /// The design's replica snapshot now, as the host's checkpoint of a version saved now carries it

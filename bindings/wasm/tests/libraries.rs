@@ -326,3 +326,85 @@ fn the_pickers_list_library_styles_and_collections_and_their_copies() {
     assert_eq!((copies["collections"].as_array().unwrap().len(), copies["variables"].as_array().unwrap().len()), (1, 1), "{copies}");
     assert!(!copies["collections"].as_array().unwrap().contains(&extended), "the extension is this file's own");
 }
+
+/// The main component of instance `id`, if `id` is an instance.
+fn main_of(doc: &DesignDocument, id: &Value) -> Option<kition_design_doc::NodeId> {
+    let ds = doc.session().ds().unwrap();
+    match &ds.doc.node(kition_design_engine::params::id_of(id)?)?.kind {
+        kition_design_doc::NodeKind::Instance { component, .. } => Some(*component),
+        _ => None,
+    }
+}
+
+/// Regression (`docs/features/kdm.md` V11, V12): an agent's draft places the library component
+/// "Button" and binds the library variable while the person does the same meanwhile (the store
+/// already exists). The merge applies (each side added objects of its own to the store's tree and
+/// the lists of copies, styles, collections and variables) and the repair makes the two copies of
+/// the component one, with one record, used by both instances, and the library style, collection
+/// and variable copied on both sides one copy each. A new publication is then one update, and
+/// accepting it updates both instances.
+#[test]
+fn a_draft_placing_the_component_the_person_placed_meanwhile_keeps_one_copy() {
+    let _turn = turn();
+    kition_kit::host::set_root(None);
+    let (v1, v2) = library_versions();
+    let icons = icons();
+    let lend = |doc: &mut DesignDocument| {
+        doc.lend_library("Design System.kdesign", Some(&v1)).unwrap();
+        doc.lend_library("Icons.kdesign", Some(&icons)).unwrap();
+    };
+    let (mut a, frame) = design();
+    lend(&mut a);
+    let system = a.execute("library.add", json!({ "path": "Design System.kdesign" })).unwrap()["id"].as_str().unwrap().to_owned();
+    let icon_lib = a.execute("library.add", json!({ "path": "Icons.kdesign" })).unwrap()["id"].as_str().unwrap().to_owned();
+    // The store exists before the draft is made.
+    a.execute("library.place", json!({ "library": icon_lib, "component": "Icon", "x": 500, "y": 100 })).unwrap();
+    let other = a.execute("shape.rectangle", json!({ "x": 600, "y": 300, "width": 40, "height": 40 })).unwrap();
+    let other = other.get("id").cloned().unwrap_or_else(|| other["ids"][0].clone());
+    let base = a.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &a.snapshot().unwrap(), &a.blobs().unwrap()).unwrap();
+    lend(&mut draft);
+
+    let picker = a.query("variables.pickFor", &json!({ "ids": [frame], "field": "fill", "kind": "color" })).unwrap();
+    let variable = picker["groups"].as_array().unwrap().iter().find(|g| !g["library"].is_null()).unwrap()["variables"][0]["id"].clone();
+    let mut instances = Vec::new();
+    for (doc, x, target) in [(&mut draft, 300, &other), (&mut a, 100, &frame)] {
+        instances.push(doc.execute("library.place", json!({ "library": system, "component": "Button", "x": x, "y": 100 })).unwrap()["id"].clone());
+        doc.execute("library.bindVariable", json!({ "library": system, "variable": variable, "field": "fill", "ids": [target] })).unwrap();
+    }
+    let changes = draft.export_changes(&base).unwrap();
+    a.add_blobs(&draft.blobs_since(&base).unwrap()).unwrap();
+    a.merge_changes(&changes, &kition_kit::kdm::Origin::agent("agent:drafter")).unwrap();
+
+    assert_eq!(page_names(&a), ["Page 1"], "the library store never shows as a page");
+    {
+        let ds = a.session().ds().unwrap();
+        let libs = &ds.doc.libraries;
+        let buttons: Vec<_> = libs.components.iter().filter(|r| r.library == system).collect();
+        assert_eq!(buttons.len(), 1, "the two copies are one, with one record: {libs:?}");
+        let root = buttons[0].root;
+        let store = ds.doc.library_store().unwrap();
+        let children = &ds.doc.node(store).unwrap().children;
+        assert_eq!(children.iter().filter(|c| **c == root).count(), 1, "{children:?}");
+        assert_eq!(children.len(), 2, "the icon's copy and the one button copy: {children:?}");
+        for instance in &instances {
+            assert_eq!(main_of(&a, instance), Some(root), "every instance uses the one copy");
+        }
+        let copies: Vec<&str> = ds.doc.styles.iter().filter(|s| s.name == "Brand").map(|s| s.id.as_str()).collect();
+        assert_eq!(copies.len(), 1, "one copy of the library style: {copies:?}");
+        assert_eq!(libs.styles.len(), 1, "{:?}", libs.styles);
+        assert!(libs.style_import(copies[0]).is_some());
+        let themes = ds.doc.variables.collections.iter().filter(|c| c.name == "Theme").count();
+        assert_eq!((themes, libs.collections.len(), libs.variables.len()), (1, 1, 1), "one copy of the library variable and collection");
+    }
+    assert!(missing_components(&a).is_empty(), "{:?}", missing_components(&a));
+
+    // The library is published again: one update, and one acceptance updates both instances.
+    a.lend_library("Design System.kdesign", Some(&v2)).unwrap();
+    assert_eq!(a.query("library.updates", &json!({})).unwrap()["count"], 1, "the component counts once");
+    a.execute("library.acceptUpdates", json!({})).unwrap();
+    for instance in &instances {
+        assert_eq!(fill_of(&a, instance), "ff0000", "every instance follows its library");
+    }
+    assert_eq!(a.session().ds().unwrap().doc.libraries.components.iter().filter(|r| r.library == system).count(), 1);
+}

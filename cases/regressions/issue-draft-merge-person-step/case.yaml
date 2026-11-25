@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-draft-merge-person-step
+feature: design.collab.containers
+intent: >-
+  A merged draft is one undo step of the person who accepts it, even when an agent made the draft
+  (KitModel M12a; the host passes the agent's origin to `mergeChanges`). The replica recorded the
+  merge in the person's scope while the engine put its own step in the agent's, so the person's
+  Undo and the replica's disagreed. Now both record it as the person's: the agent's Undo does not
+  take it, the person's one Undo gives back the exact state and view before, Redo the merged ones
+  (test an_agents_draft_merges_as_one_undo_step_of_the_person_and_undoes_exactly).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: independent review of the plain model (schema-freeze round 6, 2026-11-25)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: collab
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-25"

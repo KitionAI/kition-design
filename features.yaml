@@ -98,7 +98,7 @@ features:
     priority: P0
     status: has
     paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/**, crates/kdm/kdm-model/tests/containers.rs]
-    cases: [design.collab.containers/merge-both]
+    cases: [design.collab.containers/merge-both, regressions/issue-draft-merge-person-step]
     since: "2026-11-22"
   - id: design.file.import-export
     title: "Import, place, export and save to version history"
@@ -330,7 +330,7 @@ features:
     paths: [web/src/dev/VersionHistory.tsx, web/src/dev/checkpoints.ts, web/src/dev/DevHost.tsx, crates/engine/engine/src/cmd/file/version.rs, crates/engine/engine/src/cmd/file.rs, crates/kdm/kdm-model/src/session.rs, bindings/wasm/src/rests/resolve.rs, bindings/wasm/src/rests/edit.rs, web/tests/versions.mjs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "A host with the checkpoints capability keeps them (Kition, the development host); elsewhere the panel says it keeps none. The checkpoint's version is the replica's when the host asks after the file write, so an edit made during that wait is in the version saved (kition-sdk). Versions are not compared with each other."
-    cases: [design.version.history/checkpoints, design.version.history/restore-premises]
+    cases: [design.version.history/checkpoints, design.version.history/restore-premises, regressions/issue-restore-one-behaviour]
     since: "2026-11-17"
   - id: design.page.manage
     title: "Pages"
