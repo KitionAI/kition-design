@@ -92,7 +92,7 @@ fn unsafe_selections_and_invalid_axes_are_rejected_without_changes() {
         assert_eq!(xy(&s, b), (70., 0.));
     }
     let f = NodeId(
-        s.execute("frame.create", &json!({"x":0,"y":0,"width":300,"height":100,"props":{"layout":"horizontal"}})).unwrap()["id"].as_u64().unwrap(),
+        s.execute("frame.add", &json!({"x":0,"y":0,"width":300,"height":100,"props":{"layout":"horizontal"}})).unwrap()["id"].as_u64().unwrap(),
     );
     let x = rect(&mut s, 0., 0., 50., 40., Some(f));
     let y = rect(&mut s, 70., 0., 50., 40., Some(f));
@@ -103,9 +103,8 @@ fn unsafe_selections_and_invalid_axes_are_rejected_without_changes() {
 #[test]
 fn rotated_parents_use_page_space_and_cancellation_stays_with_its_document() {
     let mut s = Session::new();
-    let f = NodeId(
-        s.execute("frame.create", &json!({"x":100,"y":100,"width":300,"height":200,"props":{"rotation":90}})).unwrap()["id"].as_u64().unwrap(),
-    );
+    let f =
+        NodeId(s.execute("frame.add", &json!({"x":100,"y":100,"width":300,"height":200,"props":{"rotation":90}})).unwrap()["id"].as_u64().unwrap());
     let a = rect(&mut s, 0., 0., 50., 40., Some(f));
     let b = rect(&mut s, 70., 0., 50., 40., Some(f));
     let before = xy(&s, b);

@@ -64,8 +64,8 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("codeConnect.remove", SELECTION),
     ("codeConnect.set", SELECTION),
     ("component.combineVariants", SELECTION),
-    ("component.create", SELECTION),
-    ("component.createMultiple", SELECTION),
+    ("component.add", SELECTION),
+    ("component.addMultiple", SELECTION),
     ("component.detach", SELECTION),
     ("component.editProperty", SELECTION),
     ("edit.cut", SELECTION),
@@ -84,7 +84,7 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("board.connector", &[Mode, Part]),
     ("board.ink", &[Mode, Part]),
     ("file.import", &[Mode, Part]),
-    ("frame.create", &[Mode, Part]),
+    ("frame.add", &[Mode, Part]),
     ("library.place", &[Mode, Part]),
     ("tool.place", &[Mode, Part]),
     // Named document records and whole-document operations do not read editor navigation.
@@ -107,11 +107,11 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("object.rotate180", MODE_AND_SELECTION),
     ("object.rotateLeft", MODE_AND_SELECTION),
     ("object.rotateRight", MODE_AND_SELECTION),
-    ("text.alignCenter", MODE_AND_SELECTION),
-    ("text.alignJustify", MODE_AND_SELECTION),
-    ("text.alignLeft", MODE_AND_SELECTION),
-    ("text.alignRight", MODE_AND_SELECTION),
-    ("text.bold", MODE_AND_SELECTION),
+    ("format.alignCenter", MODE_AND_SELECTION),
+    ("format.justify", MODE_AND_SELECTION),
+    ("format.alignLeft", MODE_AND_SELECTION),
+    ("format.alignRight", MODE_AND_SELECTION),
+    ("format.bold", MODE_AND_SELECTION),
     ("text.bulletList", MODE_AND_SELECTION),
     ("text.case", MODE_AND_SELECTION),
     ("text.caseLower", MODE_AND_SELECTION),
@@ -120,7 +120,7 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("text.caseTitle", MODE_AND_SELECTION),
     ("text.caseUpper", MODE_AND_SELECTION),
     ("text.decoration", MODE_AND_SELECTION),
-    ("text.italic", MODE_AND_SELECTION),
+    ("format.italic", MODE_AND_SELECTION),
     ("text.lineHeightDown", MODE_AND_SELECTION),
     ("text.lineHeightUp", MODE_AND_SELECTION),
     ("text.link", MODE_AND_SELECTION),
@@ -134,12 +134,12 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("text.set", MODE_AND_SELECTION),
     ("text.setFeatures", MODE_AND_SELECTION),
     ("text.setVariations", MODE_AND_SELECTION),
-    ("text.sizeDown", MODE_AND_SELECTION),
-    ("text.sizeUp", MODE_AND_SELECTION),
-    ("text.strikethrough", MODE_AND_SELECTION),
+    ("format.decreaseFontSize", MODE_AND_SELECTION),
+    ("format.increaseFontSize", MODE_AND_SELECTION),
+    ("format.strikethrough", MODE_AND_SELECTION),
     ("text.trackingDown", MODE_AND_SELECTION),
     ("text.trackingUp", MODE_AND_SELECTION),
-    ("text.underline", MODE_AND_SELECTION),
+    ("format.underline", MODE_AND_SELECTION),
     ("text.weightDown", MODE_AND_SELECTION),
     ("text.weightUp", MODE_AND_SELECTION),
     ("transform.nudge", MODE_AND_SELECTION),
@@ -154,10 +154,10 @@ pub const REVIEWED: &[(&str, &[EditorState])] = &[
     ("shape.polygon", PART),
     ("shape.rectangle", PART),
     ("shape.star", PART),
-    ("vector.create", PART),
+    ("vector.add", PART),
     // Text creation also reads ui_dark to select a readable default fill in the editor.
-    ("node.create", &[Mode, Part]),
-    ("text.create", &[Mode, Part]),
+    ("node.add", &[Mode, Part]),
+    ("text.add", &[Mode, Part]),
     // These act on the layer/range already held by the edit session, not the layer selection.
     ("text.edit.insert", MODE),
     ("text.edit.key", MODE),
@@ -242,20 +242,20 @@ pub fn scanned_reads(id: &str) -> &'static [EditorState] {
             | "view.proofSrgb"
             | "view.prevFrame"
             | "view.nextFrame"
-            | "component.create"
-            | "component.createMultiple"
+            | "component.add"
+            | "component.addMultiple"
             | "component.goToMain"
             | "object.toggleVisible"
             | "object.toggleLock"
             | "view.snapGeometry"
             | "view.snapObjects"
             | "view.snapPixel"
-            | "pref.keepTool"
-            | "pref.highlightHover"
-            | "pref.renameDuplicates"
-            | "pref.showDimensions"
-            | "pref.numberKeysOpacity"
-            | "pref.nudge"
+            | "prefs.keepTool"
+            | "prefs.highlightHover"
+            | "prefs.renameDuplicates"
+            | "prefs.showDimensions"
+            | "prefs.numberKeysOpacity"
+            | "prefs.nudge"
             | "image.place"
             | "select.layersAt"
             | "transform.nudgeSize"
@@ -322,7 +322,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "file.export"
         | "file.exportSvg"
         | "file.import"
-        | "frame.create"
+        | "frame.add"
         | "inspect.code"
         | "inspect.componentCode"
         | "library.applyStyle"
@@ -331,14 +331,14 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "library.publish"
         | "library.swap"
         | "library.swapAt"
-        | "node.create"
+        | "node.add"
         | "node.set"
         | "object.flipH"
         | "object.flipV"
         | "object.rotate180"
         | "object.rotateLeft"
         | "object.rotateRight"
-        | "selection.colors"
+        | "select.colors"
         | "shape.arrow"
         | "shape.ellipse"
         | "shape.line"
@@ -348,11 +348,11 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "shapeBuilder.merge"
         | "shapeBuilder.remove"
         | "stroke.widthProfile"
-        | "text.alignCenter"
-        | "text.alignJustify"
-        | "text.alignLeft"
-        | "text.alignRight"
-        | "text.bold"
+        | "format.alignCenter"
+        | "format.justify"
+        | "format.alignLeft"
+        | "format.alignRight"
+        | "format.bold"
         | "text.bulletList"
         | "text.case"
         | "text.caseLower"
@@ -360,13 +360,13 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "text.caseSmallCaps"
         | "text.caseTitle"
         | "text.caseUpper"
-        | "text.create"
+        | "text.add"
         | "text.decoration"
         | "text.edit.begin"
         | "text.edit.insert"
         | "text.edit.key"
         | "text.edit.preedit"
-        | "text.italic"
+        | "format.italic"
         | "text.lineHeightDown"
         | "text.lineHeightUp"
         | "text.link"
@@ -385,16 +385,16 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "text.set"
         | "text.setFeatures"
         | "text.setVariations"
-        | "text.sizeDown"
-        | "text.sizeUp"
-        | "text.strikethrough"
+        | "format.decreaseFontSize"
+        | "format.increaseFontSize"
+        | "format.strikethrough"
         | "text.trackingDown"
         | "text.trackingUp"
-        | "text.underline"
+        | "format.underline"
         | "text.weightDown"
         | "text.weightUp"
         | "transform.nudge"
-        | "vector.create"
+        | "vector.add"
         | "vector.edit.begin"
         | "vector.edit.resize"
         | "vector.edit.rotate"
@@ -437,7 +437,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "vector.edit.strokeCap"
         | "vector.edit.strokeJoin"
         | "vector.edit.tool" => MODE,
-        "arrange.reorder" | "board.nextSticky" | "component.detach" | "object.batchRename" | "style.apply" | "style.create" | "style.detach"
+        "arrange.reorder" | "board.nextSticky" | "component.detach" | "object.batchRename" | "style.apply" | "style.add" | "style.detach"
         | "variable.export" | "vector.join" | "vector.smoothJoin" => MODE_AND_SELECTION,
         "board.shape"
         | "board.stamp"
@@ -459,7 +459,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "guide.remove"
         | "guide.select"
         | "image.place"
-        | "instance.create"
+        | "instance.add"
         | "instance.place"
         | "page.add"
         | "page.delete"
@@ -475,7 +475,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "proto.preview"
         | "proto.settings"
         | "select.byName"
-        | "selection.selectColor"
+        | "select.selectColor"
         | "style.bind"
         | "version.restore"
         | "view.nextPage"
@@ -489,10 +489,10 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "annotation.add"
         | "annotation.edit"
         | "annotation.remove"
-        | "arrange.back"
-        | "arrange.backward"
-        | "arrange.forward"
-        | "arrange.front"
+        | "arrange.sendToBack"
+        | "arrange.sendBackward"
+        | "arrange.bringForward"
+        | "arrange.bringToFront"
         | "arrange.packH"
         | "arrange.packV"
         | "arrange.roundToPixels"
@@ -541,7 +541,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "effect.set"
         | "export.add"
         | "export.remove"
-        | "export.update"
+        | "export.set"
         | "fill.add"
         | "fill.copy"
         | "fill.move"
@@ -573,7 +573,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "object.convertToGroup"
         | "object.convertToSection"
         | "object.frameSelection"
-        | "object.group"
+        | "arrange.group"
         | "object.mask"
         | "object.moveToPage"
         | "object.opacityKeys"
@@ -588,7 +588,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "object.swapFillStroke"
         | "object.toggleLock"
         | "object.toggleVisible"
-        | "object.ungroup"
+        | "arrange.ungroup"
         | "object.wrapInSection"
         | "proto.action.add"
         | "proto.action.move"
@@ -637,8 +637,8 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "component.combineVariants" => SELECTION,
         "annotation.list"
         | "board.reattach"
-        | "component.create"
-        | "component.createMultiple"
+        | "component.add"
+        | "component.addMultiple"
         | "component.goToMain"
         | "dev.focus"
         | "edit.paste"
@@ -648,7 +648,7 @@ fn base_reads(id: &str) -> &'static [EditorState] {
         | "measure.distances"
         | "object.hideOthers"
         | "proto.flow.add"
-        | "select.all"
+        | "edit.selectAll"
         | "select.inverse"
         | "select.layersAt"
         | "select.matching"
@@ -682,10 +682,10 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "align.top"
         | "align.vcenter"
         | "annotation.list"
-        | "arrange.back"
-        | "arrange.backward"
-        | "arrange.forward"
-        | "arrange.front"
+        | "arrange.sendToBack"
+        | "arrange.sendBackward"
+        | "arrange.bringForward"
+        | "arrange.bringToFront"
         | "arrange.packH"
         | "arrange.packV"
         | "arrange.reorder"
@@ -701,8 +701,8 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "bool.subtract"
         | "bool.union"
         | "component.combineVariants"
-        | "component.create"
-        | "component.createMultiple"
+        | "component.add"
+        | "component.addMultiple"
         | "component.detach"
         | "component.hideWhenPublishing"
         | "component.resetInstance"
@@ -723,7 +723,7 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "effect.set"
         | "export.add"
         | "export.remove"
-        | "export.update"
+        | "export.set"
         | "file.export"
         | "file.exportLayers"
         | "file.exportSvg"
@@ -759,7 +759,7 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "object.flipH"
         | "object.flipV"
         | "object.frameSelection"
-        | "object.group"
+        | "arrange.group"
         | "object.mask"
         | "object.moveToPage"
         | "object.opacityKeys"
@@ -776,7 +776,7 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "object.swapFillStroke"
         | "object.toggleLock"
         | "object.toggleVisible"
-        | "object.ungroup"
+        | "arrange.ungroup"
         | "object.wrapInSection"
         | "proto.action.add"
         | "proto.action.move"
@@ -792,7 +792,7 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "section.toggleContents"
         | "select.add"
         | "select.remove"
-        | "selection.colors"
+        | "select.colors"
         | "shapeBuilder.merge"
         | "shapeBuilder.regions"
         | "shapeBuilder.remove"
@@ -806,11 +806,11 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "stroke.widthProfile"
         | "style.apply"
         | "style.detach"
-        | "text.alignCenter"
-        | "text.alignJustify"
-        | "text.alignLeft"
-        | "text.alignRight"
-        | "text.bold"
+        | "format.alignCenter"
+        | "format.justify"
+        | "format.alignLeft"
+        | "format.alignRight"
+        | "format.bold"
         | "text.bulletList"
         | "text.case"
         | "text.caseLower"
@@ -820,7 +820,7 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "text.caseUpper"
         | "text.decoration"
         | "text.fit"
-        | "text.italic"
+        | "format.italic"
         | "text.lineHeightDown"
         | "text.lineHeightUp"
         | "text.link"
@@ -835,12 +835,12 @@ pub fn targets(id: &str) -> Option<&'static str> {
         | "text.removeFromPath"
         | "text.setFeatures"
         | "text.setVariations"
-        | "text.sizeDown"
-        | "text.sizeUp"
-        | "text.strikethrough"
+        | "format.decreaseFontSize"
+        | "format.increaseFontSize"
+        | "format.strikethrough"
         | "text.trackingDown"
         | "text.trackingUp"
-        | "text.underline"
+        | "format.underline"
         | "text.weightDown"
         | "text.weightUp"
         | "transform.move"

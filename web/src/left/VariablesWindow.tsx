@@ -83,7 +83,7 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
 
   const createCollection = async () => {
     const name = unique('Collection', (n) => vars.collections.some((c) => c.name === n))
-    const made = await edit('variable.createCollection', { name, modes: ['Mode 1'] })
+    const made = await edit('variable.addCollection', { name, modes: ['Mode 1'] })
     if (made?.id) {
       setCollection(made.id)
       setGroup(null)
@@ -463,7 +463,7 @@ function Table({ vars, collection, group, query, onQuery, rename, onRename, onMe
 
   const create = async (kind: VariableKind, label: string) => {
     const name = unique(label, (n) => vars.variables.some((v) => v.collection === collection.id && v.name === n))
-    const made = await onEdit('variable.create', { collection: collection.id, name, type: kind })
+    const made = await onEdit('variable.add', { collection: collection.id, name, type: kind })
     if (made?.id) {
       onQuery('')
       onRename({ kind: 'variable', id: made.id })

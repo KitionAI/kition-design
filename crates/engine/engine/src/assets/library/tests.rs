@@ -87,16 +87,16 @@ struct Kit {
 /// A library file: "Button" (blue, "OK" label, its fill linked to the "Brand" paint style) and
 /// "Card" (a frame holding a Button instance), plus a private "_Draft" component.
 fn kit(s: &mut Session) -> Kit {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"})));
-    let label = idv(&ex(s, "text.create", json!({"text": "OK", "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"})));
+    let label = idv(&ex(s, "text.add", json!({"text": "OK", "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}})));
     ex(s, "node.set", json!({"id": f, "props": {"fill": "#0000ff"}}));
-    ex(s, "style.create", json!({"type": "paint", "name": "Brand", "from": f}));
-    let button = idv(&ex(s, "component.create", json!({"ids": [f]})));
-    let c = idv(&ex(s, "frame.create", json!({"x": 0, "y": 100, "width": 200, "height": 100, "name": "Card"})));
-    ex(s, "instance.create", json!({"component": button, "x": 10, "y": 10, "parent": c}));
-    let card = idv(&ex(s, "component.create", json!({"ids": [c]})));
-    let d = idv(&ex(s, "frame.create", json!({"x": 300, "y": 0, "width": 10, "height": 10, "name": "_Draft"})));
-    ex(s, "component.create", json!({"ids": [d]}));
+    ex(s, "style.add", json!({"type": "paint", "name": "Brand", "from": f}));
+    let button = idv(&ex(s, "component.add", json!({"ids": [f]})));
+    let c = idv(&ex(s, "frame.add", json!({"x": 0, "y": 100, "width": 200, "height": 100, "name": "Card"})));
+    ex(s, "instance.add", json!({"component": button, "x": 10, "y": 10, "parent": c}));
+    let card = idv(&ex(s, "component.add", json!({"ids": [c]})));
+    let d = idv(&ex(s, "frame.add", json!({"x": 300, "y": 0, "width": 10, "height": 10, "name": "_Draft"})));
+    ex(s, "component.add", json!({"ids": [d]}));
     Kit { button, label, card }
 }
 
@@ -222,7 +222,7 @@ fn add_place_and_update_keep_overrides() {
         assert_eq!(s.doc().unwrap(), &unchanged, "refused {cmd} rolls back");
     }
     let style = s.doc().unwrap().styles[0].id.clone();
-    assert!(s.execute("style.update", &json!({"style": style, "name": "Mine"})).is_err());
+    assert!(s.execute("style.set", &json!({"style": style, "name": "Mine"})).is_err());
     assert!(s.execute("style.delete", &json!({"style": style})).is_err());
     let e = s.execute("component.goToMain", &json!({"id": b})).unwrap_err();
     assert!(e.to_string().contains("library"), "{e}");
@@ -232,7 +232,7 @@ fn add_place_and_update_keep_overrides() {
     assert_eq!(fill(&s, remote_button), "0000FF");
 
     // The library changes the Button (fill via its style, and its label) and publishes again.
-    ex(&mut lib, "style.update", json!({"style": "Brand", "value": "#00ff00"}));
+    ex(&mut lib, "style.set", json!({"style": "Brand", "value": "#00ff00"}));
     ex(&mut lib, "text.set", json!({"id": k.label, "characters": "Go"}));
     ex(&mut lib, "library.publish", json!({}));
     ex(&mut lib, "file.save", json!({}));
@@ -384,14 +384,14 @@ fn library_variants_swaps_and_undo() {
     let mut lib = Session::new();
     let mut variants = Vec::new();
     for (i, color) in ["#ff0000", "#00ff00"].iter().enumerate() {
-        let f = idv(&ex(&mut lib, "frame.create", json!({"x": i as f64 * 100.0, "y": 0, "width": 60, "height": 20, "name": "Chip"})));
+        let f = idv(&ex(&mut lib, "frame.add", json!({"x": i as f64 * 100.0, "y": 0, "width": 60, "height": 20, "name": "Chip"})));
         ex(&mut lib, "node.set", json!({"id": f, "props": {"fill": color}}));
-        variants.push(idv(&ex(&mut lib, "component.create", json!({"ids": [f]}))));
+        variants.push(idv(&ex(&mut lib, "component.add", json!({"ids": [f]}))));
     }
     ex(&mut lib, "component.combineVariants", json!({"ids": variants}));
     for name in ["Icon A", "Icon B"] {
-        let f = idv(&ex(&mut lib, "frame.create", json!({"x": 0, "y": 100, "width": 16, "height": 16, "name": name})));
-        ex(&mut lib, "component.create", json!({"ids": [f]}));
+        let f = idv(&ex(&mut lib, "frame.add", json!({"x": 0, "y": 100, "width": 16, "height": 16, "name": name})));
+        ex(&mut lib, "component.add", json!({"ids": [f]}));
     }
     let lid = publish_to(&mut lib, &lib_path);
 

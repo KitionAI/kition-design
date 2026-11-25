@@ -353,7 +353,7 @@ fn variable_inputs(doc: &Document, command: &str, params: &Value, under: &mut Un
                 under.premises.push(Premise::on(v.id.clone()));
             }
         }
-        if command == "variable.create" {
+        if command == "variable.add" {
             for key in params.get("values").and_then(Value::as_object).into_iter().flat_map(|m| m.keys()) {
                 if let Some(mode) = collection.find_mode(key) {
                     under.objects.push(json!(mode.id));
@@ -600,7 +600,7 @@ fn traversed_inputs(
             }
         }
     }
-    if command.starts_with("text.") && !matches!(command, "text.create" | "text.onPath") {
+    if command.starts_with("text.") && !matches!(command, "text.add" | "text.onPath") {
         let global_refit = command == "text.refit" && params.get("ids").is_none_or(Value::is_null);
         let roots = if global_refit { doc.pages.clone() } else { ds.text_edit.as_ref().map_or_else(|| ids.to_vec(), |edit| vec![edit.id]) };
         if global_refit {
@@ -624,10 +624,10 @@ fn traversed_inputs(
                 | "vector.outlineStroke"
                 | "object.rasterize"
                 | "object.resizeToFit"
-                | "object.group"
+                | "arrange.group"
                 | "object.frameSelection"
                 | "object.wrapInSection"
-                | "object.ungroup"
+                | "arrange.ungroup"
                 | "object.removeFrame"
                 | "object.convertToFrame"
                 | "object.convertToGroup"
@@ -1057,7 +1057,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
                 under.within.push(Within { parent: json!("design"), field: "nodes".into(), from, to, time: None });
             }
         }
-        "instance.create" | "instance.swap" | "instance.slotInsert" => {
+        "instance.add" | "instance.swap" | "instance.slotInsert" => {
             if let Some(component) = params.get("component").and_then(id) {
                 under.objects.extend(doc.subtree(component).into_iter().map(|i| json!(i.0)));
             }
@@ -1117,7 +1117,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
                 }
             }
         }
-        "style.update" => {
+        "style.set" => {
             if let Some(style) = params.get("style").and_then(Value::as_str).and_then(|s| doc.style(s)) {
                 let mut fields = Vec::new();
                 if params.get("name").is_some() {
@@ -1225,7 +1225,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
         || command == "node.set" && params.get("props").is_some_and(|p| p.get("interactions").is_some())
     {
         referenced(doc, params, &mut under.objects);
-        if command == "variable.create" {
+        if command == "variable.add" {
             for value in params.get("values").and_then(Value::as_object).into_iter().flat_map(|values| values.values()) {
                 referenced(doc, value, &mut under.objects);
             }

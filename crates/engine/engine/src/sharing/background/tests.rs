@@ -123,8 +123,8 @@ fn answer(s: &mut Session, wire: &Arc<Mutex<Wire>>) -> usize {
 /// A library file's published library as the archive a server keeps.
 fn published() -> Vec<u8> {
     let mut s = Session::new();
-    let f = s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
-    s.execute("component.create", &json!({"ids": [f["id"]]})).unwrap();
+    let f = s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
+    s.execute("component.add", &json!({"ids": [f["id"]]})).unwrap();
     s.execute("library.publish", &json!({})).unwrap();
     archive(s.doc().unwrap().published.as_ref().unwrap()).unwrap()
 }
@@ -185,8 +185,8 @@ fn cancelled_commands_drop_their_answer_and_errors_are_the_outcome() {
 #[test]
 fn a_command_with_two_requests_resumes_twice_and_keeps_what_it_sent() {
     let (mut s, wire) = session(true);
-    let f = s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
-    s.execute("component.create", &json!({"ids": [f["id"]]})).unwrap();
+    let f = s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
+    s.execute("component.add", &json!({"ids": [f["id"]]})).unwrap();
     // The server's current library first, then the publish.
     assert_eq!(s.start_background("library.publishToServer", json!({"server": LINK})).unwrap(), None);
     assert_eq!(answer(&mut s, &wire), 1);

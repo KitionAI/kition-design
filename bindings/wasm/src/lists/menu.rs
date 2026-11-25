@@ -28,21 +28,21 @@ fn entries(d: &Document, ids: &[NodeId], selection: &[NodeId], guide: bool) -> V
             ("Paste to replace", "edit.pasteReplace"),
             ("Copy as", COPY_AS),
             SEP,
-            ("Bring to front", "arrange.front"),
-            ("Bring forward", "arrange.forward"),
-            ("Send backward", "arrange.backward"),
-            ("Send to back", "arrange.back"),
+            ("Bring to front", "arrange.bringToFront"),
+            ("Bring forward", "arrange.bringForward"),
+            ("Send backward", "arrange.sendBackward"),
+            ("Send to back", "arrange.sendToBack"),
             SEP,
-            ("Group selection", "object.group"),
+            ("Group selection", "arrange.group"),
             ("Frame selection", "object.frameSelection"),
             ("Wrap in new section", "object.wrapInSection"),
-            ("Ungroup", "object.ungroup"),
+            ("Ungroup", "arrange.ungroup"),
             ("Flatten", "vector.flatten"),
             ("Outline stroke", "vector.outlineStroke"),
             ("Use as mask", "object.mask"),
             SEP,
             ("Add auto layout", "layout.add"),
-            ("Create component", "component.create"),
+            ("Create component", "component.add"),
             ("Detach instance", "component.detach"),
             SEP,
             ("Show/Hide", "object.toggleVisible"),
@@ -57,7 +57,7 @@ fn entries(d: &Document, ids: &[NodeId], selection: &[NodeId], guide: bool) -> V
         vec![
             ("Paste here", "edit.paste"),
             SEP,
-            ("Select all", "select.all"),
+            ("Select all", "edit.selectAll"),
             SEP,
             ("Show/Hide UI", "view.toggleUi"),
             ("Zoom to fit", "view.zoomFit"),
@@ -92,14 +92,14 @@ fn entries(d: &Document, ids: &[NodeId], selection: &[NodeId], guide: bool) -> V
     }
     // Judged on the selection the command acts on, as upstream does.
     if kition_design_engine::cmd::component::can_combine_variants(d, selection)
-        && let Some(at) = e.iter().position(|x| x.1 == "component.create")
+        && let Some(at) = e.iter().position(|x| x.1 == "component.add")
     {
         e.insert(at + 1, ("Combine as variants", "component.combineVariants"));
     }
     if has_sel
         && nodes.len() == ids.len()
         && nodes.iter().all(|n| matches!(n.kind, NodeKind::Instance { .. }))
-        && let Some(at) = e.iter().position(|x| x.1 == "component.create")
+        && let Some(at) = e.iter().position(|x| x.1 == "component.add")
         && let Some(slot) = e.get_mut(at)
     {
         *slot = ("Go to main component", "component.goToMain");

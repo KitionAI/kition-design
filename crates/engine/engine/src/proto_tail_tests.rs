@@ -54,7 +54,7 @@ fn controller_buttons_fire_key_gamepad_triggers() {
     assert_eq!(names.len(), GAMEPAD_BUTTONS.len());
     // Authored through the interaction commands (and so the MCP server), stored as the key.
     let mut s = Session::new();
-    let a = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let a = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
     assert!(!uses_gamepad(s.doc().unwrap()));
     ex(&mut s, "proto.interaction.add", json!({"id": a, "trigger": {"type": "keyPress", "key": "Gamepad Menu"}, "action": {"type": "back"}}));
     let doc = s.doc().unwrap();
@@ -95,14 +95,14 @@ fn widgets_react_to_clicks_on_the_prototypes_own_copy() {
 /// card inside A that chose Dark.
 fn modes_session() -> (Session, NodeId, NodeId, NodeId) {
     let mut s = Session::new();
-    let a = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 200, "name": "A"})));
+    let a = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 200, "name": "A"})));
     let button = idv(&ex(&mut s, "shape.rectangle", json!({"x": 10, "y": 10, "width": 30, "height": 20, "parent": a})));
-    let card = idv(&ex(&mut s, "frame.create", json!({"x": 50, "y": 50, "width": 100, "height": 100, "parent": a, "name": "Card"})));
+    let card = idv(&ex(&mut s, "frame.add", json!({"x": 50, "y": 50, "width": 100, "height": 100, "parent": a, "name": "Card"})));
     let inner = idv(&ex(&mut s, "shape.rectangle", json!({"x": 60, "y": 60, "width": 10, "height": 10, "parent": card})));
-    ex(&mut s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Theme", "name": "size", "type": "number", "value": 10}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Theme", "name": "size", "type": "number", "value": 10}));
     ex(&mut s, "variable.set", json!({"variable": "size", "mode": "Dark", "value": 20}));
-    ex(&mut s, "variable.create", json!({"collection": "Theme", "name": "label", "type": "string", "value": "light"}));
+    ex(&mut s, "variable.add", json!({"collection": "Theme", "name": "label", "type": "string", "value": "light"}));
     ex(&mut s, "variable.set", json!({"variable": "label", "mode": "Dark", "value": "dark"}));
     ex(&mut s, "variable.setMode", json!({"ids": [card], "collection": "Theme", "mode": "Dark"}));
     (s, button, inner, a)

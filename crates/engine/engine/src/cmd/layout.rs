@@ -91,7 +91,7 @@ mod tests {
 
     /// A horizontal auto layout frame (padding 0, gap 10) with two 40×20 rectangles.
     fn al_frame(s: &mut Session) -> (NodeId, NodeId, NodeId) {
-        let f = id(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 100, "props": {"layout": "horizontal", "gap": 10}})));
+        let f = id(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 100, "props": {"layout": "horizontal", "gap": 10}})));
         let a = id(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 20, "parent": f})));
         let b = id(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 20, "parent": f})));
         (f, a, b)
@@ -184,9 +184,9 @@ mod tests {
     #[test]
     fn baseline_alignment_lines_up_text() {
         let mut s = Session::new();
-        let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 100, "props": {"layout": "horizontal"}})));
-        let small = id(&ex(&mut s, "text.create", json!({"text": "Small", "x": 0, "y": 0, "parent": f, "props": {"fontSize": 12}})));
-        let big = id(&ex(&mut s, "text.create", json!({"text": "Big", "x": 0, "y": 0, "parent": f, "props": {"fontSize": 48}})));
+        let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 100, "props": {"layout": "horizontal"}})));
+        let small = id(&ex(&mut s, "text.add", json!({"text": "Small", "x": 0, "y": 0, "parent": f, "props": {"fontSize": 12}})));
+        let big = id(&ex(&mut s, "text.add", json!({"text": "Big", "x": 0, "y": 0, "parent": f, "props": {"fontSize": 48}})));
         ex(&mut s, "node.set", json!({"id": f, "props": {"crossAlign": "baseline"}}));
         assert_eq!(node(&s, f).layout.unwrap().cross_align, CrossAlign::Baseline);
         let base =
@@ -207,7 +207,7 @@ mod tests {
         let mut s = Session::new();
         let f = id(&ex(
             &mut s,
-            "frame.create",
+            "frame.add",
             json!({"x": 0, "y": 0, "width": 320, "height": 200, "props": {"layout": "grid", "gridColumns": 3, "columnGap": 10, "rowGap": 10}}),
         ));
         let kids: Vec<NodeId> =
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn set_track_clamps_hostile_grid_counts() {
         let mut s = Session::new();
-        let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 320, "height": 200, "props": {"layout": "grid"}})));
+        let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 320, "height": 200, "props": {"layout": "grid"}})));
         // A hostile file can carry a count node.set would have clamped.
         s.doc_mut().unwrap().get_mut(f).unwrap().layout.as_mut().unwrap().grid_columns = 5_000_000;
         let p = json!({"ids": [f], "axis": "columns", "index": 4_999_999, "sizing": "hug"});
@@ -287,7 +287,7 @@ mod tests {
         for k in keys {
             for j in &junk {
                 let mut s = Session::new();
-                let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "props": {"layout": "grid"}})));
+                let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "props": {"layout": "grid"}})));
                 let r = id(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10, "parent": f})));
                 for target in [f, r] {
                     if let Err(EngineError::Internal { cmd, msg }) = s.execute("node.set", &json!({"id": target, "props": {k: j}})) {

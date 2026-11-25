@@ -425,9 +425,9 @@ mod tests {
     }
 
     fn card(s: &mut Session) -> NodeId {
-        let f = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})).unwrap()["id"]).unwrap();
+        let f = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})).unwrap()["id"]).unwrap();
         s.execute("node.set", &json!({"id": f, "props": {"fills": ["#FFFFFF"], "cornerRadius": 12}})).unwrap();
-        s.execute("text.create", &json!({"text": "Say \"hi\" $5\nnow", "x": 0, "y": 0, "parent": f})).unwrap();
+        s.execute("text.add", &json!({"text": "Say \"hi\" $5\nnow", "x": 0, "y": 0, "parent": f})).unwrap();
         s.execute("shape.ellipse", &json!({"x": 0, "y": 0, "width": 24, "height": 24, "parent": f})).unwrap();
         s.execute("layout.add", &json!({"ids": [f]})).unwrap();
         f
@@ -486,11 +486,11 @@ mod tests {
     #[test]
     fn free_children_get_offsets_and_deep_trees_are_capped() {
         let mut s = Session::new();
-        let mut parent = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap()["id"]).unwrap();
+        let mut parent = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap()["id"]).unwrap();
         let root = parent;
         s.execute("shape.rectangle", &json!({"x": 7, "y": 9, "width": 5, "height": 5, "parent": root})).unwrap();
         for _ in 0..20 {
-            parent = id_of(&s.execute("frame.create", &json!({"x": 1, "y": 1, "width": 40, "height": 40, "parent": parent})).unwrap()["id"]).unwrap();
+            parent = id_of(&s.execute("frame.add", &json!({"x": 1, "y": 1, "width": 40, "height": 40, "parent": parent})).unwrap()["id"]).unwrap();
         }
         let doc = s.doc().unwrap();
         let sw = code_for(doc, root, CodeLang::SwiftUi);
@@ -507,8 +507,8 @@ mod tests {
     #[test]
     fn arkui_aligned_text_gets_the_layers_width() {
         let mut s = Session::new();
-        let f = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap()["id"]).unwrap();
-        let t = id_of(&s.execute("text.create", &json!({"text": "Hi", "x": 0, "y": 0, "parent": f})).unwrap()["id"]).unwrap();
+        let f = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap()["id"]).unwrap();
+        let t = id_of(&s.execute("text.add", &json!({"text": "Hi", "x": 0, "y": 0, "parent": f})).unwrap()["id"]).unwrap();
         s.execute("node.set", &json!({"id": t, "props": {"textAlign": "center", "width": 120.0}})).unwrap();
         let doc = s.doc().unwrap();
         let ark = code_for(doc, f, CodeLang::ArkUi);
@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn arkui_places_a_child_that_ignores_its_auto_layout_parent() {
         let mut s = Session::new();
-        let f = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap()["id"]).unwrap();
+        let f = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap()["id"]).unwrap();
         let c = id_of(&s.execute("shape.rectangle", &json!({"x": 7, "y": 9, "width": 20, "height": 20, "parent": f})).unwrap()["id"]).unwrap();
         s.execute("node.set", &json!({"id": c, "props": {"absolute": true}})).unwrap();
         s.execute("layout.add", &json!({"ids": [f]})).unwrap();
@@ -534,12 +534,12 @@ mod tests {
     #[test]
     fn arkui_wraps_a_positioned_instance_swap_so_the_position_lands_on_a_container() {
         let mut s = Session::new();
-        let icon = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 400, "width": 24, "height": 24, "name": "Icon"})).unwrap()["id"]).unwrap();
+        let icon = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 400, "width": 24, "height": 24, "name": "Icon"})).unwrap()["id"]).unwrap();
         s.execute("shape.star", &json!({"x": 0, "y": 0, "width": 24, "height": 24, "parent": icon})).unwrap();
-        let heart = id_of(&s.execute("component.create", &json!({"ids": [icon]})).unwrap()["id"]).unwrap();
-        let f = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 120, "height": 40, "name": "Chip"})).unwrap()["id"]).unwrap();
-        let nested = id_of(&s.execute("instance.create", &json!({"component": heart, "x": 8, "y": 8, "parent": f})).unwrap()["id"]).unwrap();
-        let chip = id_of(&s.execute("component.create", &json!({"ids": [f]})).unwrap()["id"]).unwrap();
+        let heart = id_of(&s.execute("component.add", &json!({"ids": [icon]})).unwrap()["id"]).unwrap();
+        let f = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 120, "height": 40, "name": "Chip"})).unwrap()["id"]).unwrap();
+        let nested = id_of(&s.execute("instance.add", &json!({"component": heart, "x": 8, "y": 8, "parent": f})).unwrap()["id"]).unwrap();
+        let chip = id_of(&s.execute("component.add", &json!({"ids": [f]})).unwrap()["id"]).unwrap();
         s.execute("component.addProperty", &json!({"id": chip, "name": "Icon", "type": "instanceSwap", "default": heart, "layer": nested})).unwrap();
         let doc = s.doc().unwrap();
         let ark = code_for(doc, chip, CodeLang::ArkUi);
@@ -555,11 +555,11 @@ mod tests {
     fn too_deep_placeholder_keeps_a_multiline_layer_name_in_the_comment() {
         let mut s = Session::new();
         let name = "deep\nevil()\r\u{2028}more()";
-        let mut parent = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 50, "height": 50, "name": name})).unwrap()["id"]).unwrap();
+        let mut parent = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 50, "height": 50, "name": name})).unwrap()["id"]).unwrap();
         let root = parent;
         for _ in 0..16 {
             parent =
-                id_of(&s.execute("frame.create", &json!({"x": 1, "y": 1, "width": 40, "height": 40, "parent": parent, "name": name})).unwrap()["id"])
+                id_of(&s.execute("frame.add", &json!({"x": 1, "y": 1, "width": 40, "height": 40, "parent": parent, "name": name})).unwrap()["id"])
                     .unwrap();
         }
         let doc = s.doc().unwrap();

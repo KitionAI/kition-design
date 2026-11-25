@@ -30,8 +30,8 @@ fn pixel(s: &Session, node: NodeId, x: u32, y: u32) -> [u8; 4] {
 #[test]
 fn text_goes_onto_a_path_and_off_again() {
     let mut s = Session::new();
-    let t = id(s.execute("text.create", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100})).unwrap());
+    let t = id(s.execute("text.add", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100})).unwrap());
     // Without a path selected it says what's missing.
     assert!(s.execute("text.onPath", &json!({"ids": [t]})).is_err());
     let (vxf, vw) = s.doc().map(|d| d.node(v).map(|n| (n.transform, n.width))).unwrap().unwrap();
@@ -74,7 +74,7 @@ fn editing(s: &Session) -> Option<NodeId> {
 #[test]
 fn the_text_on_a_path_tool_types_new_text_onto_the_path_it_clicks() {
     let mut s = Session::new();
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100, "props": {"fill": "#FF0000"}})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100, "props": {"fill": "#FF0000"}})).unwrap());
     s.execute("effect.add", &json!({"ids": [v], "type": "dropShadow"})).unwrap();
     let (vxf, vw, fills, effects) = {
         let n = s.doc().unwrap().node(v).unwrap();
@@ -107,7 +107,7 @@ fn the_text_on_a_path_tool_types_new_text_onto_the_path_it_clicks() {
 #[test]
 fn a_shape_in_front_whose_path_is_away_from_the_click_does_not_hide_the_path_behind() {
     let mut s = Session::new();
-    let back = id(s.execute("vector.create", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100})).unwrap());
+    let back = id(s.execute("vector.add", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100})).unwrap());
     // A filled square over the line: the click is inside it, 20 or more from its outline.
     let front = id(s.execute("shape.rectangle", &json!({"x": 60, "y": 80, "width": 100, "height": 60})).unwrap());
     s.set_tool(crate::tools::ToolId::TextOnPath);
@@ -120,7 +120,7 @@ fn a_shape_in_front_whose_path_is_away_from_the_click_does_not_hide_the_path_beh
 #[test]
 fn a_path_scaled_more_one_way_is_reached_where_it_shows() {
     let mut s = Session::new();
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 L100 100", "x": 0, "y": 0})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 L100 100", "x": 0, "y": 0})).unwrap());
     // Ten times wider than tall: on the page the line runs from (0, 0) to (1000, 100).
     s.doc_mut().unwrap().get_mut(v).unwrap().transform = kition_design_geom::Affine::scale_non_uniform(10.0, 1.0);
     s.set_tool(crate::tools::ToolId::TextOnPath);
@@ -146,8 +146,8 @@ fn paths_a_mask_or_a_turned_clipping_frame_hides_take_no_text() {
     let r = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     s.execute("object.mask", &json!({"ids": [m, r]})).unwrap();
     // A clipping frame turned 45°, with a line outside it: inside the frame's bounding box, but clipped.
-    let f = id(s.execute("frame.create", &json!({"x": 300, "y": 0, "width": 100, "height": 100, "props": {"clip": true}})).unwrap());
-    let l = id(s.execute("vector.create", &json!({"path": "M0 0 L40 0", "x": -60, "y": 50, "parent": f})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 300, "y": 0, "width": 100, "height": 100, "props": {"clip": true}})).unwrap());
+    let l = id(s.execute("vector.add", &json!({"path": "M0 0 L40 0", "x": -60, "y": 50, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": f, "props": {"rotation": 45}})).unwrap();
     let hidden = s.doc().unwrap().world_transform(l) * kition_design_geom::Point::new(20.0, 0.0);
     let frame_box = s.doc().unwrap().world_bounds(f).unwrap();
@@ -164,7 +164,7 @@ fn paths_a_mask_or_a_turned_clipping_frame_hides_take_no_text() {
 #[test]
 fn text_on_a_stroke_only_path_gets_the_usual_fill() {
     let mut s = Session::new();
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100, "props": {"fills": []}})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100, "props": {"fills": []}})).unwrap());
     assert!(!s.doc().unwrap().node(v).unwrap().fills.iter().any(|f| f.visible), "a path with a stroke only");
     s.set_tool(crate::tools::ToolId::TextOnPath);
     click(&mut s, 40.0, 100.0);
@@ -206,8 +206,8 @@ fn text_on_a_path_left_empty_puts_the_path_back_without_an_undo_step() {
 #[test]
 fn scaling_text_scales_its_path() {
     let mut s = Session::new();
-    let t = id(s.execute("text.create", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100})).unwrap());
+    let t = id(s.execute("text.add", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100})).unwrap());
     s.execute("text.onPath", &json!({"ids": [t, v]})).unwrap();
     let w0 = kition_design_geom::Shape::bounding_box(&text_path(&s, t).unwrap().path()).width();
     s.execute("transform.scale", &json!({"ids": [t], "factor": 2.0})).unwrap();
@@ -237,11 +237,11 @@ fn svg_text_paths_import_as_text_on_a_path() {
 /// A text layer with its own green fill bound to `ink` and a layer blur, and a curve; the
 /// variables `ink` and `shadow` exist.
 fn text_and_curve(s: &mut Session, path_props: Value) -> (NodeId, NodeId) {
-    let t = id(s.execute("text.create", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100, "props": path_props})).unwrap());
-    s.execute("variable.createCollection", &json!({"name": "Paint"})).unwrap();
+    let t = id(s.execute("text.add", &json!({"text": "Around", "x": 0, "y": 0})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100, "props": path_props})).unwrap());
+    s.execute("variable.addCollection", &json!({"name": "Paint"})).unwrap();
     for (name, value) in [("ink", "#00FF00"), ("shadow", "#FF000080")] {
-        s.execute("variable.create", &json!({"collection": "Paint", "name": name, "type": "color", "value": value})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Paint", "name": name, "type": "color", "value": value})).unwrap();
     }
     s.execute("variable.bind", &json!({"ids": [t], "field": "fills/0/color", "variable": "ink"})).unwrap();
     s.execute("effect.add", &json!({"ids": [t], "type": "layerBlur"})).unwrap();
@@ -252,7 +252,7 @@ fn text_and_curve(s: &mut Session, path_props: Value) -> (NodeId, NodeId) {
 fn text_put_on_a_filled_path_takes_its_fill_and_effects() {
     let mut s = Session::new();
     let (t, v) = text_and_curve(&mut s, json!({"fill": "#FF0000"}));
-    let brand = s.execute("style.create", &json!({"type": "paint", "name": "Brand", "value": "#3366FF"})).unwrap()["id"].clone();
+    let brand = s.execute("style.add", &json!({"type": "paint", "name": "Brand", "value": "#3366FF"})).unwrap()["id"].clone();
     s.execute("style.apply", &json!({"ids": [v], "style": brand})).unwrap();
     s.execute("effect.add", &json!({"ids": [v], "type": "dropShadow"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [v], "field": "effects/0/color", "variable": "shadow"})).unwrap();
@@ -287,7 +287,7 @@ fn text_put_on_a_stroke_only_path_keeps_its_own_fill_and_effects() {
 fn text_put_on_a_path_with_an_empty_effect_style_keeps_its_own_effects() {
     let mut s = Session::new();
     let (t, v) = text_and_curve(&mut s, json!({"fills": []}));
-    let none = s.execute("style.create", &json!({"type": "effect", "name": "None", "value": []})).unwrap()["id"].clone();
+    let none = s.execute("style.add", &json!({"type": "effect", "name": "None", "value": []})).unwrap()["id"].clone();
     s.execute("style.apply", &json!({"ids": [v], "style": none})).unwrap();
     let path = s.doc().unwrap().node(v).unwrap().clone();
     assert!(path.effects.is_empty() && path.styles.effect.is_some());
@@ -333,7 +333,7 @@ fn pattern_fills_tile_their_source_live() {
     assert_eq!(pixel(&s, r, 15, 25), [0, 0, 255, 255]);
     assert_eq!(pixel(&s, r, 5, 25), [255, 255, 255, 255]);
     // A copy of the source together with the layer tiles the copied source.
-    s.execute("object.group", &json!({"ids": [tile, r]})).unwrap();
+    s.execute("arrange.group", &json!({"ids": [tile, r]})).unwrap();
     s.execute("edit.duplicate", &json!({})).unwrap();
     let doc = s.doc().unwrap();
     let sources: Vec<u64> = doc
@@ -367,9 +367,9 @@ fn a_pattern_of_itself_draws_nothing_instead_of_recursing() {
 #[test]
 fn the_text_on_a_path_tool_carries_a_fill_bound_through_fills() {
     let mut s = Session::new();
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100, "props": {"fill": "#FF0000"}})).unwrap());
-    s.execute("variable.createCollection", &json!({"name": "Paint"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Paint", "name": "ink", "type": "color", "value": "#00FF00"})).unwrap();
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 L200 0", "x": 40, "y": 100, "props": {"fill": "#FF0000"}})).unwrap());
+    s.execute("variable.addCollection", &json!({"name": "Paint"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Paint", "name": "ink", "type": "color", "value": "#00FF00"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [v], "field": "fills", "variable": "ink"})).unwrap();
     let bound = s.doc().unwrap().node(v).unwrap().bound.clone();
     assert!(bound.contains_key("fills"));

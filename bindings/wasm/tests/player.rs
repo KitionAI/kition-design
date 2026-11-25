@@ -15,10 +15,10 @@ fn design() -> (DesignDocument, Value, Value, Value) {
     let a = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
     let button = doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80, "parent": a })).unwrap()["id"].clone();
     doc.execute("fill.set", json!({ "ids": [button], "color": "#ff0000" })).unwrap();
-    let b = doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
+    let b = doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
     let panel = doc.execute("shape.rectangle", json!({ "x": 0, "y": 0, "width": 400, "height": 300, "parent": b })).unwrap()["id"].clone();
     doc.execute("fill.set", json!({ "ids": [panel], "color": "#0000ff" })).unwrap();
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     doc.mark_saved();
     (doc, a, button, b)
 }
@@ -151,7 +151,7 @@ fn after_delay_fires_on_the_editors_clock() {
 #[test]
 fn overlays_open_centred_and_close_on_a_click_outside() {
     let (mut doc, a, button, _) = design();
-    let menu = doc.execute("frame.create", json!({ "x": 0, "y": 600, "width": 100, "height": 50 })).unwrap()["id"].clone();
+    let menu = doc.execute("frame.add", json!({ "x": 0, "y": 600, "width": 100, "height": 50 })).unwrap()["id"].clone();
     doc.execute(
         "proto.interaction.add",
         json!({ "id": button, "action": { "type": "openOverlay", "dest": menu, "background": "#00000080" }, "transition": { "type": "moveIn", "direction": "top" } }),
@@ -179,8 +179,8 @@ fn overlays_open_centred_and_close_on_a_click_outside() {
 #[test]
 fn set_variable_and_conditionals_run_on_the_players_copy() {
     let (mut doc, a, button, b) = design();
-    doc.execute("variable.createCollection", json!({ "name": "State" })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "State", "name": "count", "type": "number", "value": 0 })).unwrap();
+    doc.execute("variable.addCollection", json!({ "name": "State" })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "State", "name": "count", "type": "number", "value": 0 })).unwrap();
     doc.execute(
         "proto.interaction.add",
         json!({ "id": button, "actions": [
@@ -314,7 +314,7 @@ fn the_player_follows_edits_and_devices_and_checks_its_params() {
 fn smart_animate_tweens_matching_layers() {
     let mut doc = DesignDocument::create("Smart.kdesign", 400, 300).unwrap();
     let a = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
-    let b = doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
+    let b = doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
     for (frame, x) in [(&a, 0), (&b, 300)] {
         let r = doc.execute("shape.rectangle", json!({ "x": x, "y": 100, "width": 100, "height": 100, "parent": frame })).unwrap()["id"].clone();
         doc.execute("fill.set", json!({ "ids": [r], "color": "#00ff00" })).unwrap();
@@ -357,8 +357,8 @@ fn junk_events_never_panic() {
 #[test]
 fn inspect_reads_the_layer_under_the_pointer_from_the_players_copy() {
     let (mut doc, a, button, _) = design();
-    doc.execute("variable.createCollection", json!({ "name": "Size" })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "Size", "name": "w", "type": "number", "value": 120 })).unwrap();
+    doc.execute("variable.addCollection", json!({ "name": "Size" })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "Size", "name": "w", "type": "number", "value": 120 })).unwrap();
     doc.execute("variable.bind", json!({ "ids": [button], "field": "width", "variable": "w" })).unwrap();
     doc.execute("proto.interaction.add", json!({ "id": button, "actions": [{ "type": "setVariable", "variable": "w", "expression": "200" }] }))
         .unwrap();
@@ -391,7 +391,7 @@ fn inspect_reads_the_layer_under_the_pointer_from_the_players_copy() {
 #[test]
 fn the_player_recovers_when_its_frames_are_deleted() {
     let (mut doc, a, button, b) = design();
-    let c = doc.execute("frame.create", json!({ "x": 1200, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
+    let c = doc.execute("frame.add", json!({ "x": 1200, "y": 0, "width": 400, "height": 300 })).unwrap()["id"].clone();
     doc.execute("proto.interaction.add", json!({ "id": button, "dest": b })).unwrap();
     start(&mut doc, &a);
     assert_eq!(event(&mut doc, json!({ "type": "click", "x": 50, "y": 50 }))["state"]["current"], b);
@@ -420,7 +420,7 @@ fn transition_pictures_keep_within_their_budget() {
     let mut doc = DesignDocument::create("Proto.kdesign", 4000, 4000).unwrap();
     let a = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
     let button = doc.execute("shape.rectangle", json!({ "x": 0, "y": 0, "width": 400, "height": 400, "parent": a })).unwrap()["id"].clone();
-    let b = doc.execute("frame.create", json!({ "x": 5000, "y": 0, "width": 4000, "height": 4000 })).unwrap()["id"].clone();
+    let b = doc.execute("frame.add", json!({ "x": 5000, "y": 0, "width": 4000, "height": 4000 })).unwrap()["id"].clone();
     doc.execute(
         "proto.interaction.add",
         json!({ "id": button, "dest": b, "transition": { "type": "push", "direction": "left" }, "durationMs": 400, "easing": "linear" }),

@@ -109,13 +109,13 @@ const report = await takeShots({
         await kit.show([await kit.find('Recent Orders')], 40)
         const pill = await kit.find('Status', await kit.find('Order 24310'))
         await kit.select([pill.id])
-        await kit.run('component.create', { ids: [pill.id] })
+        await kit.run('component.add', { ids: [pill.id] })
         await until(page, async () => (await kit.selection()).length === 1)
         const [component] = await kit.selection()
         await kit.run('node.set', { ids: [component], props: { name: 'Status pill' } })
         const row = await kit.find('Order 24307')
         await kit.run('edit.delete', { ids: [(await kit.find('Status', row)).id] })
-        const { id: instance } = await kit.run('instance.create', { component, parent: row.id })
+        const { id: instance } = await kit.run('instance.add', { component, parent: row.id })
         await kit.select([instance])
         await ui.getByTestId('design-rail-assets').click()
         await page.waitForTimeout(800)
@@ -137,8 +137,8 @@ const report = await takeShots({
       name: 'see-4',
       steps: async (page, { frame, kit: ui }) => {
         const kit = editor(page, frame)
-        const { id: collection } = await kit.run('variable.createCollection', { name: 'Theme', modes: ['Light', 'Dark'] })
-        const variable = async (name, type, light, dark) => (await kit.run('variable.create', { collection, name, type, values: { Light: light, Dark: dark } })).id
+        const { id: collection } = await kit.run('variable.addCollection', { name: 'Theme', modes: ['Light', 'Dark'] })
+        const variable = async (name, type, light, dark) => (await kit.run('variable.add', { collection, name, type, values: { Light: light, Dark: dark } })).id
         const surface = await variable('Surface', 'color', '#FFFFFF', '#1E293B')
         await variable('Canvas', 'color', '#F4F6FA', '#0F172A')
         await variable('Text', 'color', '#0F172A', '#F8FAFC')

@@ -9,7 +9,7 @@ use crate::Session;
 use crate::params::id_of;
 
 fn frame(s: &mut Session, x: f64, y: f64, name: &str) -> NodeId {
-    let f = s.execute("node.create", &json!({"type": "frame", "x": x, "y": y, "width": 200, "height": 200, "name": name})).unwrap();
+    let f = s.execute("node.add", &json!({"type": "frame", "x": x, "y": y, "width": 200, "height": 200, "name": name})).unwrap();
     id_of(&f["id"]).unwrap()
 }
 
@@ -29,9 +29,8 @@ fn comment(s: &Session, id: u64) -> Comment {
 fn deleting_the_layer_keeps_the_pin_where_it_was() {
     let mut s = Session::new();
     let outer = frame(&mut s, 100.0, 100.0, "Screen");
-    let inner =
-        id_of(&s.execute("node.create", &json!({"type": "frame", "parent": outer, "x": 20, "y": 20, "width": 50, "height": 50})).unwrap()["id"])
-            .unwrap();
+    let inner = id_of(&s.execute("node.add", &json!({"type": "frame", "parent": outer, "x": 20, "y": 20, "width": 50, "height": 50})).unwrap()["id"])
+        .unwrap();
     let c = add(&mut s, 130.0, 140.0, "Nested", "You");
     assert_eq!(comment(&s, c).anchor, Some(inner));
     // Deleting the inner frame pins the comment to the outer one, at the same spot.

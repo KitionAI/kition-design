@@ -2,7 +2,7 @@
 import type { DesignKit } from '../kit/context'
 
 /** Commands Dev Mode still runs from the left panel (going to a page, selecting, expanding). */
-const ALLOWED = new Set(['page.select', 'select.set', 'select.none'])
+const ALLOWED = new Set(['page.select', 'select.set', 'edit.deselectAll'])
 
 /** Whether Dev Mode refuses `command` (and says so). */
 export function devRefuses(designKit: Pick<DesignKit, 'ui' | 't' | 'toast'>, command: string): boolean {

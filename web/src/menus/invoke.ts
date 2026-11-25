@@ -75,7 +75,7 @@ const DIALOG_COMMANDS: Record<string, (designKit: DesignKit) => void> = {
   'file.import': (designKit) => void importFile(designKit, false),
   'file.placeImage': (designKit) => void importFile(designKit, true),
   // Values kept in Preferences: the palette and menus open it rather than reset them.
-  'pref.nudge': () => openDialog('preferences'),
+  'prefs.nudge': () => openDialog('preferences'),
 }
 
 /**

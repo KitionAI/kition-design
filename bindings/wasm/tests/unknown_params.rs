@@ -21,7 +21,7 @@ fn every_command_refuses_a_parameter_it_does_not_take() {
 fn a_misspelled_parameter_names_the_one_it_resembles_and_changes_nothing() {
     let mut doc = design();
     let before = doc.save_file(None).unwrap();
-    let error = doc.execute("frame.create", json!({ "x": 0, "y": 0, "widht": 10, "height": 10 })).unwrap_err();
+    let error = doc.execute("frame.add", json!({ "x": 0, "y": 0, "widht": 10, "height": 10 })).unwrap_err();
     assert!(error.contains("`widht`") && error.contains("did you mean `width`"), "{error}");
     assert_eq!(doc.save_file(None).unwrap(), before);
 }
@@ -40,7 +40,7 @@ fn the_editors_parameters_are_named_in_the_schemas() {
         ("text.setVariations", json!({ "ids": [1], "variations": { "wght": 500 } })),
         ("text.onPath", json!({ "ids": [1, 2] })),
         (
-            "export.update",
+            "export.set",
             json!({ "ids": [1], "index": 0, "contentsOnly": true, "includeBoundingBox": true, "svgOutlineText": false, "svgIdAttribute": true, "svgSimplifyStroke": false }),
         ),
         ("proto.interaction.add", json!({ "ids": [1], "trigger": { "type": "onClick" }, "action": { "type": "back" } })),

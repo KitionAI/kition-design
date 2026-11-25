@@ -161,7 +161,7 @@ export function Layers() {
     const ids = Array.isArray(given) ? given.filter((id): id is number => typeof id === 'number') : selection
     if (ids.length === 1) startRename(ids)
   })
-  useUiRequest('layers.collapseAll', () => {
+  useUiRequest('layer.collapseAll', () => {
     const expanded = new Set<number>()
     for (const id of selection) for (const a of tree?.byId.get(id)?.ancestors ?? []) expanded.add(a)
     setLeft({ expanded })
@@ -490,7 +490,7 @@ export function Layers() {
           className="design-layers-content"
           style={{ height: Math.max(total, view.height) }}
           onClick={(event) => {
-            if (event.target === event.currentTarget && rows.length) void run('select.none', {})
+            if (event.target === event.currentTarget && rows.length) void run('edit.deselectAll', {})
           }}
         >
           {tree && rows.length === 0 ? <div className="design-layers-empty">{filtering ? t('No matching layers') : t('Add a frame (F) or a shape (R) to get started')}</div> : null}

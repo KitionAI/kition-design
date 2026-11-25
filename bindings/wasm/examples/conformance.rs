@@ -44,7 +44,7 @@ fn rectangle(doc: &mut DesignDocument, x: f64, y: f64, w: f64, h: f64, color: &s
 
 fn text(doc: &mut DesignDocument, characters: &str, x: f64, y: f64, props: Value) -> Result<u64, String> {
     let parent = frame(doc);
-    id_of(&run(doc, "text.create", json!({ "text": characters, "x": x, "y": y, "parent": parent, "props": props }))?)
+    id_of(&run(doc, "text.add", json!({ "text": characters, "x": x, "y": y, "parent": parent, "props": props }))?)
 }
 
 fn set(doc: &mut DesignDocument, id: u64, props: Value) -> Result<(), String> {
@@ -53,9 +53,9 @@ fn set(doc: &mut DesignDocument, id: u64, props: Value) -> Result<(), String> {
 
 /// A colour collection with one variable, `Brand` = `#5645D4`; answers the variable's id.
 fn brand(doc: &mut DesignDocument) -> Result<String, String> {
-    let collection = run(doc, "variable.createCollection", json!({ "name": "Colors" }))?;
+    let collection = run(doc, "variable.addCollection", json!({ "name": "Colors" }))?;
     let collection = collection["id"].as_str().or_else(|| collection["result"]["id"].as_str()).ok_or("no collection id")?.to_owned();
-    let variable = run(doc, "variable.create", json!({ "collection": collection, "name": "Brand", "type": "color", "value": "#5645D4" }))?;
+    let variable = run(doc, "variable.add", json!({ "collection": collection, "name": "Brand", "type": "color", "value": "#5645D4" }))?;
     variable["id"].as_str().or_else(|| variable["result"]["id"].as_str()).map(str::to_owned).ok_or_else(|| format!("no variable id in {variable}"))
 }
 
@@ -71,8 +71,8 @@ fn basic(doc: &mut DesignDocument) -> Result<(), String> {
 
 fn missing_component(doc: &mut DesignDocument) -> Result<(), String> {
     let main = rectangle(doc, 20.0, 20.0, 80.0, 40.0, "#5645D4")?;
-    let component = id_of(&run(doc, "component.create", json!({ "ids": [main] }))?)?;
-    run(doc, "instance.create", json!({ "component": component, "x": 200, "y": 100 }))?;
+    let component = id_of(&run(doc, "component.add", json!({ "ids": [main] }))?)?;
+    run(doc, "instance.add", json!({ "component": component, "x": 200, "y": 100 }))?;
     Ok(())
 }
 
@@ -110,7 +110,7 @@ fn missing_image(doc: &mut DesignDocument) -> Result<(), String> {
 
 fn broken_interaction(doc: &mut DesignDocument) -> Result<(), String> {
     let button = rectangle(doc, 40.0, 40.0, 120.0, 40.0, "#5645D4")?;
-    let second = id_of(&run(doc, "frame.create", json!({ "x": 600, "y": 0, "width": 400, "height": 300 }))?)?;
+    let second = id_of(&run(doc, "frame.add", json!({ "x": 600, "y": 0, "width": 400, "height": 300 }))?)?;
     run(doc, "proto.interaction.add", json!({ "id": button, "dest": second }))?;
     Ok(())
 }
@@ -154,7 +154,7 @@ fn lose_variables(json: &mut Value) {
 
 fn missing_style(doc: &mut DesignDocument) -> Result<(), String> {
     let id = rectangle(doc, 40.0, 40.0, 120.0, 80.0, "#5645D4")?;
-    let style = run(doc, "style.create", json!({ "type": "paint", "name": "Brand/Primary", "from": id }))?;
+    let style = run(doc, "style.add", json!({ "type": "paint", "name": "Brand/Primary", "from": id }))?;
     let style = style["id"].as_str().or_else(|| style["result"]["id"].as_str()).ok_or_else(|| format!("no style id in {style}"))?.to_owned();
     run(doc, "style.apply", json!({ "ids": [id], "style": style, "target": "fill" }))?;
     Ok(())
@@ -173,8 +173,8 @@ fn outside_clip(doc: &mut DesignDocument) -> Result<(), String> {
 }
 
 fn empty_component(doc: &mut DesignDocument) -> Result<(), String> {
-    let id = id_of(&run(doc, "frame.create", json!({ "x": 600, "y": 0, "width": 100, "height": 100, "props": { "fills": [] } }))?)?;
-    run(doc, "component.create", json!({ "ids": [id] }))?;
+    let id = id_of(&run(doc, "frame.add", json!({ "x": 600, "y": 0, "width": 100, "height": 100, "props": { "fills": [] } }))?)?;
+    run(doc, "component.add", json!({ "ids": [id] }))?;
     Ok(())
 }
 
@@ -195,7 +195,7 @@ fn unbound_color(doc: &mut DesignDocument) -> Result<(), String> {
 
 fn unused_style(doc: &mut DesignDocument) -> Result<(), String> {
     rectangle(doc, 40.0, 40.0, 120.0, 80.0, "#5645D4")?;
-    run(doc, "style.create", json!({ "type": "paint", "name": "Brand/Unused", "value": [{ "type": "solid", "color": "#0E9F6E" }] }))?;
+    run(doc, "style.add", json!({ "type": "paint", "name": "Brand/Unused", "value": [{ "type": "solid", "color": "#0E9F6E" }] }))?;
     Ok(())
 }
 
@@ -216,14 +216,14 @@ fn empty_text(doc: &mut DesignDocument) -> Result<(), String> {
 }
 
 fn empty_frame(doc: &mut DesignDocument) -> Result<(), String> {
-    run(doc, "frame.create", json!({ "x": 600, "y": 0, "width": 100, "height": 100, "props": { "fills": [] } })).map(|_| ())
+    run(doc, "frame.add", json!({ "x": 600, "y": 0, "width": 100, "height": 100, "props": { "fills": [] } })).map(|_| ())
 }
 
 fn truncated(doc: &mut DesignDocument) -> Result<(), String> {
     for index in 0..=kition_design_kit::check::PER_CODE {
         let x = 600.0 + (index % 10) as f64 * 60.0;
         let y = (index / 10) as f64 * 60.0;
-        run(doc, "frame.create", json!({ "x": x, "y": y, "width": 40, "height": 40, "props": { "fills": [] } }))?;
+        run(doc, "frame.add", json!({ "x": x, "y": y, "width": 40, "height": 40, "props": { "fills": [] } }))?;
     }
     Ok(())
 }
@@ -264,7 +264,7 @@ fn rewrite(bytes: &[u8], damage: Option<Damage>, keep: fn(&str) -> bool) -> Vec<
 fn fixture(name: &str, build: Build, damage: Option<Damage>, drop_images: bool) -> Result<Vec<u8>, String> {
     let mut doc = DesignDocument::create(name, 400, 300)?;
     build(&mut doc)?;
-    run(&mut doc, "select.none", json!({}))?;
+    run(&mut doc, "edit.deselectAll", json!({}))?;
     let bytes = doc.save_file(None)?;
     Ok(if damage.is_some() || drop_images {
         rewrite(&bytes, damage, if drop_images { |name: &str| !name.starts_with("images/") } else { |_: &str| true })

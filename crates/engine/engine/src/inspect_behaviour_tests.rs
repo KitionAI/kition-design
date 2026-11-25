@@ -67,12 +67,12 @@ fn gradient(kind: GradientKind, from: (f64, f64), to: (f64, f64)) -> Paint {
 #[test]
 fn layout_rows_report_size_position_and_look() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 100, "y": 100, "width": 400, "height": 300})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 100, "y": 100, "width": 400, "height": 300})));
     // Positions given with a parent are inside it.
     let r = rect(&mut s, 10.0, 20.0, 80.0, 40.0, Some(f));
     let a = rect(&mut s, 100.0, 50.0, 20.0, 20.0, Some(f));
     let b = rect(&mut s, 160.0, 50.0, 20.0, 20.0, Some(f));
-    let g = id(&ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(&ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let top = rect(&mut s, 700.0, 50.0, 10.0, 10.0, None);
     set(&mut s, &[r], json!({"opacity": 0.5, "blend": "multiply", "cornerRadius": 8}));
     let mixed = rect(&mut s, 20.0, 100.0, 40.0, 40.0, Some(f));
@@ -140,7 +140,7 @@ fn css_units() {
 #[test]
 fn typography_rows_and_css() {
     let mut s = Session::new();
-    let t = id(&ex(&mut s, "text.create", json!({"text": "Hello", "x": 0, "y": 0})));
+    let t = id(&ex(&mut s, "text.add", json!({"text": "Hello", "x": 0, "y": 0})));
     set(&mut s, &[t], json!({"fontSize": 24, "textAlign": "center", "textCase": "upper", "textDecoration": "underline"}));
     if let Some(tx) = s.doc_mut().unwrap().get_mut(t).unwrap().kind.text_mut() {
         tx.style.line_height = LineHeight::Percent(150.0);
@@ -225,9 +225,9 @@ fn css_borders_follow_individual_stroke_sides() {
     assert!(c.contains("border-bottom: 2px solid #000000;"), "{c}");
     assert!(!c.contains("border:") && !c.contains("border-top") && !c.contains("border-right") && !c.contains("border-left"), "{c}");
 
-    let col = ex(&mut s, "variable.createCollection", json!({"name": "Borders"}));
+    let col = ex(&mut s, "variable.addCollection", json!({"name": "Borders"}));
     let col = col["id"].as_str().unwrap().to_string();
-    ex(&mut s, "variable.create", json!({"collection": col, "name": "border/top", "type": "number", "value": 3}));
+    ex(&mut s, "variable.add", json!({"collection": col, "name": "border/top", "type": "number", "value": 3}));
     ex(&mut s, "variable.bind", json!({"ids": [r], "field": "strokeTopWeight", "variable": "border/top"}));
     let c = css(&mut s, r);
     assert!(c.contains("border-top: var(--border-top, 3px) solid #000000;"), "{c}");
@@ -256,16 +256,16 @@ fn native_code_for_a_simple_layer() {
 #[test]
 fn asset_list_holds_exports_images_and_icons() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 400})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 400})));
     let marked = rect(&mut s, 10.0, 10.0, 50.0, 50.0, Some(f));
     ex(&mut s, "export.add", json!({"ids": [marked]}));
     let png = kition_design_render::encode_png(&kition_design_render::Pixmap::new(2, 2).unwrap()).unwrap();
     use base64::Engine as _;
     let data = base64::engine::general_purpose::STANDARD.encode(png);
     let photo = id(&ex(&mut s, "file.placeImage", json!({"data": data, "x": 500, "y": 0})));
-    let v1 = id(&ex(&mut s, "node.create", json!({"type": "star", "x": 200, "y": 10, "width": 12, "height": 12, "parent": f})));
-    let v2 = id(&ex(&mut s, "node.create", json!({"type": "polygon", "x": 214, "y": 10, "width": 12, "height": 12, "parent": f})));
-    let icon = id(&ex(&mut s, "object.group", json!({"ids": [v1, v2]})));
+    let v1 = id(&ex(&mut s, "node.add", json!({"type": "star", "x": 200, "y": 10, "width": 12, "height": 12, "parent": f})));
+    let v2 = id(&ex(&mut s, "node.add", json!({"type": "polygon", "x": 214, "y": 10, "width": 12, "height": 12, "parent": f})));
+    let icon = id(&ex(&mut s, "arrange.group", json!({"ids": [v1, v2]})));
     set(&mut s, &[icon], json!({"name": "icon/close"}));
     let card = rect(&mut s, 10.0, 200.0, 300.0, 100.0, Some(f));
     let r = ex(&mut s, "inspect.assets", json!({"ids": [f, photo]}));
@@ -287,7 +287,7 @@ fn asset_list_holds_exports_images_and_icons() {
 #[test]
 fn redlines_between_layers() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 200})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 200})));
     let a = rect(&mut s, 20.0, 20.0, 50.0, 50.0, Some(f));
     let b = rect(&mut s, 120.0, 20.0, 50.0, 50.0, Some(f));
     let c = rect(&mut s, 40.0, 40.0, 50.0, 50.0, Some(f));

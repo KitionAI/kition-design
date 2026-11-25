@@ -29,9 +29,9 @@ fn hexes(paints: &[Paint]) -> Vec<String> {
 }
 
 fn vars(s: &mut Session) {
-    ex(s, "variable.createCollection", json!({"name": "T", "modes": ["Light", "Dark"]}));
+    ex(s, "variable.addCollection", json!({"name": "T", "modes": ["Light", "Dark"]}));
     for (name, kind, value) in [("brand", "color", json!("#FF0000")), ("gap", "number", json!(12)), ("cols", "number", json!(6))] {
-        ex(s, "variable.create", json!({"collection": "T", "name": name, "type": kind, "value": value}));
+        ex(s, "variable.add", json!({"collection": "T", "name": name, "type": kind, "value": value}));
     }
 }
 
@@ -132,7 +132,7 @@ fn strokes_move_with_their_bindings_and_moves_unlink_styles() {
     ex(&mut s, "variable.bind", json!({"ids": [a, b], "field": "stroke", "variable": "brand"}));
     // (Adding a fill to a styled layer would unlink its style: add it first.)
     ex(&mut s, "fill.add", json!({"ids": [a, b], "color": "#FFFFFF"}));
-    ex(&mut s, "style.create", json!({"type": "paint", "name": "Two", "from": a}));
+    ex(&mut s, "style.add", json!({"type": "paint", "name": "Two", "from": a}));
     ex(&mut s, "style.apply", json!({"ids": [a, b], "style": "Two"}));
     assert!(node(&s, a).styles.fill.is_some());
     // One command moves the strokes of every selected layer.
@@ -190,7 +190,7 @@ fn inspect_names_the_variable_of_each_paint() {
 #[test]
 fn layout_grid_fields_bind_to_number_variables_and_follow_moves() {
     let mut s = Session::new();
-    let f = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
     vars(&mut s);
     ex(&mut s, "grid.add", json!({"ids": [f], "grid": {"kind": "columns", "count": 4, "gutter": 20}}));
     ex(&mut s, "grid.add", json!({"ids": [f], "grid": {"kind": "rows", "count": 3}}));
@@ -228,21 +228,21 @@ fn layout_grid_fields_bind_to_number_variables_and_follow_moves() {
 #[test]
 fn instance_properties_bind_to_boolean_and_string_variables() {
     let mut s = Session::new();
-    let f = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
-    let title = id(ex(&mut s, "text.create", json!({"text": "Hello", "x": 10, "y": 10, "parent": f})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let title = id(ex(&mut s, "text.add", json!({"text": "Hello", "x": 10, "y": 10, "parent": f})));
     let dot = id(ex(&mut s, "shape.ellipse", json!({"x": 170, "y": 10, "width": 20, "height": 20, "parent": f})));
-    let c = id(ex(&mut s, "component.create", json!({"ids": [f]})));
+    let c = id(ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "component.addProperty", json!({"id": dot, "name": "Show dot", "type": "boolean", "default": true}));
     ex(&mut s, "component.addProperty", json!({"id": c, "name": "Title", "type": "text", "layer": title}));
-    let i = id(ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = id(ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let copy = |s: &Session, src: NodeId| {
         let doc = s.doc().unwrap();
         doc.subtree(i).into_iter().find(|x| doc.node(*x).and_then(|n| n.source) == Some(src)).unwrap()
     };
     let (ititle, idot) = (copy(&s, title), copy(&s, dot));
-    ex(&mut s, "variable.createCollection", json!({"name": "Flags", "modes": ["Short", "Long"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Flags", "name": "badge", "type": "boolean", "value": false}));
-    ex(&mut s, "variable.create", json!({"collection": "Flags", "name": "label", "type": "string", "value": "Hi"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Flags", "modes": ["Short", "Long"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Flags", "name": "badge", "type": "boolean", "value": false}));
+    ex(&mut s, "variable.add", json!({"collection": "Flags", "name": "label", "type": "string", "value": "Hi"}));
     ex(&mut s, "variable.set", json!({"variable": "label", "mode": "Long", "value": "Hello there"}));
     // Types must fit, and only instances take them.
     assert!(s.execute("variable.bind", &json!({"ids": [i], "field": "componentProperties/Show dot", "variable": "label"})).is_err());

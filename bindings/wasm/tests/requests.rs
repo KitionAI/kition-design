@@ -17,7 +17,7 @@ fn design() -> (DesignDocument, Value, Value) {
     let frame = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
     let rect = doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80, "parent": frame })).unwrap()["id"].clone();
     doc.execute("fill.set", json!({ "ids": [rect], "color": "#ff0000" })).unwrap();
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     doc.mark_saved();
     (doc, frame, rect)
 }
@@ -61,7 +61,7 @@ fn node_json_carries_the_keys_the_design_panel_reads() {
     assert_eq!(n["startCap"], "round");
     assert_eq!(n["endCap"], "square");
 
-    let text = doc.execute("text.create", json!({ "text": "Hello", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
+    let text = doc.execute("text.add", json!({ "text": "Hello", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
     doc.execute(
         "node.set",
         json!({ "ids": [text], "props": { "textAlignVertical": "bottom", "paragraphSpacing": 12, "paragraphIndent": 8, "features": { "liga": false } } }),
@@ -89,7 +89,7 @@ fn node_json_carries_the_keys_the_design_panel_reads() {
     doc.execute("layout.add", json!({ "ids": [frame] })).unwrap();
     doc.execute("select.set", json!({ "ids": [rect] })).unwrap();
     assert_eq!(doc.query("selection", &json!({})).unwrap()["allParentsAutoLayout"], true);
-    let a = doc.execute("component.create", json!({ "ids": [rect] })).unwrap();
+    let a = doc.execute("component.add", json!({ "ids": [rect] })).unwrap();
     let a = a.get("id").cloned().unwrap_or_else(|| doc.inspect().unwrap()["selection"][0].clone());
     doc.execute("select.set", json!({ "ids": [a] })).unwrap();
     let sel = doc.query("selection", &json!({})).unwrap();
@@ -117,8 +117,8 @@ fn variable_mode_rows_list_collections_with_several_modes() {
     let (mut doc, frame, rect) = design();
     doc.execute("select.set", json!({ "ids": [frame] })).unwrap();
     assert_eq!(doc.query("variable.modeRows", &json!({})).unwrap()["show"], false, "no collection yet");
-    let c = doc.execute("variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] })).unwrap()["id"].clone();
-    doc.execute("variable.createCollection", json!({ "name": "Single" })).unwrap();
+    let c = doc.execute("variable.addCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] })).unwrap()["id"].clone();
+    doc.execute("variable.addCollection", json!({ "name": "Single" })).unwrap();
     let rows = doc.query("variable.modeRows", &json!({})).unwrap();
     assert_eq!(rows["show"], true, "{rows}");
     assert_eq!(rows["rows"].as_array().unwrap().len(), 1, "one-mode collections are left out");
@@ -272,7 +272,7 @@ fn stroke_preview_outline_traces_every_brush_as_upstream_brush_art() {
 fn dev_mode_tool_state_pixel_preview_and_content_bounds() {
     let (mut doc, frame, _) = design();
     assert_eq!(doc.query("toolbar", &json!({})).unwrap()["devMode"], false);
-    let text = doc.execute("text.create", json!({ "text": "Hi", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
+    let text = doc.execute("text.add", json!({ "text": "Hi", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
     doc.execute("select.set", json!({ "ids": [text] })).unwrap();
     doc.key("Enter", ToolMods::default(), 1.0).unwrap();
     assert_eq!(doc.inspect().unwrap()["editing"], "text");

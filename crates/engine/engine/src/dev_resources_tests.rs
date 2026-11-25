@@ -81,12 +81,12 @@ fn only_web_links_are_kept() {
 #[test]
 fn a_main_components_links_show_on_its_instances() {
     let mut s = Session::new();
-    let f = id_of(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40}))["id"]).unwrap();
+    let f = id_of(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40}))["id"]).unwrap();
     let r = id_of(&ok(&mut s, "shape.rectangle", json!({"x": 5, "y": 5, "width": 10, "height": 10, "parent": f}))["id"]).unwrap();
     ok(&mut s, "devResource.add", json!({"id": r, "url": "https://example.com/icon", "name": "Icon"}));
-    let main = id_of(&ok(&mut s, "component.create", json!({"ids": [f]}))["id"]).unwrap();
+    let main = id_of(&ok(&mut s, "component.add", json!({"ids": [f]}))["id"]).unwrap();
     ok(&mut s, "devResource.add", json!({"id": main, "url": "https://github.com/acme/ui/blob/main/Button.tsx", "name": "Button.tsx"}));
-    let inst = id_of(&ok(&mut s, "instance.create", json!({"component": main, "x": 200, "y": 0}))["id"]).unwrap();
+    let inst = id_of(&ok(&mut s, "instance.add", json!({"component": main, "x": 200, "y": 0}))["id"]).unwrap();
     // The instance lists the main's link, read-only (no index), and can have links of its own.
     let l = ok(&mut s, "devResource.list", json!({"id": inst}));
     assert_eq!((&l[0]["name"], &l[0]["from"], l[0].get("index")), (&json!("Button.tsx"), &json!(main), None));
@@ -111,11 +111,11 @@ fn a_component_sets_links_show_on_its_variants_instances() {
     let mut s = Session::new();
     let a = rect(&mut s);
     let b = rect(&mut s);
-    let ca = id_of(&ok(&mut s, "component.create", json!({"ids": [a]}))["id"]).unwrap();
-    let cb = id_of(&ok(&mut s, "component.create", json!({"ids": [b]}))["id"]).unwrap();
+    let ca = id_of(&ok(&mut s, "component.add", json!({"ids": [a]}))["id"]).unwrap();
+    let cb = id_of(&ok(&mut s, "component.add", json!({"ids": [b]}))["id"]).unwrap();
     let set = id_of(&ok(&mut s, "component.combineVariants", json!({"ids": [ca, cb]}))["id"]).unwrap();
     ok(&mut s, "devResource.add", json!({"id": set, "url": "https://example.com/button", "name": "Button docs"}));
-    let inst = id_of(&ok(&mut s, "instance.create", json!({"component": cb, "x": 300, "y": 0}))["id"]).unwrap();
+    let inst = id_of(&ok(&mut s, "instance.add", json!({"component": cb, "x": 300, "y": 0}))["id"]).unwrap();
     let l = ok(&mut s, "devResource.list", json!({"id": inst}));
     assert_eq!((&l[0]["name"], &l[0]["from"]), (&json!("Button docs"), &json!(set)));
 }

@@ -9,8 +9,8 @@ use crate::params::id_of;
 fn edit_and_replace_interactions_on_several_layers() {
     let mut s = Session::new();
     let id = |v: serde_json::Value| id_of(&v["id"]).unwrap();
-    let home = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
-    let next = id(s.execute("frame.create", &json!({"x": 200, "y": 0, "width": 100, "height": 100})).unwrap());
+    let home = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let next = id(s.execute("frame.add", &json!({"x": 200, "y": 0, "width": 100, "height": 100})).unwrap());
     let a = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "parent": home})).unwrap());
     let b = id(s.execute("shape.rectangle", &json!({"x": 20, "y": 0, "width": 10, "height": 10, "parent": home})).unwrap());
     let count = |s: &Session, i| s.doc().unwrap().node(i).unwrap().interactions.len();

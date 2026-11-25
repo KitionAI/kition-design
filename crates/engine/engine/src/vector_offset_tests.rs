@@ -22,11 +22,11 @@ fn assert_children_only_in_containers(s: &Session, ids: &[NodeId]) {
 #[test]
 fn offset_path_leaves_containers_with_children_alone() {
     let mut s = Session::new();
-    let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let f = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     let inner = id(&s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 10, "height": 10, "parent": f})).unwrap());
     let a = id(&s.execute("shape.rectangle", &json!({"x": 200, "y": 0, "width": 10, "height": 10})).unwrap());
     let b = id(&s.execute("shape.rectangle", &json!({"x": 220, "y": 0, "width": 10, "height": 10})).unwrap());
-    let g = id(&s.execute("object.group", &json!({"ids": [a, b]})).unwrap());
+    let g = id(&s.execute("arrange.group", &json!({"ids": [a, b]})).unwrap());
     for target in [f, g] {
         s.execute("vector.offset", &json!({"ids": [target], "offset": 5})).unwrap();
         assert_children_only_in_containers(&s, &[f, g, inner, a, b]);

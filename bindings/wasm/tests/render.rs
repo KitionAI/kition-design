@@ -30,18 +30,18 @@ fn design() -> Design {
     let page1 = inspected["pages"][0]["id"].as_u64().unwrap();
     let frame1 = inspected["tree"][0]["id"].as_u64().unwrap();
     doc.execute(
-        "node.create",
+        "node.add",
         json!({ "type": "rectangle", "parent": frame1, "x": 40, "y": 40, "width": 160, "height": 100, "props": { "fill": "#5645D4" } }),
     )
     .unwrap();
     doc.execute("page.add", json!({ "name": "Second" })).unwrap();
     let page2 = doc.inspect().unwrap()["pages"][1]["id"].as_u64().unwrap();
     let frame2 = id_of(
-        &doc.execute("node.create", json!({ "type": "frame", "parent": page2, "x": 1000, "y": 0, "width": 300, "height": 200, "name": "Frame 2" }))
+        &doc.execute("node.add", json!({ "type": "frame", "parent": page2, "x": 1000, "y": 0, "width": 300, "height": 200, "name": "Frame 2" }))
             .unwrap(),
     );
     let c = id_of(
-        &doc.execute("node.create", json!({ "type": "rectangle", "parent": frame2, "x": 10, "y": 10, "width": 50, "height": 50, "name": "C", "props": { "fill": "#00AA44" } }))
+        &doc.execute("node.add", json!({ "type": "rectangle", "parent": frame2, "x": 10, "y": 10, "width": 50, "height": 50, "name": "C", "props": { "fill": "#00AA44" } }))
             .unwrap(),
     );
     doc.execute("select.set", json!({ "ids": [c] })).unwrap();
@@ -93,7 +93,7 @@ fn the_same_call_draws_the_same_bytes_whatever_the_editor_does() {
     assert_eq!(first, again, "two calls answer the same bytes");
     let editor = d.doc.editor_state();
     d.doc.execute("page.select", json!({ "id": d.page1 })).unwrap();
-    d.doc.execute("select.all", json!({})).unwrap();
+    d.doc.execute("edit.selectAll", json!({})).unwrap();
     d.doc.execute("tool.rectangle", json!({})).unwrap();
     d.doc.set_viewport(-500.0, 200.0, 300.0, 200.0, 0.25);
     let moved: Vec<Vec<u8>> = views(&d).into_iter().map(|view| render(&mut d.doc, view).1).collect();

@@ -105,7 +105,7 @@ features:
     dimension: [conversion, function]
     priority: P1
     status: partial
-    commands: [file.import, file.placeImage, file.saveVersion, file.versionHistory, file.export, file.exportFramesPdf, file.exportSvg, file.rename, file.colorProfile, export.add, export.update, export.remove, file.exportLayers, file.render]
+    commands: [file.import, file.placeImage, file.saveVersion, file.versionHistory, file.export, file.exportFramesPdf, file.exportSvg, file.rename, file.colorProfile, export.add, export.set, export.remove, file.exportLayers, file.render]
     paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/commands.rs, tools/xtask/src/main.rs, crates/engine/engine/src/cmd/edit.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -125,7 +125,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [select.all, select.matching, select.none, select.inverse, select.sameFill, select.sameStroke, select.sameEffect, select.sameText, select.sameFont, select.sameInstance, select.sameProperties, select.children, select.parent, select.next, select.previous, select.set, select.add, select.remove, select.layersAt, select.area, select.byName, selection.colors, selection.setPaint, selection.applyColorStyle, selection.bindColorVariable, selection.detachColor, selection.selectColor]
+    commands: [edit.selectAll, select.matching, edit.deselectAll, select.inverse, select.sameFill, select.sameStroke, select.sameEffect, select.sameText, select.sameFont, select.sameInstance, select.sameProperties, select.children, select.parent, select.next, select.previous, select.set, select.add, select.remove, select.layersAt, select.area, select.byName, select.colors, select.setPaint, select.applyColorStyle, select.bindColorVariable, select.detachColor, select.selectColor]
     paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/selection/selection_colors.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/cmd/edit/select.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -145,7 +145,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [object.frameSelection, object.group, object.ungroup, object.removeFrame, object.resizeToFit, object.mask, object.releaseMask, object.setThumbnail, object.flipH, object.flipV, object.rotate180, object.rotateLeft, object.rotateRight, object.rasterize, object.toggleVisible, object.toggleLock, object.hideOthers, layers.collapseAll, object.removeFill, object.removeStroke, object.swapFillStroke, object.rename, object.batchRename, object.moveToPage, frame.create, frame.swapOrientation, frame.presets, object.opacityKeys, object.convertToGroup, object.convertToFrame, object.convertToSection, object.wrapInSection, section.toggleContents]
+    commands: [object.frameSelection, arrange.group, arrange.ungroup, object.removeFrame, object.resizeToFit, object.mask, object.releaseMask, object.setThumbnail, object.flipH, object.flipV, object.rotate180, object.rotateLeft, object.rotateRight, object.rasterize, object.toggleVisible, object.toggleLock, object.hideOthers, layer.collapseAll, object.removeFill, object.removeStroke, object.swapFillStroke, object.rename, object.batchRename, object.moveToPage, frame.add, frame.swapOrientation, frame.presets, object.opacityKeys, object.convertToGroup, object.convertToFrame, object.convertToSection, object.wrapInSection, section.toggleContents]
     paths: [crates/engine/engine/src/cmd/structure.rs, bindings/wasm/src/lists/menu.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/arrange.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -165,7 +165,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [component.create, component.createMultiple, component.combineVariants, component.resetInstance, component.detach, component.goToMain, component.pushChanges, component.restoreMain, component.hideWhenPublishing, component.addVariant, component.exposeInstance, component.makeSlot, component.removeSlot, component.resetOverride, component.addProperty, component.editProperty, component.deleteProperty, component.bindProperty, component.properties, component.list, component.playground]
+    commands: [component.add, component.addMultiple, component.combineVariants, component.resetInstance, component.detach, component.goToMain, component.pushChanges, component.restoreMain, component.hideWhenPublishing, component.addVariant, component.exposeInstance, component.makeSlot, component.removeSlot, component.resetOverride, component.addProperty, component.editProperty, component.deleteProperty, component.bindProperty, component.properties, component.list, component.playground]
     paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, bindings/wasm/src/lists/menu.rs, crates/engine/engine/src/cmd/component/props.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -175,7 +175,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [instance.create, instance.place, instance.exposed, instance.slotInsert, instance.resetSlot, instance.swap, instance.swapAt, instance.setProperties]
+    commands: [instance.add, instance.place, instance.exposed, instance.slotInsert, instance.resetSlot, instance.swap, instance.swapAt, instance.setProperties]
     paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, crates/engine/engine/src/assets/playground.rs, crates/engine/engine/src/content/templates/kit.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -185,7 +185,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [arrange.front, arrange.forward, arrange.backward, arrange.back, align.left, align.hcenter, align.right, align.top, align.vcenter, align.bottom, distribute.horizontal, distribute.vertical, arrange.tidy, arrange.packH, arrange.packV, arrange.roundToPixels, arrange.spacing, arrange.reorder]
+    commands: [arrange.bringToFront, arrange.bringForward, arrange.sendBackward, arrange.sendToBack, align.left, align.hcenter, align.right, align.top, align.vcenter, align.bottom, distribute.horizontal, distribute.vertical, arrange.tidy, arrange.packH, arrange.packV, arrange.roundToPixels, arrange.spacing, arrange.reorder]
     paths: [crates/engine/engine/src/cmd/arrange.rs, bindings/wasm/src/lists/menu.rs, bindings/wasm/src/check.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -195,7 +195,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [vector.flatten, vector.outlineStroke, vector.join, vector.smoothJoin, vector.deleteHeal, vector.simplify, vector.reverse, vector.offset, vector.create, vector.fillRule, vector.reverseLoop, vector.edit.begin, vector.edit.end, vector.edit.state, vector.edit.tool, vector.edit.select, vector.edit.selectAll, vector.edit.moveVertices, vector.edit.nudge, vector.edit.position, vector.edit.setHandle, vector.edit.moveHandles, vector.edit.mirroring, vector.edit.smooth, vector.edit.bend, vector.edit.addVertex, vector.edit.delete, vector.edit.cornerRadius, vector.edit.strokeCap, vector.edit.strokeJoin, vector.edit.paint, vector.edit.cut, vector.edit.erase, vector.edit.connect, vector.edit.lasso, vector.edit.pen, vector.edit.penEnd, vector.edit.bounds, vector.edit.resize, vector.edit.rotate, vector.edit.transform, vector.edit.widthPoint]
+    commands: [vector.flatten, vector.outlineStroke, vector.join, vector.smoothJoin, vector.deleteHeal, vector.simplify, vector.reverse, vector.offset, vector.add, vector.fillRule, vector.reverseLoop, vector.edit.begin, vector.edit.end, vector.edit.state, vector.edit.tool, vector.edit.select, vector.edit.selectAll, vector.edit.moveVertices, vector.edit.nudge, vector.edit.position, vector.edit.setHandle, vector.edit.moveHandles, vector.edit.mirroring, vector.edit.smooth, vector.edit.bend, vector.edit.addVertex, vector.edit.delete, vector.edit.cornerRadius, vector.edit.strokeCap, vector.edit.strokeJoin, vector.edit.paint, vector.edit.cut, vector.edit.erase, vector.edit.connect, vector.edit.lasso, vector.edit.pen, vector.edit.penEnd, vector.edit.bounds, vector.edit.resize, vector.edit.rotate, vector.edit.transform, vector.edit.widthPoint]
     paths: [crates/engine/engine/src/canvas/vectoredit.rs, crates/engine/engine/src/cmd/structure.rs, crates/engine/engine/src/canvas/vectoredit/transform.rs, bindings/wasm/src/lists/menu.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -215,7 +215,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [text.bold, text.italic, text.underline, text.strikethrough, text.link, text.bulletList, text.numberList, text.alignLeft, text.alignCenter, text.alignRight, text.alignJustify, text.sizeUp, text.sizeDown, text.weightUp, text.weightDown, text.lineHeightUp, text.lineHeightDown, text.trackingUp, text.trackingDown, text.caseOriginal, text.caseUpper, text.caseLower, text.caseTitle, text.missingFonts, text.create, text.onPath, text.pathOptions, text.removeFromPath, text.caseSmallCaps, text.case, text.decoration, text.listStyle, text.paragraphIndent, text.paragraphSpacing, text.maxLines, text.setFeatures, text.setVariations, text.preview, text.endPreview, text.set, text.style, text.edit.begin, text.edit.insert, text.edit.key, text.listIndent, text.listOutdent, text.edit.caret, text.edit.selectWord, text.edit.selectLine, text.edit.preedit, text.edit.selection, text.edit.end, text.fonts, text.refit, text.fit]
+    commands: [format.bold, format.italic, format.underline, format.strikethrough, text.link, text.bulletList, text.numberList, format.alignLeft, format.alignCenter, format.alignRight, format.justify, format.increaseFontSize, format.decreaseFontSize, text.weightUp, text.weightDown, text.lineHeightUp, text.lineHeightDown, text.trackingUp, text.trackingDown, text.caseOriginal, text.caseUpper, text.caseLower, text.caseTitle, text.missingFonts, text.add, text.onPath, text.pathOptions, text.removeFromPath, text.caseSmallCaps, text.case, text.decoration, text.listStyle, text.paragraphIndent, text.paragraphSpacing, text.maxLines, text.setFeatures, text.setVariations, text.preview, text.endPreview, text.set, text.style, text.edit.begin, text.edit.insert, text.edit.key, text.listIndent, text.listOutdent, text.edit.caret, text.edit.selectWord, text.edit.selectLine, text.edit.preedit, text.edit.selection, text.edit.end, text.fonts, text.refit, text.fit]
     paths: [crates/engine/engine/src/cmd/text.rs, crates/engine/engine/src/canvas/textpreview.rs, bindings/wasm/src/query.rs, crates/engine/engine/src/content/datafill.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -225,7 +225,7 @@ features:
     dimension: [function]
     priority: P2
     status: partial
-    commands: [pref.keepTool, pref.highlightHover, pref.renameDuplicates, pref.showDimensions, pref.numberKeysOpacity, pref.nudge]
+    commands: [prefs.keepTool, prefs.highlightHover, prefs.renameDuplicates, prefs.showDimensions, prefs.numberKeysOpacity, prefs.nudge]
     paths: [crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/query.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -245,7 +245,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [node.create, node.set, node.get, node.reparent, node.reorder]
+    commands: [node.add, node.set, node.get, node.reparent, node.reorder]
     paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/comment.rs, crates/engine/engine/src/cmd/edit/props.rs, crates/engine/engine/src/cmd/proto.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -357,7 +357,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [style.create, style.apply, style.detach, style.update, style.bind, style.duplicate, style.move, style.renameFolder, style.delete, style.list]
+    commands: [style.add, style.apply, style.detach, style.set, style.bind, style.duplicate, style.move, style.renameFolder, style.delete, style.list]
     paths: [crates/engine/engine/src/cmd/styles.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/check.rs, bindings/wasm/src/files.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -367,7 +367,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [variable.createCollection, variable.addMode, variable.create, variable.set, variable.delete, variable.bind, variable.setMode, variable.list, variable.update, variable.duplicate, variable.renameMode, variable.removeMode, variable.moveMode, variable.renameCollection, variable.deleteCollection, variable.resetOverride, variable.export, variable.import]
+    commands: [variable.addCollection, variable.addMode, variable.add, variable.set, variable.delete, variable.bind, variable.setMode, variable.list, variable.update, variable.duplicate, variable.renameMode, variable.removeMode, variable.moveMode, variable.renameCollection, variable.deleteCollection, variable.resetOverride, variable.export, variable.import]
     paths: [crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/variables.rs, crates/engine/engine/src/content/templates/kit.rs, bindings/wasm/examples/conformance.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -419,7 +419,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [frame.create, shape.rectangle, shape.ellipse, text.create, node.set, transform.move]
+    commands: [frame.add, shape.rectangle, shape.ellipse, text.add, node.set, transform.move]
     paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/text.rs, crates/engine/engine/src/cmd/arrange.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     cases: [design.object.frames-shapes-text/save-reopen, regressions/issue-colr-v1-emoji]
@@ -429,7 +429,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [component.create, instance.create, node.set]
+    commands: [component.add, instance.add, node.set]
     paths: [crates/engine/engine/src/cmd/component.rs, crates/engine/engine/src/cmd/component/instance.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     cases: [design.component.button-instances/save-reopen]
@@ -449,7 +449,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [fill.set, stroke.add, effect.add, style.create, style.apply]
+    commands: [fill.set, stroke.add, effect.add, style.add, style.apply]
     paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/edit/props.rs, crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     cases: [design.paint.fill-stroke-effect-styles/save-reopen]
@@ -459,7 +459,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [vector.create, guide.add, page.add, shape.ellipse]
+    commands: [vector.add, guide.add, page.add, shape.ellipse]
     paths: [crates/engine/engine/src/cmd/create.rs, crates/engine/engine/src/cmd/page.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     cases: [design.page.vectors-guides/save-reopen]
@@ -469,7 +469,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [variable.createCollection, variable.create, variable.bind]
+    commands: [variable.addCollection, variable.add, variable.bind]
     paths: [crates/engine/engine/src/cmd/styles.rs, crates/engine/engine/src/cmd/variables.rs, crates/engine/engine/src/cmd/file/save.rs]
     target: "Figma desktop 126.10.7 (macOS)"
     cases: [design.variable.bound/save-reopen, regressions/issue-1]

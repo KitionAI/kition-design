@@ -9,9 +9,9 @@ fn stale_bound_color_document() -> (kition_design_doc::Document, kition_design_d
     let mut s = Session::new();
     let id = id_of(&s.execute("shape.rectangle", &json!({"x": 4000, "y": 4000, "width": 23, "height": 17})).unwrap()["id"]).unwrap();
     let page = s.doc().unwrap().first_page().unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Theme", "name": "surface", "type": "color", "value": "#FFFFFF"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Theme", "name": "size", "type": "number", "value": 23})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Theme", "name": "surface", "type": "color", "value": "#FFFFFF"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Theme", "name": "size", "type": "number", "value": 23})).unwrap();
     s.execute("variable.set", &json!({"variable": "surface", "mode": "Dark", "value": "#202124"})).unwrap();
     s.execute("variable.set", &json!({"variable": "size", "mode": "Dark", "value": 99})).unwrap();
     s.execute("variable.bind", &json!({"ids": [id], "field": "fill", "variable": "surface"})).unwrap();
@@ -82,9 +82,9 @@ fn initial_paint_settlement_preserves_existing_dirty_nodes() {
 fn bound_layers_follow_variable_values_and_unbind() {
     let mut s = Session::new();
     let r = id_of(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap()["id"]).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Tokens", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Tokens", "name": "size/lg", "type": "number", "value": 48})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Tokens", "name": "brand", "type": "color", "value": "#0D99FF"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Tokens", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Tokens", "name": "size/lg", "type": "number", "value": 48})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Tokens", "name": "brand", "type": "color", "value": "#0D99FF"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "width", "variable": "size/lg"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "fill", "variable": "brand"})).unwrap();
     let node = |s: &Session| s.doc().unwrap().node(r).unwrap().clone();
@@ -107,14 +107,14 @@ fn bound_layers_follow_variable_values_and_unbind() {
 #[test]
 fn opacity_padding_text_and_visibility_follow_their_variables() {
     let mut s = Session::new();
-    let f = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap()["id"]).unwrap();
+    let f = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap()["id"]).unwrap();
     s.execute("layout.add", &json!({"ids": [f]})).unwrap();
-    let t = id_of(&s.execute("text.create", &json!({"text": "Hello", "x": 200, "y": 0})).unwrap()["id"]).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Tokens"})).unwrap();
+    let t = id_of(&s.execute("text.add", &json!({"text": "Hello", "x": 200, "y": 0})).unwrap()["id"]).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Tokens"})).unwrap();
     for (name, kind, value) in
         [("fade", "number", json!(40)), ("pad", "number", json!(12)), ("label", "string", json!("Sign in")), ("shown", "boolean", json!(false))]
     {
-        s.execute("variable.create", &json!({"collection": "Tokens", "name": name, "type": kind, "value": value})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Tokens", "name": name, "type": kind, "value": value})).unwrap();
     }
     let bind = |s: &mut Session, id, field: &str, var: &str| {
         s.execute("variable.bind", &json!({"ids": [id], "field": field, "variable": var})).unwrap();
@@ -143,10 +143,10 @@ fn opacity_padding_text_and_visibility_follow_their_variables() {
 #[test]
 fn line_height_and_letter_spacing_follow_number_variables_in_pixels() {
     let mut s = Session::new();
-    let t = id_of(&s.execute("text.create", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Type"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Type", "name": "leading", "type": "number", "value": 24})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Type", "name": "tracking", "type": "number", "value": 2})).unwrap();
+    let t = id_of(&s.execute("text.add", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Type"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Type", "name": "leading", "type": "number", "value": 24})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Type", "name": "tracking", "type": "number", "value": 2})).unwrap();
     s.execute("variable.bind", &json!({"ids": [t], "field": "lineHeight", "variable": "leading"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [t], "field": "letterSpacing", "variable": "tracking"})).unwrap();
     let style = |s: &Session| s.doc().unwrap().node(t).unwrap().kind.text().unwrap().style.clone();
@@ -162,9 +162,9 @@ fn effects_follow_their_variables() {
     let r = id_of(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap()["id"]).unwrap();
     s.execute("effect.add", &json!({"ids": [r], "type": "dropShadow"})).unwrap();
     s.execute("effect.add", &json!({"ids": [r], "type": "layerBlur"})).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Fx"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Fx"})).unwrap();
     for (name, kind, value) in [("y", "number", json!(6)), ("blur", "number", json!(12)), ("shadow", "color", json!("#FF000080"))] {
-        s.execute("variable.create", &json!({"collection": "Fx", "name": name, "type": kind, "value": value})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Fx", "name": name, "type": kind, "value": value})).unwrap();
     }
     let bind = |s: &mut Session, field: &str, var: &str| {
         s.execute("variable.bind", &json!({"ids": [r], "field": field, "variable": var})).unwrap();

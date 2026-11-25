@@ -32,18 +32,18 @@ impl Drop for Scratch {
 /// a "Theme" collection with an `accent` colour, and `extra` components; returns its id.
 fn library(path: &str, color: &str, extra: &[&str]) -> String {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"})));
-    ex(&mut s, "text.create", json!({"text": "OK", "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"})));
+    ex(&mut s, "text.add", json!({"text": "OK", "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}));
     ex(&mut s, "node.set", json!({"id": f, "props": {"fill": color}}));
-    ex(&mut s, "component.create", json!({"ids": [f]}));
+    ex(&mut s, "component.add", json!({"ids": [f]}));
     let r = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 100, "width": 10, "height": 10})));
     ex(&mut s, "node.set", json!({"id": r, "props": {"fill": color}}));
-    ex(&mut s, "style.create", json!({"type": "paint", "name": "Brand", "from": r}));
-    ex(&mut s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Theme", "name": "accent", "type": "color", "value": color}));
+    ex(&mut s, "style.add", json!({"type": "paint", "name": "Brand", "from": r}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Theme", "name": "accent", "type": "color", "value": color}));
     for (i, name) in extra.iter().enumerate() {
-        let e = idv(&ex(&mut s, "frame.create", json!({"x": 200 + 50 * i, "y": 0, "width": 20, "height": 20, "name": name})));
-        ex(&mut s, "component.create", json!({"ids": [e]}));
+        let e = idv(&ex(&mut s, "frame.add", json!({"x": 200 + 50 * i, "y": 0, "width": 20, "height": 20, "name": name})));
+        ex(&mut s, "component.add", json!({"ids": [e]}));
     }
     let id = ex(&mut s, "library.publish", json!({}))["id"].as_str().unwrap().to_string();
     ex(&mut s, "file.saveAs", json!({"path": path}));

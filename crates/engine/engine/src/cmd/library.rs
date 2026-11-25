@@ -111,7 +111,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "library.import",
             "Import library component",
-            "{library, component}  → {component (local, read-only main to instantiate with instance.create)}",
+            "{library, component}  → {component (local, read-only main to instantiate with instance.add)}",
             true,
             |s, p| {
                 let (_, lib, key) = component_arg(s, "library.import", p)?;

@@ -32,8 +32,8 @@ fn scene(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
     let ellipse = id(&ex(s, "shape.ellipse", json!({"x": 0, "y": 200, "width": 100, "height": 100})));
     let a = id(&ex(s, "shape.rectangle", json!({"x": 200, "y": 200, "width": 20, "height": 20})));
     let b = id(&ex(s, "shape.rectangle", json!({"x": 280, "y": 280, "width": 20, "height": 20})));
-    let group = id(&ex(s, "object.group", json!({"ids": [a, b]})));
-    ex(s, "select.none", json!({}));
+    let group = id(&ex(s, "arrange.group", json!({"ids": [a, b]})));
+    ex(s, "edit.deselectAll", json!({}));
     (shown, hidden, ellipse, group)
 }
 
@@ -126,7 +126,7 @@ fn a_click_picks_what_outline_mode_draws() {
     for (hide, bounds, p, after, why) in rows {
         ex(&mut s, "view.outlinesHiddenLayers", json!({"on": hide}));
         ex(&mut s, "view.outlinesObjectBounds", json!({"on": bounds}));
-        ex(&mut s, "select.none", json!({}));
+        ex(&mut s, "edit.deselectAll", json!({}));
         assert_eq!(drawn(&s, p.0, p.1), !after.is_empty(), "what is clicked is what is drawn: {why}");
         click(&mut s, p.0, p.1);
         assert_eq!(s.selection(), after, "{why}");
@@ -134,7 +134,7 @@ fn a_click_picks_what_outline_mode_draws() {
     // Outside outline mode the options change nothing: hidden layers aren't clicked.
     ex(&mut s, "view.outlines", json!({"on": false}));
     ex(&mut s, "view.outlinesHiddenLayers", json!({"on": true}));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     click(&mut s, 250.0, 50.0);
     assert!(s.selection().is_empty());
 }

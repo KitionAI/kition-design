@@ -23,7 +23,7 @@ fn rect(s: &mut Session, x: f64) -> NodeId {
 }
 
 fn text(s: &mut Session, x: f64) -> NodeId {
-    id(s.execute("text.create", &json!({"text": "Hello", "x": x, "y": 100})).unwrap())
+    id(s.execute("text.add", &json!({"text": "Hello", "x": x, "y": 100})).unwrap())
 }
 
 fn node(s: &Session, n: NodeId) -> Node {
@@ -51,7 +51,7 @@ fn styled(s: &mut Session) -> Vec<(NodeId, String, &'static str)> {
     let t = text(s, 0.0);
     let mut out = Vec::new();
     for (ty, layer) in [("paint", r), ("stroke", r), ("effect", r), ("grid", r), ("text", t)] {
-        let st = sid(run(s, "style.create", json!({"type": ty, "name": format!("S/{ty}"), "from": layer})));
+        let st = sid(run(s, "style.add", json!({"type": ty, "name": format!("S/{ty}"), "from": layer})));
         out.push((layer, st, ty));
     }
     out
@@ -85,7 +85,7 @@ fn style_key(kind: &str) -> String {
     if kind == "paint" { "fillStyle".into() } else { format!("{kind}Style") }
 }
 
-/// `node.create` params for an unselected layer that takes `kind` styles, with `props`.
+/// `node.add` params for an unselected layer that takes `kind` styles, with `props`.
 fn new_layer(kind: &str, props: Value) -> Value {
     if kind == "text" {
         json!({"type": "text", "text": "Hej", "select": false, "props": props})
@@ -103,8 +103,8 @@ fn a_style_holds_the_whole_property_and_links_its_source() {
     run(&mut s, "node.set", json!({"id": r, "props": {"fills": ["#FF0000", "#0000FF80"]}}));
     run(&mut s, "effect.add", json!({"ids": [r], "type": "dropShadow"}));
     run(&mut s, "effect.add", json!({"ids": [r], "type": "layerBlur"}));
-    let paint = sid(run(&mut s, "style.create", json!({"type": "paint", "name": "Brand/Duo", "from": r})));
-    let fx = sid(run(&mut s, "style.create", json!({"type": "effect", "name": "Depth", "from": r})));
+    let paint = sid(run(&mut s, "style.add", json!({"type": "paint", "name": "Brand/Duo", "from": r})));
+    let fx = sid(run(&mut s, "style.add", json!({"type": "effect", "name": "Depth", "from": r})));
     let b = rect(&mut s, 100.0);
     run(&mut s, "style.apply", json!({"ids": [b], "style": paint}));
     run(&mut s, "style.apply", json!({"ids": [b], "style": fx}));
@@ -146,7 +146,7 @@ fn editing_a_style_updates_every_layer_using_it() {
     ];
     for (kind, value) in edits {
         let (_, st, _) = rows.iter().find(|r| r.2 == kind).unwrap();
-        run(&mut s, "style.update", json!({"style": st, "value": value}));
+        run(&mut s, "style.set", json!({"style": st, "value": value}));
     }
     assert_eq!(hex(&s, other_rect), ["123456"], "paint: fills follow");
     assert_eq!(node(&s, other_rect).strokes.first().and_then(|p| p.solid_color()).map(|c| c.to_hex()).as_deref(), Some("654321"), "stroke");
@@ -180,7 +180,7 @@ fn detaching_keeps_the_current_values() {
             "paint" | "stroke" => json!(["#ABCDEF"]),
             _ => json!([]),
         };
-        run(&mut s, "style.update", json!({"style": st, "value": value}));
+        run(&mut s, "style.set", json!({"style": st, "value": value}));
         assert_eq!(shown(&s, *layer, kind), before, "{kind}: style edits no longer reach it");
     }
 }
@@ -236,13 +236,13 @@ fn editing_a_styled_property_detaches_that_style_only() {
             json!(null)
         };
         if !value.is_null() {
-            run(&mut s, "style.update", json!({"style": st, "value": value}));
+            run(&mut s, "style.set", json!({"style": st, "value": value}));
             assert_eq!(shown(&s, layer, kind), after, "{kind}: the edit isn't overwritten by the style");
         }
     }
     // Editing one paint's colour through its row detaches the fill style too (it did already).
     let b = rect(&mut s, 200.0);
-    let st = sid(run(&mut s, "style.create", json!({"type": "paint", "name": "P", "from": b})));
+    let st = sid(run(&mut s, "style.add", json!({"type": "paint", "name": "P", "from": b})));
     run(&mut s, "fill.set", json!({"ids": [b], "index": 0, "color": "#222222"}));
     assert_eq!(node(&s, b).styles.fill, None);
     let _ = st;
@@ -251,7 +251,7 @@ fn editing_a_styled_property_detaches_that_style_only() {
 #[test]
 fn a_style_link_wins_over_values_in_the_same_call() {
     // Docs silent on one call setting both (a linked layer shows its style's values; editing one
-    // detaches it); pinned: the link wins whatever the keys are called, on node.create and
+    // detaches it); pinned: the link wins whatever the keys are called, on node.add and
     // node.set, and a deviation set in a later call unlinks as before.
     let mut s = Session::new();
     let rows = styled(&mut s);
@@ -273,10 +273,10 @@ fn a_style_link_wins_over_values_in_the_same_call() {
         let (source, st, _) = rows.iter().find(|r| r.2 == kind).unwrap().clone();
         let link_key = style_key(kind);
         let props = json!({key: value.clone(), link_key.as_str(): st.clone()});
-        let made = id(run(&mut s, "node.create", new_layer(kind, props.clone())));
+        let made = id(run(&mut s, "node.add", new_layer(kind, props.clone())));
         let set = if kind == "text" { text(&mut s, 400.0) } else { rect(&mut s, 400.0) };
         run(&mut s, "node.set", json!({"id": set, "props": props}));
-        for (how, layer) in [("node.create", made), ("node.set", set)] {
+        for (how, layer) in [("node.add", made), ("node.set", set)] {
             assert_eq!(link(&s, layer, kind).as_deref(), Some(st.as_str()), "{how} `{key}` + `{link_key}`: linked");
             assert_eq!(shown(&s, layer, kind), shown(&s, source, kind), "{how} `{key}` + `{link_key}`: the style's values");
         }
@@ -288,14 +288,14 @@ fn a_style_link_wins_over_values_in_the_same_call() {
 
 #[test]
 fn a_style_link_leaves_values_its_style_does_not_set() {
-    // Docs silent; pinned: alignment given beside a text style applies, on node.create and node.set.
+    // Docs silent; pinned: alignment given beside a text style applies, on node.add and node.set.
     let mut s = Session::new();
     let st = styled(&mut s).into_iter().find(|r| r.2 == "text").unwrap().1;
     let props = json!({"textStyle": st, "textAlign": "center"});
-    let made = id(run(&mut s, "node.create", new_layer("text", props.clone())));
+    let made = id(run(&mut s, "node.add", new_layer("text", props.clone())));
     let set = text(&mut s, 400.0);
     run(&mut s, "node.set", json!({"id": set, "props": props}));
-    for (how, layer) in [("node.create", made), ("node.set", set)] {
+    for (how, layer) in [("node.add", made), ("node.set", set)] {
         assert_eq!(link(&s, layer, "text").as_deref(), Some(st.as_str()), "{how}: linked");
         assert_eq!(node(&s, layer).kind.text().unwrap().align_h, kition_design_doc::TextAlignH::Center, "{how}: `textAlign` applies");
     }
@@ -307,10 +307,10 @@ fn applying_a_style_replaces_variables_bound_to_that_property() {
     // variables; pinned: the style's paints replace the bound ones (else the variable would win on
     // the next edit), and binding a variable to a styled paint is an edit (the style detaches).
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    run(&mut s, "variable.create", json!({"collection": "C", "name": "brand", "type": "color", "value": "#0D99FF"}));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    run(&mut s, "variable.add", json!({"collection": "C", "name": "brand", "type": "color", "value": "#0D99FF"}));
     let r = rect(&mut s, 0.0);
-    let st = sid(run(&mut s, "style.create", json!({"type": "paint", "name": "Red", "value": ["#FF0000"]})));
+    let st = sid(run(&mut s, "style.add", json!({"type": "paint", "name": "Red", "value": ["#FF0000"]})));
     run(&mut s, "variable.bind", json!({"ids": [r], "field": "fill", "variable": "brand"}));
     assert_eq!(hex(&s, r), ["0D99FF"]);
     run(&mut s, "style.apply", json!({"ids": [r], "style": st}));
@@ -325,7 +325,7 @@ fn applying_a_style_replaces_variables_bound_to_that_property() {
     assert_eq!(hex(&s, r), ["00FF00"]);
     assert_eq!(node(&s, r).styles.fill, None);
     // Bindings of other properties stay when a paint style is applied.
-    run(&mut s, "variable.create", json!({"collection": "C", "name": "w", "type": "number", "value": 64}));
+    run(&mut s, "variable.add", json!({"collection": "C", "name": "w", "type": "number", "value": 64}));
     run(&mut s, "variable.bind", json!({"ids": [r], "field": "width", "variable": "w"}));
     run(&mut s, "style.apply", json!({"ids": [r], "style": st}));
     assert!(node(&s, r).bound.contains_key("width"));
@@ -339,7 +339,7 @@ fn text_styles_go_on_text_layers_and_chars() {
     let mut s = Session::new();
     let t = text(&mut s, 0.0);
     let r = rect(&mut s, 200.0);
-    let st = sid(run(&mut s, "style.create", json!({"type": "text", "name": "Body", "value": {"fontSize": 22}})));
+    let st = sid(run(&mut s, "style.add", json!({"type": "text", "name": "Body", "value": {"fontSize": 22}})));
     run(&mut s, "style.apply", json!({"ids": [t, r], "style": st}));
     assert_eq!(font_size(&s, t), 22.0);
     assert_eq!(node(&s, t).styles.text.as_deref(), Some(st.as_str()));
@@ -363,7 +363,7 @@ fn styles_are_organised_by_slash_names_order_and_duplicates() {
     // (the folder is part of each name). Docs silent on the duplicate's name: "<name> copy", as
     // for variables.
     let mut s = Session::new();
-    let mk = |s: &mut Session, name: &str| sid(run(s, "style.create", json!({"type": "paint", "name": name, "value": ["#FF00FF"]})));
+    let mk = |s: &mut Session, name: &str| sid(run(s, "style.add", json!({"type": "paint", "name": name, "value": ["#FF00FF"]})));
     let a = mk(&mut s, "Brand/Teal");
     let b = mk(&mut s, "Brand/Site/Ink");
     let c = mk(&mut s, "Gray/100");
@@ -382,17 +382,17 @@ fn styles_are_organised_by_slash_names_order_and_duplicates() {
     run(&mut s, "style.renameFolder", json!({"folder": "Brand/Site", "name": "Brand/News"}));
     assert_eq!(names(&s), ["Gray/100", "Brand/News/Teal", "Ink", "Brand/Siteplan/X"]);
     // A duplicate sits right below its original, with the same definition and description.
-    run(&mut s, "style.update", json!({"style": c, "description": "Lightest"}));
+    run(&mut s, "style.set", json!({"style": c, "description": "Lightest"}));
     let d = sid(run(&mut s, "style.duplicate", json!({"style": c})));
     assert_eq!(names(&s)[..2], ["Gray/100".to_string(), "Gray/100 copy".to_string()]);
     let doc = s.doc().unwrap();
     let (orig, copy) = (doc.style(&c).unwrap(), doc.style(&d).unwrap());
     assert_eq!((copy.kind.clone(), copy.description.as_str()), (orig.kind.clone(), "Lightest"));
     // Names are trimmed per folder part; empty names are refused; each move is one undo step.
-    run(&mut s, "style.update", json!({"style": d, "name": " Gray / 200 "}));
+    run(&mut s, "style.set", json!({"style": d, "name": " Gray / 200 "}));
     assert_eq!(s.doc().unwrap().style(&d).unwrap().name, "Gray/200");
-    assert!(s.execute("style.update", &json!({"style": d, "name": " / "})).is_err());
-    assert!(s.execute("style.create", &json!({"type": "paint", "name": "", "value": ["#000000"]})).is_err());
+    assert!(s.execute("style.set", &json!({"style": d, "name": " / "})).is_err());
+    assert!(s.execute("style.add", &json!({"type": "paint", "name": "", "value": ["#000000"]})).is_err());
     assert!(s.execute("style.move", &json!({"styles": ["nope"]})).is_err());
     let before = names(&s);
     run(&mut s, "style.move", json!({"styles": [d], "before": c}));
@@ -405,8 +405,8 @@ fn descriptions_and_library_styles() {
     // Documented: styles have descriptions (shown in the picker). Library styles are read-only in
     // files using them (edits happen in the library file; covered by `library_tests`).
     let mut s = Session::new();
-    let st = sid(run(&mut s, "style.create", json!({"type": "paint", "name": "A", "value": ["#000000"], "description": "Primary text"})));
+    let st = sid(run(&mut s, "style.add", json!({"type": "paint", "name": "A", "value": ["#000000"], "description": "Primary text"})));
     assert_eq!(s.doc().unwrap().style(&st).unwrap().description, "Primary text");
-    run(&mut s, "style.update", json!({"style": st, "description": "Body text"}));
+    run(&mut s, "style.set", json!({"style": st, "description": "Body text"}));
     assert_eq!(s.doc().unwrap().style(&st).unwrap().description, "Body text");
 }

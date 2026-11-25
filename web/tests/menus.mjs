@@ -229,7 +229,7 @@ try {
   await until(async () => (await kit.getByTestId('design-context-menu').count()) === 1)
   const plain = await labels(kit.getByTestId('design-context-menu'))
   step('without a selection: Paste here, Select all and the view items', plain.join(',') === 'Paste here,Select all,Show/Hide UI,Zoom to fit,Rulers,Pixel grid', plain.join(','))
-  await kit.getByTestId('design-context-select.all').click()
+  await kit.getByTestId('design-context-edit.selectAll').click()
   await until(async () => (await inspect()).selection.length > 1)
   step('Select all runs from it', (await inspect()).selection.length > 1)
 

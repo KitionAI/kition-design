@@ -51,10 +51,10 @@ fn fields_write_degrees_and_percentages() {
 fn variables_bound_to_the_arc_hold_what_the_fields_show() {
     let mut s = Session::new();
     let e = ellipse(&mut s);
-    ex(&mut s, "variable.createCollection", json!({"name": "Shape", "modes": ["A", "B"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Shape", "name": "start", "type": "number", "value": 45}));
-    ex(&mut s, "variable.create", json!({"collection": "Shape", "name": "sweep", "type": "number", "value": 50}));
-    ex(&mut s, "variable.create", json!({"collection": "Shape", "name": "ratio", "type": "number", "value": 25}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Shape", "modes": ["A", "B"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Shape", "name": "start", "type": "number", "value": 45}));
+    ex(&mut s, "variable.add", json!({"collection": "Shape", "name": "sweep", "type": "number", "value": 50}));
+    ex(&mut s, "variable.add", json!({"collection": "Shape", "name": "ratio", "type": "number", "value": 25}));
     for (field, var) in [("arcStart", "start"), ("arcSweep", "sweep"), ("arcInner", "ratio")] {
         ex(&mut s, "variable.bind", json!({"ids": [e], "field": field, "variable": var}));
     }

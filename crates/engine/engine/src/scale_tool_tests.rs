@@ -137,10 +137,10 @@ fn the_anchor_and_alt_choose_what_stays_put() {
 #[test]
 fn frames_scale_their_children_whatever_their_constraints() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100}))["id"]).unwrap();
     let c = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 150, "y": 60, "width": 40, "height": 30, "parent": f}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"id": c, "props": {"constraints": {"horizontal": "right", "vertical": "bottom"}}}));
-    let t = id_of(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 10, "y": 10, "parent": f}))["id"]).unwrap();
+    let t = id_of(&ex(&mut s, "text.add", json!({"text": "Hi", "x": 10, "y": 10, "parent": f}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"id": t, "props": {"paragraphIndent": 4}}));
     let size = |s: &Session| match &s.doc().unwrap().node(t).unwrap().kind {
         NodeKind::Text(td) => (td.style.font_size, td.paragraph_indent),
@@ -213,7 +213,7 @@ fn dragging_past_the_pivot_turns_the_layer_over() {
 #[test]
 fn scale_node_scales_every_size_like_property() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100}))["id"]).unwrap();
     ex(
         &mut s,
         "node.set",
@@ -244,7 +244,7 @@ fn the_scale_tool_only_acts_on_handles() {
 #[test]
 fn scale_node_scales_vector_point_corner_radius() {
     let mut s = Session::new();
-    let v = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0], [100, 100], [0, 100]], "closed": true}))["id"]).unwrap();
+    let v = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0], [100, 100], [0, 100]], "closed": true}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"id": v, "props": {"cornerRadius": 10}}));
     ex(&mut s, "transform.scale", json!({"ids": [v], "factor": 2}));
     let d = s.doc().unwrap();

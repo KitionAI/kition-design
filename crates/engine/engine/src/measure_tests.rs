@@ -24,7 +24,7 @@ fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>)
 }
 
 fn frame(s: &mut Session, x: f64, y: f64, w: f64, h: f64) -> NodeId {
-    id_of(&ex(s, "frame.create", json!({"x": x, "y": y, "width": w, "height": h}))["id"]).unwrap()
+    id_of(&ex(s, "frame.add", json!({"x": x, "y": y, "width": w, "height": h}))["id"]).unwrap()
 }
 
 fn hover(s: &mut Session, x: f64, y: f64, alt: bool, shift: bool, cmd: bool) -> Vec<Guide> {
@@ -142,7 +142,7 @@ fn cmd_alt_measures_to_nested_layers() {
     let f = frame(&mut s, 0.0, 0.0, 300.0, 200.0);
     let g1 = rect(&mut s, 20.0, 20.0, 40.0, 40.0, Some(f));
     let g2 = rect(&mut s, 80.0, 20.0, 40.0, 40.0, Some(f));
-    ex(&mut s, "object.group", json!({"ids": [g1, g2]}));
+    ex(&mut s, "arrange.group", json!({"ids": [g1, g2]}));
     ex(&mut s, "select.set", json!({"ids": [a]}));
     // Alt alone measures to what a click would select (the group in the frame)...
     hover(&mut s, 100.0, 40.0, true, false, false);
@@ -228,7 +228,7 @@ fn shift_alt_reads_out_auto_layout_padding_and_gaps() {
     assert_eq!(labels(&g), vec!["12", "12", "16", "16", "8"]);
     assert_eq!(s.tool.overlay.measure_box, Some([fb.x0, fb.y0, fb.x1, fb.y1]));
     // Works without a selection too, and the command says the same.
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     assert_eq!(labels(&hover(&mut s, cb.center().x, cb.center().y, true, true, false)), vec!["12", "12", "16", "16", "8"]);
     let out = ex(&mut s, "measure.padding", json!({"id": c}));
     assert_eq!(id_of(&out["frame"]), Some(f));

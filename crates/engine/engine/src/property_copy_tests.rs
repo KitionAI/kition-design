@@ -106,8 +106,8 @@ fn pasting_design_layers_keeps_a_copied_row() {
 #[test]
 fn a_copied_pattern_cannot_paste_into_a_layer_it_draws() {
     let mut s = Session::new();
-    let outer = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
-    let inner = id(ex(&mut s, "node.create", json!({"type": "rectangle", "x": 10, "y": 10, "width": 20, "height": 20, "parent": outer})));
+    let outer = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let inner = id(ex(&mut s, "node.add", json!({"type": "rectangle", "x": 10, "y": 10, "width": 20, "height": 20, "parent": outer})));
     // A pattern taken from the frame's child, on a layer beside the frame.
     let source = rect(&mut s);
     ex(&mut s, "fill.pattern", json!({"ids": [source], "source": inner}));

@@ -17,7 +17,7 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 fn create_rect(s: &mut Session, fill: Value) -> NodeId {
     id(ex(
         s,
-        "node.create",
+        "node.add",
         json!({
             "type": "rectangle", "x": 0, "y": 0, "width": 10, "height": 10,
             "props": {"fill": fill, "stroke": "#000000", "strokeWeight": 1}
@@ -63,7 +63,7 @@ fn text_with_fill_none_gets_no_automatic_colour() {
     let mut s = Session::new();
     let t = id(ex(
         &mut s,
-        "node.create",
+        "node.add",
         json!({
             "type": "text", "x": 0, "y": 0, "text": "Hi", "props": {"fill": "none"}
         }),
@@ -76,7 +76,7 @@ fn an_unknown_string_still_names_the_key() {
     let mut s = Session::new();
     let e = s
         .execute(
-            "node.create",
+            "node.add",
             &json!({
                 "type": "rectangle", "x": 0, "y": 0, "width": 10, "height": 10,
                 "props": {"fill": "nope"}

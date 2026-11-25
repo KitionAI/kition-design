@@ -70,17 +70,17 @@ fn scene() -> (Session, NodeId) {
     let mut s = Session::new();
     shape(&mut s, "shape.rectangle", None, [10.0, 10.0, 70.0, 40.0], "#E03030");
     shape(&mut s, "shape.ellipse", None, [120.0, 20.0, 50.0, 50.0], "#3070E0");
-    let outer = id(s.execute("frame.create", &json!({"x": 40, "y": 90, "width": 200, "height": 140, "props": {"fill": "#F0F0E0"}})).unwrap());
+    let outer = id(s.execute("frame.add", &json!({"x": 40, "y": 90, "width": 200, "height": 140, "props": {"fill": "#F0F0E0"}})).unwrap());
     s.execute("node.set", &json!({"id": outer, "rotation": 25})).unwrap();
     shape(&mut s, "shape.rectangle", Some(outer), [150.0, 20.0, 90.0, 40.0], "#20A060");
     let inner =
-        id(s.execute("frame.create", &json!({"x": 20, "y": 60, "width": 90, "height": 60, "parent": outer, "props": {"fill": "#D0E0FF"}})).unwrap());
+        id(s.execute("frame.add", &json!({"x": 20, "y": 60, "width": 90, "height": 60, "parent": outer, "props": {"fill": "#D0E0FF"}})).unwrap());
     s.execute("node.set", &json!({"id": inner, "rotation": -15, "clip": false})).unwrap();
     shape(&mut s, "shape.star", Some(inner), [50.0, 30.0, 60.0, 50.0], "#A040C0");
-    s.execute("text.create", &json!({"text": "Nested text", "x": 4, "y": 4, "parent": inner, "props": {"fontSize": 12}})).unwrap();
+    s.execute("text.add", &json!({"text": "Nested text", "x": 4, "y": 4, "parent": inner, "props": {"fontSize": 12}})).unwrap();
     let g1 = shape(&mut s, "shape.rectangle", None, [280.0, 30.0, 40.0, 40.0], "#F0B020");
     let g2 = shape(&mut s, "shape.ellipse", None, [300.0, 60.0, 40.0, 30.0], "#208080");
-    let g = id(s.execute("object.group", &json!({"ids": [g1, g2]})).unwrap());
+    let g = id(s.execute("arrange.group", &json!({"ids": [g1, g2]})).unwrap());
     s.execute("node.set", &json!({"id": g, "effects": [shadow((10.0, 12.0), 6.0, 0.0)]})).unwrap();
     let m = shape(&mut s, "shape.ellipse", None, [260.0, 140.0, 60.0, 60.0], "#000000");
     let mr = shape(&mut s, "shape.rectangle", None, [250.0, 150.0, 90.0, 30.0], "#C04040");
@@ -88,7 +88,7 @@ fn scene() -> (Session, NodeId) {
     let b1 = shape(&mut s, "shape.rectangle", None, [20.0, 260.0, 50.0, 40.0], "#6060C0");
     let b2 = shape(&mut s, "shape.ellipse", None, [45.0, 270.0, 50.0, 40.0], "#6060C0");
     s.execute("bool.union", &json!({"ids": [b1, b2]})).unwrap();
-    let al = id(s.execute("frame.create", &json!({"x": 130, "y": 250, "width": 220, "height": 70, "props": {"fill": "#FFE0B0"}})).unwrap());
+    let al = id(s.execute("frame.add", &json!({"x": 130, "y": 250, "width": 220, "height": 70, "props": {"fill": "#FFE0B0"}})).unwrap());
     s.execute("node.set", &json!({"id": al, "layout": "horizontal", "gap": 8, "padding": 10})).unwrap();
     for c in ["#E03030", "#3070E0", "#A040C0"] {
         shape(&mut s, "shape.rectangle", Some(al), [0.0, 0.0, 40.0, 40.0], c);
@@ -96,24 +96,24 @@ fn scene() -> (Session, NodeId) {
     let blurred = s.doc().unwrap().node(al).unwrap().children[1];
     let blur = serde_json::to_value(Effect { kind: EffectKind::LayerBlur(Blur { radius: 3.0, ..Blur::default() }), visible: true }).unwrap();
     s.execute("node.set", &json!({"id": blurred, "effects": [blur]})).unwrap();
-    s.execute("text.create", &json!({"text": "A line of text that overflows its box", "x": 200, "y": 120, "width": 70, "props": {"fontSize": 13, "textAutoResize": "none", "height": 18}})).unwrap();
+    s.execute("text.add", &json!({"text": "A line of text that overflows its box", "x": 200, "y": 120, "width": 70, "props": {"fontSize": 13, "textAutoResize": "none", "height": 18}})).unwrap();
     let inset = shape(&mut s, "shape.rectangle", None, [190.0, 200.0, 50.0, 30.0], "#FFFFFF");
     let inner_shadow = serde_json::to_value(Effect::inner_shadow()).unwrap();
     s.execute("node.set", &json!({"id": inset, "effects": [inner_shadow], "stroke": "#202020", "strokeWeight": 3, "strokeAlign": "outside"}))
         .unwrap();
     // A component with instances (one in the rotated frame), a bound colour variable and a paint
     // style: edits to the main, the variable or the style repaint other layers.
-    let main = id(s.execute("frame.create", &json!({"x": 20, "y": 340, "width": 80, "height": 50, "props": {"fill": "#E0F0E0"}})).unwrap());
+    let main = id(s.execute("frame.add", &json!({"x": 20, "y": 340, "width": 80, "height": 50, "props": {"fill": "#E0F0E0"}})).unwrap());
     let part = shape(&mut s, "shape.ellipse", Some(main), [10.0, 10.0, 30.0, 30.0], "#C02060");
-    let comp = s.execute("component.create", &json!({"ids": [main]})).unwrap()["id"].clone();
-    s.execute("instance.create", &json!({"component": comp, "x": 130, "y": 340})).unwrap();
-    s.execute("instance.create", &json!({"component": comp, "x": 100, "y": 10, "parent": outer})).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "T"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "T", "name": "brand", "type": "color", "value": "#FF8000"})).unwrap();
+    let comp = s.execute("component.add", &json!({"ids": [main]})).unwrap()["id"].clone();
+    s.execute("instance.add", &json!({"component": comp, "x": 130, "y": 340})).unwrap();
+    s.execute("instance.add", &json!({"component": comp, "x": 100, "y": 10, "parent": outer})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "T"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "T", "name": "brand", "type": "color", "value": "#FF8000"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [part, g1], "field": "fill", "variable": "brand"})).unwrap();
-    let style = s.execute("style.create", &json!({"type": "paint", "name": "Accent", "from": g2})).unwrap()["id"].clone();
+    let style = s.execute("style.add", &json!({"type": "paint", "name": "Accent", "from": g2})).unwrap()["id"].clone();
     s.execute("style.apply", &json!({"ids": [mr, blurred], "style": style})).unwrap();
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     let page = s.ds().unwrap().page;
     (s, page)
 }
@@ -206,13 +206,13 @@ fn step(s: &mut Session, page: NodeId, view: &mut View, rng: &mut Rng) -> String
         21 => {
             let parent = doc.node(n).and_then(|x| x.parent).and_then(|p| doc.node(p));
             let Some(sib) = parent.and_then(|p| p.children.get(rng.below(p.children.len())).copied()) else { return "no sibling".into() };
-            if rng.chance(0.5) && sib != n { ("object.group", json!({"ids": [n, sib]})) } else { ("object.ungroup", json!({"ids": [n]})) }
+            if rng.chance(0.5) && sib != n { ("arrange.group", json!({"ids": [n, sib]})) } else { ("arrange.ungroup", json!({"ids": [n]})) }
         }
         22 => ("variable.set", json!({"variable": "brand", "value": rng.color()})),
         23 => {
             let styles = &doc.styles;
             let Some(st) = styles.get(rng.below(styles.len())) else { return "no style".into() };
-            ("style.update", json!({"style": st.id, "from": n}))
+            ("style.set", json!({"style": st.id, "from": n}))
         }
         _ => {
             let align = ["inside", "center", "outside"][rng.below(3)];

@@ -159,15 +159,14 @@ fn back_and_reverting_play_the_animation_the_other_way() {
 /// and the Pressed variant.
 fn interactive_button() -> (Session, NodeId, NodeId, NodeId, NodeId) {
     let mut s = Session::new();
-    let icon_frame = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 10, "height": 10, "name": "Icon"})));
-    let icon = idv(&ex(&mut s, "component.create", json!({"ids": [icon_frame]})));
+    let icon_frame = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 10, "height": 10, "name": "Icon"})));
+    let icon = idv(&ex(&mut s, "component.add", json!({"ids": [icon_frame]})));
     let mut variants = Vec::new();
     for (k, state) in ["Default", "Pressed"].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
         ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": f, "props": {"name": "Bg"}}));
-        ex(&mut s, "instance.create", json!({"component": icon, "x": 4, "y": 4, "parent": f}));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        ex(&mut s, "instance.add", json!({"component": icon, "x": 4, "y": 4, "parent": f}));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
     let (default, pressed) = (variants[0], variants[1]);
@@ -175,8 +174,8 @@ fn interactive_button() -> (Session, NodeId, NodeId, NodeId, NodeId) {
         ex(&mut s, "proto.interaction.add", json!({"id": default, "trigger": {"type": trigger}, "action": {"type": "changeTo", "dest": pressed}}));
     }
     ex(&mut s, "proto.interaction.add", json!({"id": pressed, "trigger": {"type": "onClick"}, "action": {"type": "changeTo", "dest": default}}));
-    let screen = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 300, "height": 300, "name": "Screen"})));
-    let button = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 20, "y": 20, "parent": screen})));
+    let screen = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 300, "height": 300, "name": "Screen"})));
+    let button = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 20, "y": 20, "parent": screen})));
     let nested = s
         .doc()
         .unwrap()
@@ -237,9 +236,9 @@ fn default_of(s: &Session, variant: NodeId) -> NodeId {
 #[test]
 fn hotspots_priority_and_click_through() {
     let mut s = Session::new();
-    let a = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 300, "name": "A"})));
-    let b = idv(&ex(&mut s, "frame.create", json!({"x": 400, "y": 0, "width": 300, "height": 300, "name": "B"})));
-    let card = idv(&ex(&mut s, "frame.create", json!({"x": 20, "y": 20, "width": 200, "height": 100, "parent": a, "name": "Card"})));
+    let a = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 300, "name": "A"})));
+    let b = idv(&ex(&mut s, "frame.add", json!({"x": 400, "y": 0, "width": 300, "height": 300, "name": "B"})));
+    let card = idv(&ex(&mut s, "frame.add", json!({"x": 20, "y": 20, "width": 200, "height": 100, "parent": a, "name": "Card"})));
     ex(&mut s, "node.set", json!({"id": card, "props": {"clip": true}}));
     let rect = |s: &mut Session, name: &str, parent, x: f64, y: f64| {
         idv(&ex(s, "shape.rectangle", json!({"x": x, "y": y, "width": 60, "height": 40, "parent": parent, "props": {"name": name}})))
@@ -272,7 +271,7 @@ fn hotspots_priority_and_click_through() {
 #[test]
 fn scroll_to_keeps_an_offset() {
     let mut s = Session::new();
-    let a = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 900, "name": "A"})));
+    let a = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 900, "name": "A"})));
     let item = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 700, "width": 300, "height": 40, "parent": a})));
     let add = |s: &mut Session, action: Value| s.execute("proto.interaction.add", &json!({"id": a, "action": action}));
     add(&mut s, json!({"type": "scrollTo", "dest": item, "offset": [0, 60]})).unwrap();

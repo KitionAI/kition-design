@@ -19,9 +19,9 @@ fn ex(s: &mut Session, cmd: &str, p: serde_json::Value) {
 fn setup() -> (Session, NodeId) {
     let mut s = Session::new();
     let r = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap());
-    ex(&mut s, "variable.createCollection", json!({"name": "T"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "T"}));
     for (name, kind, value) in [("brand", "color", json!("#FF0000")), ("small", "number", json!(2)), ("large", "number", json!(30))] {
-        ex(&mut s, "variable.create", json!({"collection": "T", "name": name, "type": kind, "value": value}));
+        ex(&mut s, "variable.add", json!({"collection": "T", "name": name, "type": kind, "value": value}));
     }
     (s, r)
 }

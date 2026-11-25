@@ -437,9 +437,9 @@ fn flatten_keeps_open_paths() {
     // #377: open paths have no fill outline, so two pen paths flattened to "nothing to flatten"
     // and next to a closed shape they disappeared.
     let mut s = Session::new();
-    let a = create(&mut s, "vector.create", json!({"points": [[0, 0], [100, 50], [200, 0]]}));
-    let b = create(&mut s, "vector.create", json!({"points": [[0, 100], [100, 150], [200, 100]]}));
-    let tri = create(&mut s, "vector.create", json!({"points": [[300, 0], [400, 0], [400, 100]], "closed": true}));
+    let a = create(&mut s, "vector.add", json!({"points": [[0, 0], [100, 50], [200, 0]]}));
+    let b = create(&mut s, "vector.add", json!({"points": [[0, 100], [100, 150], [200, 100]]}));
+    let tri = create(&mut s, "vector.add", json!({"points": [[300, 0], [400, 0], [400, 100]], "closed": true}));
     let v = create(&mut s, "vector.flatten", json!({"ids": [a, b, tri]}));
     let NodeKind::Vector { network } = node(&s, v).kind else { panic!("flatten makes one vector") };
     assert_eq!((network.vertices.len(), network.segments.len()), (9, 7), "both open paths and the triangle");
@@ -449,8 +449,8 @@ fn flatten_keeps_open_paths() {
 
     // Joining two open paths goes the same way.
     let mut s = Session::new();
-    let a = create(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]]}));
-    let b = create(&mut s, "vector.create", json!({"points": [[0, 50], [100, 50]]}));
+    let a = create(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]]}));
+    let b = create(&mut s, "vector.add", json!({"points": [[0, 50], [100, 50]]}));
     let v = create(&mut s, "vector.join", json!({"ids": [a, b]}));
     let NodeKind::Vector { network } = node(&s, v).kind else { panic!("join makes one vector") };
     assert_eq!(network.segments.len(), 2);
@@ -479,7 +479,7 @@ fn flatten_and_outline_stroke() {
     // the outline keeps the layer's opacity and effects.
     let mut s = Session::new();
     let line = create(&mut s, "shape.line", json!({"x": 0, "y": 0, "width": 100, "props": {"strokeWeight": 10, "opacity": 0.5}}));
-    ex(&mut s, "style.create", json!({"type": "paint", "name": "Ink", "value": ["#112233"]}));
+    ex(&mut s, "style.add", json!({"type": "paint", "name": "Ink", "value": ["#112233"]}));
     ex(&mut s, "style.apply", json!({"ids": [line], "style": "Ink", "target": "stroke"}));
     let before = node(&s, line);
     let out = ex(&mut s, "vector.outlineStroke", json!({"ids": [line]}));

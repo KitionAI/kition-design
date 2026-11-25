@@ -146,8 +146,8 @@ fn export_rows_add_step_up_and_update() {
     assert_eq!(sizes, ["1x", "2x", "3x"]);
     assert_eq!(rows.iter().map(|e| e.suffix.as_str()).collect::<Vec<_>>(), ["", "@2x", "@3x"]);
 
-    s.execute("export.update", &json!({"ids": [r], "index": 1, "size": "512w", "format": "webp", "suffix": "-wide"})).unwrap();
-    s.execute("export.update", &json!({"ids": [r], "index": 2, "size": {"by": "height", "value": 64}, "format": "pdf"})).unwrap();
+    s.execute("export.set", &json!({"ids": [r], "index": 1, "size": "512w", "format": "webp", "suffix": "-wide"})).unwrap();
+    s.execute("export.set", &json!({"ids": [r], "index": 2, "size": {"by": "height", "value": 64}, "format": "pdf"})).unwrap();
     let rows = exports(&s, r);
     assert_eq!(
         rows[1],
@@ -164,7 +164,7 @@ fn export_rows_add_step_up_and_update() {
         let mut p = bad.clone();
         p["ids"] = json!([r]);
         p["index"] = json!(0);
-        assert!(s.execute("export.update", &p).is_err(), "{bad}");
+        assert!(s.execute("export.set", &p).is_err(), "{bad}");
     }
     assert_eq!(exports(&s, r), rows, "refused edits change nothing");
     // A given setting is used as is (sizes as text too).

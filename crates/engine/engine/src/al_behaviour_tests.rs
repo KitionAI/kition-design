@@ -18,7 +18,7 @@ fn rect(s: &mut Session, parent: NodeId, w: f64, h: f64, fill: &str) -> NodeId {
 
 /// A frame with auto layout (no padding, no gap) and the given extra props.
 fn al_frame(s: &mut Session, props: Value) -> NodeId {
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
     let mut all = json!({"layout": "horizontal", "padding": 0, "gap": 0, "fills": []});
     if let (Some(all), Value::Object(extra)) = (all.as_object_mut(), props) {
         all.extend(extra);
@@ -90,7 +90,7 @@ fn a_hugging_frame_follows_its_children_through_nested_levels() {
     // and gap.
     let mut s = Session::new();
     let outer = al_frame(&mut s, json!({"layout": "vertical", "sizingH": "hug", "sizingV": "hug", "padding": 10, "gap": 5}));
-    let inner = id(s.execute("frame.create", &json!({"parent": outer, "x": 0, "y": 0, "width": 10, "height": 10})).unwrap());
+    let inner = id(s.execute("frame.add", &json!({"parent": outer, "x": 0, "y": 0, "width": 10, "height": 10})).unwrap());
     set(&mut s, inner, json!({"layout": "horizontal", "padding": 4, "gap": 2, "sizingH": "hug", "sizingV": "hug", "fills": []}));
     let a = rect(&mut s, inner, 30.0, 20.0, "#FF0000");
     rect(&mut s, inner, 30.0, 10.0, "#0000FF");
@@ -110,7 +110,7 @@ fn a_hugging_frame_follows_its_children_through_nested_levels() {
 fn new_auto_layout_includes_inside_strokes() {
     // Documented: by default inside strokes are included in auto layout sizes.
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     set(&mut s, f, json!({"stroke": "#000000", "strokeWeight": 3, "strokeAlign": "inside"}));
     s.execute("layout.add", &json!({"ids": [f]})).unwrap();
     assert!(s.doc().unwrap().node(f).unwrap().layout.as_ref().unwrap().strokes_included);
@@ -185,13 +185,13 @@ fn adding_auto_layout_to_a_frame_keeps_its_size() {
     // An existing frame with content hugs it (padding inferred, so the size is preserved);
     // an empty one keeps its size instead of collapsing to its padding.
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
     rect(&mut s, f, 40.0, 20.0, "#FF0000");
     s.execute("layout.add", &json!({"ids": [f]})).unwrap();
     assert_eq!(sizing(&s, f), (Sizing::Hug, Sizing::Hug));
     assert_eq!(size(&s, f), (300.0, 200.0));
     // An empty frame keeps its size too.
-    let e = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
+    let e = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
     s.execute("layout.add", &json!({"ids": [e]})).unwrap();
     assert_eq!(sizing(&s, e), (Sizing::Fixed, Sizing::Fixed));
     assert_eq!(size(&s, e), (300.0, 200.0));
@@ -226,7 +226,7 @@ fn canvas_stacking_paints_and_exports_the_first_child_on_top() {
 fn a_size_given_with_a_new_path_fixes_that_axis() {
     let mut s = Session::new();
     let f = al_frame(&mut s, json!({}));
-    let v = id(s.execute("node.create", &json!({"type": "vector", "path": "M0 0 L10 10", "closed": false, "parent": f})).unwrap());
+    let v = id(s.execute("node.add", &json!({"type": "vector", "path": "M0 0 L10 10", "closed": false, "parent": f})).unwrap());
     set(&mut s, v, json!({"sizingH": "fill"}));
     assert_eq!(sizing(&s, v).0, Sizing::Fill);
     set(&mut s, v, json!({"path": "M0 0 L20 5", "width": 30}));

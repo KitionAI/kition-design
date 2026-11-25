@@ -20,10 +20,10 @@ fn id(answer: &Value) -> Value {
 fn stack(f: &Fixture) -> (Value, Value, Value) {
     let made = prepare(f, |d| {
         let page = d.inspect().unwrap()["page"].clone();
-        let stack = id(&d.execute("frame.create", json!({"parent":page,"name":"Stack","x":0,"y":700,"width":200,"height":200})).unwrap());
+        let stack = id(&d.execute("frame.add", json!({"parent":page,"name":"Stack","x":0,"y":700,"width":200,"height":200})).unwrap());
         d.execute("layout.add", json!({"ids":[stack],"direction":"vertical"})).unwrap();
-        let first = id(&d.execute("node.create", json!({"type":"rectangle","parent":stack,"name":"First","width":50,"height":20})).unwrap());
-        let second = id(&d.execute("node.create", json!({"type":"rectangle","parent":stack,"name":"Second","width":50,"height":30})).unwrap());
+        let first = id(&d.execute("node.add", json!({"type":"rectangle","parent":stack,"name":"First","width":50,"height":20})).unwrap());
+        let second = id(&d.execute("node.add", json!({"type":"rectangle","parent":stack,"name":"Second","width":50,"height":30})).unwrap());
         json!([stack, first, second])
     });
     (made[0].clone(), made[1].clone(), made[2].clone())
@@ -96,9 +96,9 @@ async fn a_duplicate_in_auto_layout_rests_on_the_frames_layout() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_preset_frame_rests_on_where_the_pages_layers_are() {
     let failures = case(
-        "frame.create preset",
+        "frame.add preset",
         |_| Value::Null,
-        |_, _| ("frame.create", json!({"preset":"iPhone 16"})),
+        |_, _| ("frame.add", json!({"preset":"iPhone 16"})),
         |f, _| vec![("transform.move", json!({"ids":[f.destination],"dx":2000,"dy":0}))],
         |f, _| vec![("object.rename", json!({"ids":[f.destination],"name":"Colleague"}))],
     )
@@ -110,11 +110,11 @@ async fn a_preset_frame_rests_on_where_the_pages_layers_are() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_new_layer_at_an_index_rests_on_what_is_there() {
     let failures = case(
-        "node.create at an index",
+        "node.add at an index",
         |_| Value::Null,
-        |f, _| ("node.create", json!({"type":"ellipse","parent":f.destination,"index":0,"width":5,"height":5})),
-        |f, _| vec![("node.create", json!({"type":"rectangle","parent":f.destination,"index":0,"width":5,"height":5}))],
-        |f, _| vec![("node.create", json!({"type":"rectangle","parent":f.frame,"width":5,"height":5}))],
+        |f, _| ("node.add", json!({"type":"ellipse","parent":f.destination,"index":0,"width":5,"height":5})),
+        |f, _| vec![("node.add", json!({"type":"rectangle","parent":f.destination,"index":0,"width":5,"height":5}))],
+        |f, _| vec![("node.add", json!({"type":"rectangle","parent":f.frame,"width":5,"height":5}))],
     )
     .await;
     assert!(failures.is_empty(), "{failures:?}");
@@ -202,7 +202,7 @@ async fn empty_vector_cleanup_reads_the_network_and_not_appearance() {
     for command in ["vector.edit.end", "tool.rectangle", "tool.set", "edit.pickColor"] {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
-            let vector = prepare(&f, |d| d.execute("node.create", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
+            let vector = prepare(&f, |d| d.execute("node.add", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
             let basis = f.basis().await;
             if necessary {
                 f.colleague(&[("vector.edit.begin", json!({"ids":[vector]})), ("vector.edit.pen", json!({"x":510,"y":410}))]);
@@ -247,7 +247,7 @@ async fn dev_resources_read_the_list_and_not_sibling_order() {
 async fn global_text_refit_holds_the_text_membership() {
     let failures = case(
         "text.refit membership",
-        |f| prepare(f, |d| d.execute("text.create", json!({"parent":f.destination,"text":"Body"})).unwrap()["id"].clone()),
+        |f| prepare(f, |d| d.execute("text.add", json!({"parent":f.destination,"text":"Body"})).unwrap()["id"].clone()),
         |_, _| ("text.refit", json!({})),
         |_, text| vec![("edit.delete", json!({"ids":[text]}))],
         |f, _| vec![("object.rename", json!({"ids":[f.b],"name":"Unrelated"}))],
@@ -263,8 +263,8 @@ async fn binding_instance_opacity_holds_the_source_value() {
         |f| {
             prepare(f, |d| {
                 d.execute("node.set", json!({"id":f.instance,"props":{"opacity":0.3}})).unwrap();
-                let collection = d.execute("variable.createCollection", json!({"name":"Tokens"})).unwrap()["id"].clone();
-                d.execute("variable.create", json!({"collection":collection,"name":"Opacity","type":"number","value":0.5})).unwrap()["id"].clone()
+                let collection = d.execute("variable.addCollection", json!({"name":"Tokens"})).unwrap()["id"].clone();
+                d.execute("variable.add", json!({"collection":collection,"name":"Opacity","type":"number","value":0.5})).unwrap()["id"].clone()
             })
         },
         |f, variable| ("variable.bind", json!({"ids":[f.instance],"variable":variable,"field":"opacity"})),
@@ -322,11 +322,11 @@ async fn resizing_a_frame_reads_which_children_it_constrains() {
         |f, _| ("node.set", json!({"id":f.frame,"props":{"width":1000}})),
         |f, _| {
             vec![(
-                "node.create",
+                "node.add",
                 json!({"type":"rectangle","parent":f.frame,"width":20,"height":20,"props":{"constraints":{"horizontal":"right","vertical":"top"}}}),
             )]
         },
-        |f, _| vec![("node.create", json!({"type":"rectangle","parent":f.destination,"width":20,"height":20}))],
+        |f, _| vec![("node.add", json!({"type":"rectangle","parent":f.destination,"width":20,"height":20}))],
     )
     .await;
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -373,9 +373,9 @@ async fn removing_a_table_row_reads_its_place_and_not_its_text() {
 #[tokio::test(flavor = "multi_thread")]
 async fn styling_text_reads_its_size_and_not_its_transform() {
     let failures = case(
-        "text.bold size precision",
-        |f| prepare(f, |d| d.execute("text.create", json!({"parent":f.destination,"text":"Body"})).unwrap()["id"].clone()),
-        |_, text| ("text.bold", json!({"ids":[text]})),
+        "format.bold size precision",
+        |f| prepare(f, |d| d.execute("text.add", json!({"parent":f.destination,"text":"Body"})).unwrap()["id"].clone()),
+        |_, text| ("format.bold", json!({"ids":[text]})),
         |_, text| vec![("text.set", json!({"id":text,"characters":"Colleague"}))],
         |_, text| vec![("transform.move", json!({"ids":[text],"dx":20}))],
     )
@@ -386,23 +386,23 @@ async fn styling_text_reads_its_size_and_not_its_transform() {
 #[tokio::test(flavor = "multi_thread")]
 async fn text_size_changes_read_the_hug_parents_limits() {
     let failures = case(
-        "text.sizeUp parent limits",
+        "format.increaseFontSize parent limits",
         |f| {
             prepare(f, |d| {
-                let parent = d.execute("frame.create", json!({"parent":f.destination,"width":100,"height":100})).unwrap()["id"].clone();
+                let parent = d.execute("frame.add", json!({"parent":f.destination,"width":100,"height":100})).unwrap()["id"].clone();
                 d.execute("layout.add", json!({"ids":[parent],"direction":"horizontal"})).unwrap();
                 d.execute("node.set", json!({"id":parent,"props":{"sizingH":"hug","sizingV":"hug"}})).unwrap();
-                let text = d.execute("text.create", json!({"parent":parent,"text":"MMMMMMMMMMMM"})).unwrap()["id"].clone();
+                let text = d.execute("text.add", json!({"parent":parent,"text":"MMMMMMMMMMMM"})).unwrap()["id"].clone();
                 let width = |d: &DesignDocument| d.session().doc().unwrap().node(kition_design_doc::NodeId(parent.as_u64().unwrap())).unwrap().width;
                 let before = width(d);
-                d.execute("text.sizeUp", json!({"ids":[text]})).unwrap();
+                d.execute("format.increaseFontSize", json!({"ids":[text]})).unwrap();
                 let after = width(d);
                 d.execute("edit.undo", json!({})).unwrap();
                 assert!(after > before, "{before} -> {after}");
                 json!({"parent":parent,"text":text,"limit":(before+after)/2.0})
             })
         },
-        |_, made| ("text.sizeUp", json!({"ids":[made["text"]]})),
+        |_, made| ("format.increaseFontSize", json!({"ids":[made["text"]]})),
         |_, made| vec![("node.set", json!({"id":made["parent"],"props":{"maxWidth":made["limit"]}}))],
         |_, made| vec![("node.set", json!({"id":made["parent"],"props":{"opacity":0.5}}))],
     )
@@ -413,18 +413,18 @@ async fn text_size_changes_read_the_hug_parents_limits() {
 #[tokio::test(flavor = "multi_thread")]
 async fn inserted_vectors_and_images_read_the_parents_limits() {
     let mut failures = Vec::new();
-    for command in ["vector.create", "image.place"] {
+    for command in ["vector.add", "image.place"] {
         failures.extend(case(
             command,
             |f| prepare(f, |d| {
-                let parent = d.execute("frame.create", json!({"parent":f.destination,"width":100,"height":100})).unwrap()["id"].clone();
+                let parent = d.execute("frame.add", json!({"parent":f.destination,"width":100,"height":100})).unwrap()["id"].clone();
                 d.execute("layout.add", json!({"ids":[parent],"direction":"horizontal"})).unwrap();
                 d.execute("node.set", json!({"id":parent,"props":{"sizingH":"hug","sizingV":"hug"}})).unwrap();
                 d.execute("shape.rectangle", json!({"parent":parent,"width":50,"height":50})).unwrap();
                 let width = d.session().doc().unwrap().node(kition_design_doc::NodeId(parent.as_u64().unwrap())).unwrap().width;
-                json!({"parent":parent,"limit":width+if command == "vector.create" {50.0} else {1.0}})
+                json!({"parent":parent,"limit":width+if command == "vector.add" {50.0} else {1.0}})
             }),
-            |_, made| (command, if command == "vector.create" { json!({"parent":made["parent"],"path":"M0 0 L100 100"}) } else {
+            |_, made| (command, if command == "vector.add" { json!({"parent":made["parent"],"path":"M0 0 L100 100"}) } else {
                 json!({"parent":made["parent"],"data":"iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGP8z8DwnwEJMDGgAQBVBgICyX5rtAAAAABJRU5ErkJggg=="})
             }),
             |_, made| vec![("node.set", json!({"id":made["parent"],"props":{"maxWidth":made["limit"]}}))],
@@ -497,7 +497,7 @@ async fn a_saved_preset_holds_its_record_and_not_other_presets() {
 async fn a_vector_network_edit_does_not_hold_unread_appearance() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
-        let vector = prepare(&f, |d| id(&d.execute("vector.create", json!({"path":"M0 0 L40 0 L40 40","parent":f.destination})).unwrap()));
+        let vector = prepare(&f, |d| id(&d.execute("vector.add", json!({"path":"M0 0 L40 0 L40 40","parent":f.destination})).unwrap()));
         let basis = f.basis().await;
         if necessary {
             f.colleague(&[("vector.reverse", json!({"ids":[vector]}))]);

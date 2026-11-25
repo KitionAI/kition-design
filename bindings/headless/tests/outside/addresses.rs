@@ -83,34 +83,34 @@ fn expected(form: &str, change: &str, side: usize) -> Option<&'static str> {
 
 fn setup(f: &Fixture, form: &str) -> Value {
     rewrite(f, |d| {
-        let before = d.execute("instance.create", json!({"component":f.component,"parent":f.frame,"x":100,"y":150})).unwrap()["id"].clone();
-        let after = d.execute("instance.create", json!({"component":f.component,"parent":f.frame,"x":400,"y":150})).unwrap()["id"].clone();
+        let before = d.execute("instance.add", json!({"component":f.component,"parent":f.frame,"x":100,"y":150})).unwrap()["id"].clone();
+        let after = d.execute("instance.add", json!({"component":f.component,"parent":f.frame,"x":400,"y":150})).unwrap()["id"].clone();
         d.execute("node.reorder", json!({"id":before,"index":2})).unwrap();
         let mut mains = Vec::new();
         for i in 0..3 {
-            let main = d.execute("frame.create", json!({"name":"Source","x":1000+i*100,"width":40,"height":40})).unwrap()["id"].clone();
-            d.execute("component.create", json!({"ids":[main]})).unwrap();
+            let main = d.execute("frame.add", json!({"name":"Source","x":1000+i*100,"width":40,"height":40})).unwrap()["id"].clone();
+            d.execute("component.add", json!({"ids":[main]})).unwrap();
             mains.push(main);
         }
         let mut references = Vec::new();
         for main in &mains {
-            references.push(d.execute("instance.create", json!({"component":main,"parent":f.destination})).unwrap()["id"].clone());
+            references.push(d.execute("instance.add", json!({"component":main,"parent":f.destination})).unwrap()["id"].clone());
         }
         let mut variables = Vec::new();
         let mut collections = Vec::new();
         let mut styles = Vec::new();
         for i in 0..3 {
             let collection =
-                d.execute("variable.createCollection", json!({"name":format!("Collection{i}"),"modes":["Day","Night"]})).unwrap()["id"].clone();
-            let var = d.execute("variable.create", json!({"collection":collection,"name":format!("Count{i}"),"type":"number","value":0.5})).unwrap()
-                ["id"]
-                .clone();
+                d.execute("variable.addCollection", json!({"name":format!("Collection{i}"),"modes":["Day","Night"]})).unwrap()["id"].clone();
+            let var =
+                d.execute("variable.add", json!({"collection":collection,"name":format!("Count{i}"),"type":"number","value":0.5})).unwrap()["id"]
+                    .clone();
             variables.push(var);
             collections.push(collection);
-            styles.push(d.execute("style.create", json!({"type":"paint","name":format!("Style{i}"),"value":["#f00"]})).unwrap()["id"].clone());
+            styles.push(d.execute("style.add", json!({"type":"paint","name":format!("Style{i}"),"value":["#f00"]})).unwrap()["id"].clone());
         }
         let alias = d
-            .execute("variable.create", json!({"collection":collections[1],"name":"Alias","type":"number","value":{"alias":variables[1]}}))
+            .execute("variable.add", json!({"collection":collections[1],"name":"Alias","type":"number","value":{"alias":variables[1]}}))
             .unwrap()["id"]
             .clone();
         d.execute("component.addProperty", json!({"id":f.component,"name":"Swap","type":"instanceSwap","default":mains[1]})).unwrap();
@@ -144,9 +144,9 @@ fn change_file(f: &Fixture, s: &Value, form: &str, change: &str, side: usize) {
                     };
                     let mut p = props;
                     p["style"] = style.clone();
-                    run(d, "style.update", p);
+                    run(d, "style.set", p);
                     if change == "swap-names" {
-                        run(d, "style.create", json!({"type":"paint","name":format!("Style{side}"),"value":["#00f"]}));
+                        run(d, "style.add", json!({"type":"paint","name":format!("Style{side}"),"value":["#00f"]}));
                     }
                 } else {
                     let (cmd, mut p) = match (form, change) {
@@ -159,7 +159,7 @@ fn change_file(f: &Fixture, s: &Value, form: &str, change: &str, side: usize) {
                     if change == "swap-names" {
                         run(
                             d,
-                            "variable.create",
+                            "variable.add",
                             json!({"collection":s["collections"][side],"name":format!("Count{side}"),"type":"number","value":0.9}),
                         );
                     }
@@ -261,7 +261,7 @@ async fn rows(form: &'static str) -> (usize, usize, usize, usize, Vec<String>) {
                 "selection" => ("node.set", json!({"props":{"name":"Agent"}})),
                 "property-ref" => ("instance.setProperties", json!({"ids":[f.instance],"properties":{"Swap":s["mains"][1]}})),
                 "alias" => ("variable.bind", json!({"ids":[f.instance],"variable":s["alias"],"field":"opacity"})),
-                "style-name" => ("style.update", json!({"style":"Style1","description":"Agent"})),
+                "style-name" => ("style.set", json!({"style":"Style1","description":"Agent"})),
                 _ => panic!("unknown address form {form}"),
             };
             let answer = if form == "selection" {

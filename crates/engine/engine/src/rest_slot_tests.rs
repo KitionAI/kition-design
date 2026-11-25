@@ -70,7 +70,7 @@ fn rest_slot_content_survives_main_edits_moves_and_saving() {
     let title = doc.node(main).unwrap().children[0];
     ex(&mut s, "node.set", json!({"id": title, "props": {"fill": "#ff0000"}}));
     ex(&mut s, "node.set", json!({"id": main, "props": {"width": 320}}));
-    let holder = idv(&ex(&mut s, "frame.create", json!({"x": -1000, "y": 0, "width": 900, "height": 900, "name": "Design system"})));
+    let holder = idv(&ex(&mut s, "frame.add", json!({"x": -1000, "y": 0, "width": 900, "height": 900, "name": "Design system"})));
     ex(&mut s, "node.reparent", json!({"ids": [main, chip_main], "parent": holder}));
     healthy(&s);
     assert_eq!(slot_content(&s).1, want, "kept across syncs");

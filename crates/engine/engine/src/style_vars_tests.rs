@@ -35,24 +35,24 @@ fn style_fill(s: &Session, sid: &str) -> String {
 /// A Theme collection (Light, Dark) with a colour `bg` (white, black) and numbers `size` (16, 20)
 /// and `blur` (4, 12).
 fn theme(s: &mut Session) {
-    run(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#000000"}}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "size", "type": "number", "values": {"Light": 16, "Dark": 20}}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "blur", "type": "number", "values": {"Light": 4, "Dark": 12}}));
+    run(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#000000"}}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "size", "type": "number", "values": {"Light": 16, "Dark": 20}}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "blur", "type": "number", "values": {"Light": 4, "Dark": 12}}));
 }
 
 /// Two frames (the second set to Dark), a red rectangle in each, and a paint style "Surface"
 /// (red) both rectangles use.
 fn two_modes(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId, String) {
     theme(s);
-    let frame = |s: &mut Session, x: f64| id(run(s, "frame.create", json!({"x": x, "y": 0, "width": 100, "height": 100})));
+    let frame = |s: &mut Session, x: f64| id(run(s, "frame.add", json!({"x": x, "y": 0, "width": 100, "height": 100})));
     let (light, dark) = (frame(s, 0.0), frame(s, 200.0));
     run(s, "variable.setMode", json!({"ids": [dark], "collection": "Theme", "mode": "Dark"}));
     let rect = |s: &mut Session, f: NodeId| {
         id(run(s, "shape.rectangle", json!({"parent": f, "x": 10, "y": 10, "width": 40, "height": 40, "props": {"fill": "#FF0000"}})))
     };
     let (a, b) = (rect(s, light), rect(s, dark));
-    let sid = run(s, "style.create", json!({"type": "paint", "name": "Surface", "from": a}))["id"].as_str().unwrap().to_string();
+    let sid = run(s, "style.add", json!({"type": "paint", "name": "Surface", "from": a}))["id"].as_str().unwrap().to_string();
     run(s, "style.apply", json!({"ids": [b], "style": sid}));
     (light, dark, a, b, sid)
 }
@@ -98,7 +98,7 @@ fn editing_a_bound_style_or_its_users() {
     run(&mut s, "style.apply", json!({"ids": [b], "style": sid}));
     assert_eq!(fill(&s, b), "#000000");
     // A new value without the bound paint drops the binding with it.
-    run(&mut s, "style.update", json!({"style": sid, "value": []}));
+    run(&mut s, "style.set", json!({"style": sid, "value": []}));
     assert!(s.doc().unwrap().style(&sid).unwrap().bound.is_empty());
     assert!(node(&s, a).fills.is_empty() && node(&s, a).styles.fill == Some(sid));
 }
@@ -109,7 +109,7 @@ fn effect_grid_and_text_styles_take_variables_too() {
     let (_, dark, a, b, _) = two_modes(&mut s);
     // Effect: a layer blur's radius.
     run(&mut s, "effect.add", json!({"ids": [a], "type": "layerBlur"}));
-    let fx = run(&mut s, "style.create", json!({"type": "effect", "name": "Soft", "from": a}))["id"].as_str().unwrap().to_string();
+    let fx = run(&mut s, "style.add", json!({"type": "effect", "name": "Soft", "from": a}))["id"].as_str().unwrap().to_string();
     run(&mut s, "style.apply", json!({"ids": [b], "style": fx}));
     run(&mut s, "style.bind", json!({"style": fx, "field": "effects/0/radius", "variable": "blur"}));
     let radius = |s: &Session, n: NodeId| node(s, n).effects[0].blur().unwrap().radius;
@@ -118,14 +118,14 @@ fn effect_grid_and_text_styles_take_variables_too() {
     // Grid: the frames' layout grid size.
     let light = node(&s, a).parent.unwrap();
     run(&mut s, "grid.add", json!({"ids": [light]}));
-    let grid = run(&mut s, "style.create", json!({"type": "grid", "name": "Base", "from": light}))["id"].as_str().unwrap().to_string();
+    let grid = run(&mut s, "style.add", json!({"type": "grid", "name": "Base", "from": light}))["id"].as_str().unwrap().to_string();
     run(&mut s, "style.apply", json!({"ids": [dark], "style": grid}));
     run(&mut s, "style.bind", json!({"style": grid, "field": "layoutGrids/0/size", "variable": "size"}));
     assert_eq!((node(&s, light).grids[0].size, node(&s, dark).grids[0].size), (16.0, 20.0));
     // Text: the font size, for chars linked to the style.
-    let text = |s: &mut Session, f: NodeId| id(run(s, "text.create", json!({"text": "Hello", "x": 0, "y": 60, "parent": f})));
+    let text = |s: &mut Session, f: NodeId| id(run(s, "text.add", json!({"text": "Hello", "x": 0, "y": 60, "parent": f})));
     let (t1, t2) = (text(&mut s, light), text(&mut s, dark));
-    let body = run(&mut s, "style.create", json!({"type": "text", "name": "Body", "from": t1}))["id"].as_str().unwrap().to_string();
+    let body = run(&mut s, "style.add", json!({"type": "text", "name": "Body", "from": t1}))["id"].as_str().unwrap().to_string();
     run(&mut s, "style.apply", json!({"ids": [t2], "style": body}));
     run(&mut s, "style.bind", json!({"style": body, "field": "fontSize", "variable": "size"}));
     let size = |s: &Session, n: NodeId| node(s, n).kind.text().unwrap().style.font_size;
@@ -142,7 +142,7 @@ fn a_style_made_from_a_bound_layer_keeps_the_binding() {
     let r =
         id(run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 40, "props": {"fill": "#FF0000", "strokes": ["#00FF00"]}})));
     run(&mut s, "variable.bind", json!({"ids": [r], "field": "stroke", "variable": "bg"}));
-    let sid = run(&mut s, "style.create", json!({"type": "stroke", "name": "Edge", "from": r}))["id"].as_str().unwrap().to_string();
+    let sid = run(&mut s, "style.add", json!({"type": "stroke", "name": "Edge", "from": r}))["id"].as_str().unwrap().to_string();
     let st = s.doc().unwrap().style(&sid).unwrap().clone();
     assert_eq!(st.bound.keys().collect::<Vec<_>>(), ["fills/0/color"], "a paint style's paints are its fills");
     // The layer's own binding gave way to the style's.
@@ -187,11 +187,11 @@ fn style_fields_offer_their_properties_scopes() {
     let mut s = Session::new();
     let (_, _, a, _, sid) = two_modes(&mut s);
     run(&mut s, "effect.add", json!({"ids": [a], "type": "dropShadow"}));
-    let fx = run(&mut s, "style.create", json!({"type": "effect", "name": "Drop", "from": a}))["id"].as_str().unwrap().to_string();
+    let fx = run(&mut s, "style.add", json!({"type": "effect", "name": "Drop", "from": a}))["id"].as_str().unwrap().to_string();
     let light = node(&s, a).parent.unwrap();
     run(&mut s, "grid.add", json!({"ids": [light]}));
-    let grid = run(&mut s, "style.create", json!({"type": "grid", "name": "Base", "from": light}))["id"].as_str().unwrap().to_string();
-    let body = run(&mut s, "style.create", json!({"type": "text", "name": "Body", "value": {"fontFamily": "Inter", "fontSize": 14}}))["id"]
+    let grid = run(&mut s, "style.add", json!({"type": "grid", "name": "Base", "from": light}))["id"].as_str().unwrap().to_string();
+    let body = run(&mut s, "style.add", json!({"type": "text", "name": "Body", "value": {"fontFamily": "Inter", "fontSize": 14}}))["id"]
         .as_str()
         .unwrap()
         .to_string();

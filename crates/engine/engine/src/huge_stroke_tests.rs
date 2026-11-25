@@ -14,8 +14,8 @@ fn id(v: Value) -> NodeId {
 fn huge_stroke_weight_with_round_caps_still_saves_and_exports() {
     for weight in [1e6, 1e7, 1e10, 1e30] {
         let mut s = Session::new();
-        let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
-        let v = id(s.execute("vector.create", &json!({"parent": f, "path": "M0 0.8333 L7.5 6.25 L15 0.8333"})).unwrap());
+        let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+        let v = id(s.execute("vector.add", &json!({"parent": f, "path": "M0 0.8333 L7.5 6.25 L15 0.8333"})).unwrap());
         s.execute("node.set", &json!({"id": v, "props": {"stroke": "#ff0000", "strokeWeight": weight, "strokeCap": "round", "strokeJoin": "round"}}))
             .unwrap();
         let path = std::env::temp_dir().join(format!("kition-design-huge-stroke-{}-{weight}.kdesign", std::process::id()));

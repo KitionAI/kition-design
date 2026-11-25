@@ -20,38 +20,38 @@ fn run(s: &mut Session, cmd: &str, params: Value) -> Value {
 /// filling an auto layout frame and scaled; a theme with two modes bound to two frames, one of
 /// them dark and holding another instance; a paint style on a rectangle.
 fn build(s: &mut Session) {
-    let card = id(&run(s, "frame.create", json!({"x": 40, "y": 40, "width": 100, "height": 60, "name": "Card"})));
+    let card = id(&run(s, "frame.add", json!({"x": 40, "y": 40, "width": 100, "height": 60, "name": "Card"})));
     let boxed = json!({"fill": "#3B82F6", "name": "Box", "constraints": {"horizontal": "scale", "vertical": "scale"}});
     run(s, "shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 40, "parent": card, "props": boxed}));
-    let label = id(&run(s, "text.create", json!({"text": "Card", "x": 56, "y": 20, "parent": card, "props": {"name": "Label"}})));
-    run(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#111827"}}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "fg", "type": "color", "values": {"Light": "#111827", "Dark": "#F9FAFB"}}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "gap", "type": "number", "values": {"Light": 8, "Dark": 16}}));
+    let label = id(&run(s, "text.add", json!({"text": "Card", "x": 56, "y": 20, "parent": card, "props": {"name": "Label"}})));
+    run(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#111827"}}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "fg", "type": "color", "values": {"Light": "#111827", "Dark": "#F9FAFB"}}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "gap", "type": "number", "values": {"Light": 8, "Dark": 16}}));
     run(s, "variable.bind", json!({"ids": [card], "field": "fill", "variable": "bg"}));
     run(s, "variable.bind", json!({"ids": [label], "field": "fill", "variable": "fg"}));
-    let comp = id(&run(s, "component.create", json!({"ids": [card]})));
-    let same = id(&run(s, "instance.create", json!({"component": comp, "x": 200, "y": 40})));
+    let comp = id(&run(s, "component.add", json!({"ids": [card]})));
+    let same = id(&run(s, "instance.add", json!({"component": comp, "x": 200, "y": 40})));
     run(s, "node.set", json!({"ids": [same], "name": "Same"}));
-    let resized = id(&run(s, "instance.create", json!({"component": comp, "x": 360, "y": 40})));
+    let resized = id(&run(s, "instance.add", json!({"component": comp, "x": 360, "y": 40})));
     run(s, "node.set", json!({"ids": [resized], "name": "Resized", "width": 200, "height": 120}));
-    let row = id(&run(s, "frame.create", json!({"x": 40, "y": 220, "width": 400, "height": 100, "name": "Row"})));
+    let row = id(&run(s, "frame.add", json!({"x": 40, "y": 220, "width": 400, "height": 100, "name": "Row"})));
     run(s, "layout.add", json!({"ids": [row], "direction": "horizontal"}));
     run(s, "node.set", json!({"ids": [row], "width": 400, "height": 100, "sizingH": "fixed", "sizingV": "fixed"}));
     run(s, "variable.bind", json!({"ids": [row], "field": "gap", "variable": "gap"}));
-    let filling = id(&run(s, "instance.create", json!({"component": comp, "parent": row})));
+    let filling = id(&run(s, "instance.add", json!({"component": comp, "parent": row})));
     run(s, "node.set", json!({"ids": [filling], "name": "Filling", "sizingH": "fill", "sizingV": "fill"}));
-    let scaled = id(&run(s, "instance.create", json!({"component": comp, "x": 620, "y": 40})));
+    let scaled = id(&run(s, "instance.add", json!({"component": comp, "x": 620, "y": 40})));
     run(s, "node.set", json!({"ids": [scaled], "name": "Scaled"}));
     run(s, "transform.scale", json!({"ids": [scaled], "factor": 1.5}));
-    let dark = id(&run(s, "frame.create", json!({"x": 40, "y": 360, "width": 300, "height": 120, "name": "Dark"})));
+    let dark = id(&run(s, "frame.add", json!({"x": 40, "y": 360, "width": 300, "height": 120, "name": "Dark"})));
     run(s, "variable.bind", json!({"ids": [dark], "field": "fill", "variable": "bg"}));
     run(s, "variable.setMode", json!({"ids": [dark], "collection": "Theme", "mode": "Dark"}));
-    let inside = id(&run(s, "instance.create", json!({"component": comp, "parent": dark, "x": 20, "y": 20})));
+    let inside = id(&run(s, "instance.add", json!({"component": comp, "parent": dark, "x": 20, "y": 20})));
     run(s, "node.set", json!({"ids": [inside], "name": "In the dark"}));
     let swatch =
         id(&run(s, "shape.rectangle", json!({"x": 520, "y": 360, "width": 100, "height": 100, "props": {"fill": "#F59E0B", "name": "Swatch"}})));
-    run(s, "style.create", json!({"type": "paint", "name": "Brand/Accent", "from": swatch}));
+    run(s, "style.add", json!({"type": "paint", "name": "Brand/Accent", "from": swatch}));
     run(s, "style.apply", json!({"ids": [swatch], "style": "Brand/Accent"}));
 }
 
@@ -161,21 +161,21 @@ fn every_example_keeps_its_variables_and_styles() {
 fn nested_instances_of_variants_link_to_their_mains_layers() {
     let mut s = Session::new();
     let variant = |s: &mut Session, y: i64, fill: &str| {
-        let f = id(&run(s, "frame.create", json!({"x": 0, "y": y, "width": 120, "height": 80, "name": "Scene"})));
+        let f = id(&run(s, "frame.add", json!({"x": 0, "y": y, "width": 120, "height": 80, "name": "Scene"})));
         run(s, "node.set", json!({"ids": [f], "fill": fill}));
         run(s, "shape.ellipse", json!({"x": 70, "y": 10, "width": 30, "height": 30, "parent": f, "props": {"name": "Sun"}}));
-        id(&run(s, "component.create", json!({"ids": [f]})))
+        id(&run(s, "component.add", json!({"ids": [f]})))
     };
     let (day, dusk) = (variant(&mut s, 0, "#8FCDF2"), variant(&mut s, 120, "#4A3A8E"));
     run(&mut s, "node.set", json!({"ids": [day], "name": "Time=Day"}));
     run(&mut s, "node.set", json!({"ids": [dusk], "name": "Time=Dusk"}));
     run(&mut s, "component.combineVariants", json!({"ids": [day, dusk]}));
-    let card = id(&run(&mut s, "frame.create", json!({"x": 300, "y": 0, "width": 200, "height": 140, "name": "Card"})));
-    let photo = id(&run(&mut s, "instance.create", json!({"component": day, "parent": card, "x": 10, "y": 10})));
+    let card = id(&run(&mut s, "frame.add", json!({"x": 300, "y": 0, "width": 200, "height": 140, "name": "Card"})));
+    let photo = id(&run(&mut s, "instance.add", json!({"component": day, "parent": card, "x": 10, "y": 10})));
     run(&mut s, "node.set", json!({"ids": [photo], "name": "Photo", "width": 180, "height": 120}));
-    let card = id(&run(&mut s, "component.create", json!({"ids": [card]})));
-    let first = id(&run(&mut s, "instance.create", json!({"component": card, "x": 300, "y": 200})));
-    let second = id(&run(&mut s, "instance.create", json!({"component": card, "x": 600, "y": 200})));
+    let card = id(&run(&mut s, "component.add", json!({"ids": [card]})));
+    let first = id(&run(&mut s, "instance.add", json!({"component": card, "x": 300, "y": 200})));
+    let second = id(&run(&mut s, "instance.add", json!({"component": card, "x": 600, "y": 200})));
     run(&mut s, "node.set", json!({"ids": [first], "name": "First"}));
     run(&mut s, "node.set", json!({"ids": [second], "name": "Second"}));
     // The second one shows the other variant.

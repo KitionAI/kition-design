@@ -15,14 +15,14 @@ fn node(value: Value) -> NodeId {
 /// A component with "Hello" (chars 0..2 linked to a range style) and "World" (whole-layer style).
 fn fixture() -> (Session, NodeId, String, String) {
     let mut s = Session::new();
-    let frame = node(run(&mut s, "frame.create", json!({"name":"Card", "width":100, "height":40})));
-    let text = node(run(&mut s, "text.create", json!({"parent":frame, "text":"Hello"})));
-    let range = run(&mut s, "style.create", json!({"type":"text", "name":"Emphasis", "value":{"fontSize":32}}))["id"].as_str().unwrap().to_owned();
+    let frame = node(run(&mut s, "frame.add", json!({"name":"Card", "width":100, "height":40})));
+    let text = node(run(&mut s, "text.add", json!({"parent":frame, "text":"Hello"})));
+    let range = run(&mut s, "style.add", json!({"type":"text", "name":"Emphasis", "value":{"fontSize":32}}))["id"].as_str().unwrap().to_owned();
     run(&mut s, "style.apply", json!({"id":text, "style":range, "start":0, "end":2}));
-    let whole_text = node(run(&mut s, "text.create", json!({"parent":frame, "text":"World"})));
-    let whole = run(&mut s, "style.create", json!({"type":"text", "name":"Whole", "value":{"fontSize":24}}))["id"].as_str().unwrap().to_owned();
+    let whole_text = node(run(&mut s, "text.add", json!({"parent":frame, "text":"World"})));
+    let whole = run(&mut s, "style.add", json!({"type":"text", "name":"Whole", "value":{"fontSize":24}}))["id"].as_str().unwrap().to_owned();
     run(&mut s, "style.apply", json!({"id":whole_text, "style":whole}));
-    let component = node(run(&mut s, "component.create", json!({"ids":[frame]})));
+    let component = node(run(&mut s, "component.add", json!({"ids":[frame]})));
     let source = s.doc().unwrap().node(text).unwrap();
     let chars = source.kind.text().unwrap();
     assert!(source.styles.text.is_none());

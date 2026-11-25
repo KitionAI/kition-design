@@ -24,8 +24,8 @@ fn near(a: f64, b: f64) -> bool {
 /// and a vertical guide at 40.
 fn setup(rotation: f64) -> (Session, NodeId, NodeId) {
     let mut s = Session::new();
-    let frame = id(s.execute("node.create", &json!({"type": "frame", "x": 100, "y": 100, "width": 300, "height": 200})).unwrap());
-    let rect = id(s.execute("node.create", &json!({"type": "rectangle", "parent": frame, "x": 10, "y": 10, "width": 20, "height": 20})).unwrap());
+    let frame = id(s.execute("node.add", &json!({"type": "frame", "x": 100, "y": 100, "width": 300, "height": 200})).unwrap());
+    let rect = id(s.execute("node.add", &json!({"type": "rectangle", "parent": frame, "x": 10, "y": 10, "width": 20, "height": 20})).unwrap());
     s.execute("node.set", &json!({"id": frame, "props": {"rotation": rotation}})).unwrap();
     s.execute("guide.add", &json!({"frame": frame, "vertical": true, "offset": 40})).unwrap();
     (s, frame, rect)
@@ -134,7 +134,7 @@ fn moving_a_layer_in_a_rotated_frame_snaps_and_keeps_whole_pixels_there() {
 fn siblings_and_page_guides_line_up_inside_a_quarter_turned_frame() {
     let (mut s, frame, rect) = setup(90.0);
     let page = s.page().unwrap();
-    s.execute("node.create", &json!({"type": "rectangle", "parent": frame, "x": 120, "y": 60, "width": 30, "height": 30})).unwrap();
+    s.execute("node.add", &json!({"type": "rectangle", "parent": frame, "x": 120, "y": 60, "width": 30, "height": 30})).unwrap();
     // A page-vertical guide runs along the turned frame's x axis.
     s.execute("guide.add", &json!({"vertical": true, "offset": 250})).unwrap();
     let doc = s.doc().unwrap();

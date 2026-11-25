@@ -35,7 +35,7 @@ fn design() -> Design {
     let frame1 = inspected["tree"][0]["id"].as_u64().unwrap();
     let rect = |doc: &mut DesignDocument, parent: u64, name: &str, x: f64| {
         id_of(
-            &doc.execute("node.create", json!({ "type": "rectangle", "parent": parent, "x": x, "y": 20.5, "width": 40, "height": 40, "name": name }))
+            &doc.execute("node.add", json!({ "type": "rectangle", "parent": parent, "x": x, "y": 20.5, "width": 40, "height": 40, "name": name }))
                 .unwrap(),
         )
     };
@@ -44,7 +44,7 @@ fn design() -> Design {
     doc.execute("page.add", json!({ "name": "Second" })).unwrap();
     let page2 = doc.inspect().unwrap()["pages"][1]["id"].as_u64().unwrap();
     let frame2 = id_of(
-        &doc.execute("node.create", json!({ "type": "frame", "parent": page2, "x": 0, "y": 0, "width": 200, "height": 200, "name": "Frame 2" }))
+        &doc.execute("node.add", json!({ "type": "frame", "parent": page2, "x": 0, "y": 0, "width": 200, "height": 200, "name": "Frame 2" }))
             .unwrap(),
     );
     let c = rect(&mut doc, frame2, "C", 10.0);
@@ -90,7 +90,7 @@ fn editor_state_changes_nothing_in_what_an_agent_reads() {
     d.doc.execute("select.set", json!({ "ids": [d.c] })).unwrap();
     d.doc.execute("tool.ellipse", json!({})).unwrap();
     d.doc.set_viewport(30.0, 40.0, 640.0, 480.0, 0.5);
-    d.doc.execute("text.create", json!({ "text": "Hi", "x": 0, "y": 0, "parent": d.frame2 })).unwrap();
+    d.doc.execute("text.add", json!({ "text": "Hi", "x": 0, "y": 0, "parent": d.frame2 })).unwrap();
     let after_text = content(&d.doc);
     // Only the layer count and the page's layer list moved with the new text, never the editor.
     assert_ne!(before, after_text);
@@ -179,10 +179,8 @@ fn a_selection_command_driven_by_on_changes_exactly_those_layers() {
 fn an_agents_create_on_another_page_leaves_the_current_page() {
     let mut d = design();
     let before = editor(&d.doc);
-    let made = d
-        .doc
-        .execute_as("node.create", json!({ "type": "ellipse", "parent": d.frame2, "x": 5, "y": 5, "width": 10, "height": 10 }), &agent())
-        .unwrap();
+    let made =
+        d.doc.execute_as("node.add", json!({ "type": "ellipse", "parent": d.frame2, "x": 5, "y": 5, "width": 10, "height": 10 }), &agent()).unwrap();
     let made = id_of(&made);
     assert_eq!(d.doc.session().doc().unwrap().page_of(kition_design_doc::NodeId(made)), Some(kition_design_doc::NodeId(d.page2)));
     assert_eq!(editor(&d.doc), before);
@@ -219,7 +217,7 @@ fn create_then_act_in_one_run() {
     d.doc.set_context(&context(&[], Some(json!({ "pageId": d.page2 })))).unwrap();
     let made = id_of(
         &d.doc
-            .execute_as("node.create", json!({ "type": "rectangle", "parent": d.frame2, "x": 50.5, "y": 50, "width": 10, "height": 10 }), &agent())
+            .execute_as("node.add", json!({ "type": "rectangle", "parent": d.frame2, "x": 50.5, "y": 50, "width": 10, "height": 10 }), &agent())
             .unwrap(),
     );
     assert_eq!(d.doc.inspect().unwrap()["selection"], json!([made]), "what it made on the current page is the selection for the next step");

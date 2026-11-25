@@ -48,7 +48,7 @@ fn ring_over_a_rectangle(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
     let outer = ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 200, "height": 200}));
     let hole = ex(s, "shape.rectangle", json!({"x": 50, "y": 50, "width": 100, "height": 100}));
     let ring = ex(s, "bool.subtract", json!({"ids": [outer, hole]}));
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     no_snapping(s);
     (behind, ring, outer, hole)
 }
@@ -60,7 +60,7 @@ fn a_click_in_a_booleans_hole_goes_through_to_what_is_behind() {
     click(&mut s, 100.0, 100.0, false);
     assert_eq!(s.selection(), vec![behind], "the shape seen through the hole");
     // (Away from the selected rectangle's corner handles.)
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     click(&mut s, 145.0, 55.0, false);
     assert!(s.selection().is_empty(), "the hole's corner, with nothing behind it: nothing");
     click(&mut s, 25.0, 25.0, false);
@@ -75,7 +75,7 @@ fn a_click_in_a_booleans_hole_goes_through_to_what_is_behind() {
     s.pointer(&ev(PointerKind::DoubleClick, 100.0, 100.0, false)).unwrap();
     assert_eq!(s.selection(), vec![hole], "a double click enters the group");
     // "Select layer" doesn't list the ring in its hole.
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     let listed = s.execute("select.layersAt", &json!({"x": 100, "y": 100})).unwrap();
     let ids: Vec<NodeId> = listed["layers"].as_array().unwrap().iter().filter_map(|l| id_of(&l["id"])).collect();
     assert_eq!(ids, vec![behind]);
@@ -84,10 +84,10 @@ fn a_click_in_a_booleans_hole_goes_through_to_what_is_behind() {
 #[test]
 fn a_layer_dragged_in_a_group_stays_in_it() {
     let mut s = Session::new();
-    let frame = ex(&mut s, "frame.create", json!({"x": 400, "y": 0, "width": 300, "height": 300}));
+    let frame = ex(&mut s, "frame.add", json!({"x": 400, "y": 0, "width": 300, "height": 300}));
     let a = ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}));
     let b = ex(&mut s, "shape.rectangle", json!({"x": 100, "y": 0, "width": 50, "height": 50}));
-    let g = ex(&mut s, "object.group", json!({"ids": [a, b]}));
+    let g = ex(&mut s, "arrange.group", json!({"ids": [a, b]}));
     no_snapping(&mut s);
     // Into the frame, then out onto the empty page: the layer stays in its group each time.
     s.execute("select.set", &json!({"ids": [a]})).unwrap();
@@ -100,7 +100,7 @@ fn a_layer_dragged_in_a_group_stays_in_it() {
     assert_eq!((gb.x0, gb.y0, gb.x1, gb.y1), (100.0, 0.0, 250.0, 450.0), "the group's box follows its layers");
     // A layer that isn't in a group still drops into the frame.
     s.execute("select.set", &json!({"ids": [g]})).unwrap();
-    s.execute("object.ungroup", &json!({})).unwrap();
+    s.execute("arrange.ungroup", &json!({})).unwrap();
     s.execute("select.set", &json!({"ids": [a]})).unwrap();
     drag(&mut s, (225.0, 425.0), (525.0, 125.0));
     assert_eq!(parent(&s, a), Some(frame), "outside a group, a frame takes the drop");

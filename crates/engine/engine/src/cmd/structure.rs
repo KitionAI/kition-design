@@ -14,8 +14,8 @@ use crate::{EngineError, Result, Session, bad, spec};
 /// add/remove, move to page and vector path edits.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        spec!("object.group", "Group selection", "{ids?, name?}", true, |s, p| wrap(s, p, "object.group", Wrap::Group)),
-        spec!("object.ungroup", "Ungroup selection", "{ids?}", true, ungroup),
+        spec!("arrange.group", "Group selection", "{ids?, name?}", true, |s, p| wrap(s, p, "arrange.group", Wrap::Group)),
+        spec!("arrange.ungroup", "Ungroup selection", "{ids?}", true, ungroup),
         spec!("object.frameSelection", "Frame selection", "{ids?, name?}", true, |s, p| wrap(s, p, "object.frameSelection", Wrap::Frame)),
         spec!("object.removeFrame", "Remove frame", "{ids?}", true, ungroup),
         spec!(
@@ -322,7 +322,7 @@ fn convert_to_section(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn ungroup(s: &mut Session, p: &Value) -> Result<Value> {
-    let ids = req_targets("object.ungroup", s, p)?;
+    let ids = req_targets("arrange.ungroup", s, p)?;
     let doc = s.doc_mut()?;
     let mut out = Vec::new();
     for g in ids {

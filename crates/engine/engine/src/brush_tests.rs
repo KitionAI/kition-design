@@ -15,7 +15,7 @@ fn id(v: Value) -> NodeId {
 
 /// A 200-long horizontal vector with a 10 px black stroke.
 fn line(s: &mut Session) -> NodeId {
-    let v = id(s.execute("vector.create", &json!({"path": "M0 0 L200 0", "x": 0, "y": 0})).unwrap());
+    let v = id(s.execute("vector.add", &json!({"path": "M0 0 L200 0", "x": 0, "y": 0})).unwrap());
     s.execute("node.set", &json!({"id": v, "props": {"strokes": ["#000000"], "strokeWeight": 10, "strokeAlign": "center"}})).unwrap();
     v
 }

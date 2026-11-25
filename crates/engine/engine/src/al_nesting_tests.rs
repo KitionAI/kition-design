@@ -25,7 +25,7 @@ fn frame(s: &mut Session, parent: Option<NodeId>, x: f64, y: f64, w: f64, h: f64
     if let Some(parent) = parent {
         p["parent"] = json!(parent);
     }
-    id(s.execute("frame.create", &p).unwrap())
+    id(s.execute("frame.add", &p).unwrap())
 }
 
 fn set(s: &mut Session, node: NodeId, props: Value) {
@@ -97,7 +97,7 @@ fn nest(s: &mut Session) -> Nest {
     set(s, inner, json!({"padding": 10, "gap": 10}));
     s.execute("layout.add", &json!({"ids": [outer], "direction": "vertical"})).unwrap();
     set(s, outer, json!({"padding": 10, "gap": 10, "sizingH": "fixed", "width": 300}));
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     Nest { outer, a, b, inner, x, y }
 }
 
@@ -170,7 +170,7 @@ fn the_dragged_frame_never_receives_itself_and_plain_frames_in_a_flow_are_items(
     let list = frame(&mut s, None, 500.0, 0.0, 200.0, 400.0);
     let cards: Vec<NodeId> = (0..3).map(|i| frame(&mut s, Some(list), 0.0, i as f64 * 70.0, 150.0, 60.0)).collect();
     s.execute("layout.add", &json!({"ids": [list], "direction": "vertical"})).unwrap();
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     let card0 = bounds(&s, cards[0]);
     let grab = Point::new(bounds(&s, cards[2]).x0 + 3.0, bounds(&s, cards[2]).y0 + 3.0);
     let to = Point::new(card0.center().x, card0.y0 + 5.0);
@@ -210,7 +210,7 @@ fn slots_skip_children_that_ignore_auto_layout() {
     let hidden = rect(&mut s, Some(row), 0.0, 0.0, 20.0, 20.0);
     set(&mut s, hidden, json!({"visible": false}));
     s.execute("node.reorder", &json!({"id": hidden, "index": 0})).unwrap();
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     assert_eq!(kids(&s, row), vec![hidden, badge, a, b]);
     // b goes before a: the line sits at a's left edge, not at the badge or the hidden layer.
     let a_left = bounds(&s, a).x0;
@@ -231,7 +231,7 @@ fn drag_out_of_auto_layout_to_the_canvas_or_a_plain_frame() {
     let n = nest(&mut s);
     set(&mut s, n.a, json!({"sizingH": "fill"}));
     let plain = frame(&mut s, None, 600.0, 0.0, 300.0, 300.0);
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     // Exact drop points (no snapping to the other layers' edges).
     s.ds_mut().unwrap().view.snap_objects = false;
     // Onto the empty canvas: a free layer on the page where it was dropped.
@@ -267,7 +267,7 @@ fn a_free_layer_dropped_into_auto_layout_takes_the_slot_under_the_pointer() {
     let mut s = Session::new();
     let n = nest(&mut s);
     let free = rect(&mut s, None, 600.0, 600.0, 30.0, 30.0);
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     // Before b, not appended at the end.
     let to = Point::new(bounds(&s, n.b).x0 + 5.0, bounds(&s, n.b).y0 + 5.0);
     let from = bounds(&s, free).center();
@@ -308,7 +308,7 @@ fn fill_text_in_a_hugging_card_sets_the_height_in_one_step() {
     let mut s = Session::new();
     let card = frame(&mut s, None, 0.0, 0.0, 160.0, 50.0);
     let t = id(s
-        .execute("text.create", &json!({"text": "A fairly long line of text that has to wrap inside the card", "x": 0, "y": 0, "parent": card}))
+        .execute("text.add", &json!({"text": "A fairly long line of text that has to wrap inside the card", "x": 0, "y": 0, "parent": card}))
         .unwrap());
     s.execute("layout.add", &json!({"ids": [card], "direction": "vertical"})).unwrap();
     set(&mut s, card, json!({"padding": 10, "sizingH": "fixed", "width": 160}));

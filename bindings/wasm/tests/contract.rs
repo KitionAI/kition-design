@@ -90,8 +90,8 @@ fn saving_writes_kdesign_and_leaves_the_document_dirty_until_marked() {
     let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
     assert!(!doc.dirty());
     doc.execute("object.toggleVisible", json!({})).ok();
-    doc.execute("select.all", json!({})).unwrap();
-    doc.execute("object.group", json!({})).unwrap();
+    doc.execute("edit.selectAll", json!({})).unwrap();
+    doc.execute("arrange.group", json!({})).unwrap();
     assert!(doc.dirty());
     let bytes = doc.save_file(Some("Design.kdesign")).unwrap();
     assert_eq!(&bytes[..2], b"PK", "a .kdesign is a zip");
@@ -213,8 +213,8 @@ fn undo_and_redo_take_a_scope() {
 fn check_reports_missing_components_and_empty_layers() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     assert!(doc.check().is_empty() || doc.check().iter().all(|d| d.code != "design.missing-component"));
-    doc.execute("text.create", json!({ "text": " ", "x": 10, "y": 10 })).unwrap();
-    doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 50, "height": 50, "props": { "fills": [] } })).unwrap();
+    doc.execute("text.add", json!({ "text": " ", "x": 10, "y": 10 })).unwrap();
+    doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 50, "height": 50, "props": { "fills": [] } })).unwrap();
     let codes: Vec<String> = doc.check().into_iter().map(|d| d.code).collect();
     assert!(codes.contains(&"design.empty-text".to_owned()), "{codes:?}");
     assert!(codes.contains(&"design.empty-frame".to_owned()), "{codes:?}");

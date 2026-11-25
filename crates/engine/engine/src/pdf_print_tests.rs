@@ -11,7 +11,7 @@ use crate::params::id_of;
 /// A session with a 200 × 100 frame (selected).
 fn session() -> (Session, NodeId) {
     let mut s = Session::new();
-    let r = s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Poster"})).unwrap();
+    let r = s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Poster"})).unwrap();
     let f = id_of(&r["id"]).unwrap();
     s.set_selection(vec![f]);
     (s, f)
@@ -64,7 +64,7 @@ fn export_settings_keep_print_options() {
     s.execute("export.add", &json!({"ids": [f], "setting": {"format": "pdf", "bleed": "3mm", "cmyk": true}})).unwrap();
     let print = |s: &Session| s.doc().unwrap().node(f).unwrap().exports[0].print;
     assert!((print(&s).bleed - 72.0 / 25.4 * 3.0).abs() < 1e-9 && print(&s).cmyk && !print(&s).crop_marks);
-    s.execute("export.update", &json!({"ids": [f], "index": 0, "cropMarks": true})).unwrap();
+    s.execute("export.set", &json!({"ids": [f], "index": 0, "cropMarks": true})).unwrap();
     assert!(print(&s).crop_marks && print(&s).cmyk, "the rest stays");
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(!print(&s).crop_marks);
@@ -83,7 +83,7 @@ fn export_settings_keep_print_options() {
 #[test]
 fn the_frames_pdf_takes_print_options() {
     let (mut s, _) = session();
-    s.execute("frame.create", &json!({"x": 300, "y": 0, "width": 50, "height": 50, "name": "Card"})).unwrap();
+    s.execute("frame.add", &json!({"x": 300, "y": 0, "width": 50, "height": 50, "name": "Card"})).unwrap();
     let r = s.execute("file.exportFramesPdf", &json!({"bleed": "3mm", "bleedMarks": true})).unwrap();
     assert_eq!(r["pages"], json!(2));
     let t = pdf_text(&r);

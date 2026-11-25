@@ -12,20 +12,20 @@ use crate::collab::EngineRecompute;
 /// A starting file: a frame with a few layers and some text.
 pub(crate) fn base() -> Document {
     let mut s = Session::new();
-    let f = s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap()["id"].clone();
+    let f = s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap()["id"].clone();
     for i in 0..3 {
         s.execute("shape.rectangle", &json!({"x": 20 + i * 60, "y": 20, "width": 50, "height": 40, "parent": f})).unwrap();
     }
-    s.execute("text.create", &json!({"text": "Hello", "x": 20, "y": 100, "parent": f})).unwrap();
+    s.execute("text.add", &json!({"text": "Hello", "x": 20, "y": 100, "parent": f})).unwrap();
     s.execute("shape.ellipse", &json!({"x": 500, "y": 0, "width": 80, "height": 80})).unwrap();
     // A component with an instance (instances follow edits of their main) and variables to bind.
-    let card = s.execute("frame.create", &json!({"x": 0, "y": 400, "width": 120, "height": 80})).unwrap()["id"].clone();
+    let card = s.execute("frame.add", &json!({"x": 0, "y": 400, "width": 120, "height": 80})).unwrap()["id"].clone();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 410, "width": 30, "height": 30, "parent": card})).unwrap();
-    let main = s.execute("component.create", &json!({"ids": [card]})).unwrap()["id"].clone();
-    s.execute("instance.create", &json!({"component": main, "x": 200, "y": 400})).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Tokens"})).unwrap();
+    let main = s.execute("component.add", &json!({"ids": [card]})).unwrap()["id"].clone();
+    s.execute("instance.add", &json!({"component": main, "x": 200, "y": 400})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Tokens"})).unwrap();
     for v in 0..4 {
-        s.execute("variable.create", &json!({"collection": "Tokens", "name": format!("v{v}"), "type": "color", "value": "#3366FF"})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Tokens", "name": format!("v{v}"), "type": "color", "value": "#3366FF"})).unwrap();
     }
     s.doc().unwrap().clone()
 }
@@ -49,22 +49,22 @@ pub(crate) fn random_command(doc: &Document, rng: &mut Rng, with_undo: bool) -> 
         0 | 1 => {
             ("shape.rectangle", json!({"x": x, "y": y, "width": 10 + rng.below(90), "height": 10 + rng.below(90), "parent": one(&containers, rng)}))
         }
-        2 => ("frame.create", json!({"x": x, "y": y, "width": 100 + rng.below(200), "height": 100 + rng.below(200)})),
-        3 => ("text.create", json!({"text": format!("Text {}", rng.below(100)), "x": x, "y": y, "parent": one(&frames, rng)})),
+        2 => ("frame.add", json!({"x": x, "y": y, "width": 100 + rng.below(200), "height": 100 + rng.below(200)})),
+        3 => ("text.add", json!({"text": format!("Text {}", rng.below(100)), "x": x, "y": y, "parent": one(&frames, rng)})),
         4 | 5 => ("transform.move", json!({"ids": [one(&layers, rng)], "dx": rng.below(41) as f64 - 20.0, "dy": rng.below(41) as f64 - 20.0})),
         6 => ("transform.resize", json!({"ids": [one(&layers, rng)], "width": 5 + rng.below(200), "height": 5 + rng.below(200)})),
         7 | 8 => ("node.reparent", json!({"ids": [one(&layers, rng)], "parent": one(&containers, rng)})),
         9 => ("node.reorder", json!({"id": one(&layers, rng), "index": rng.below(4)})),
         10 => ("edit.delete", json!({"ids": [one(&layers, rng)]})),
         11 => ("edit.duplicate", json!({"ids": [one(&layers, rng)]})),
-        12 => ("object.group", json!({"ids": [one(&layers, rng), one(&layers, rng)]})),
-        13 => ("object.ungroup", json!({"ids": [one(&layers, rng)]})),
+        12 => ("arrange.group", json!({"ids": [one(&layers, rng), one(&layers, rng)]})),
+        13 => ("arrange.ungroup", json!({"ids": [one(&layers, rng)]})),
         14 => ("layout.add", json!({"ids": [one(&frames, rng)]})),
         15 => ("node.set", json!({"id": one(&frames, rng), "props": {"padding": rng.below(30), "itemSpacing": rng.below(20)}})),
-        16 => ("component.create", json!({"ids": [one(&layers, rng)]})),
-        17 => ("instance.create", json!({"component": one(&components, rng), "x": x, "y": y})),
+        16 => ("component.add", json!({"ids": [one(&layers, rng)]})),
+        17 => ("instance.add", json!({"component": one(&components, rng), "x": x, "y": y})),
         18 => ("fill.set", json!({"ids": [one(&layers, rng)], "color": color(rng)})),
-        19 => ("style.create", json!({"type": "paint", "name": format!("Color {}", rng.below(5)), "from": one(&layers, rng)})),
+        19 => ("style.add", json!({"type": "paint", "name": format!("Color {}", rng.below(5)), "from": one(&layers, rng)})),
         20 => ("style.apply", json!({"ids": [one(&layers, rng)], "style": format!("Color {}", rng.below(5))})),
         21 => ("text.set", json!({"id": one(&texts, rng), "characters": format!("Typed {}", rng.below(1000))})),
         22 => match rng.below(3) {
@@ -76,8 +76,8 @@ pub(crate) fn random_command(doc: &Document, rng: &mut Rng, with_undo: bool) -> 
         23 => ("object.moveToPage", json!({"ids": [one(&layers, rng)], "page": one(&doc.pages, rng)})),
         24 => ("comment.add", json!({"x": x, "y": y, "text": "Looks good", "page": one(&doc.pages, rng)})),
         25 => match rng.below(3) {
-            0 => ("variable.createCollection", json!({"name": "Tokens"})),
-            1 => ("variable.create", json!({"collection": "Tokens", "name": format!("v{}", rng.below(4)), "type": "color", "value": color(rng)})),
+            0 => ("variable.addCollection", json!({"name": "Tokens"})),
+            1 => ("variable.add", json!({"collection": "Tokens", "name": format!("v{}", rng.below(4)), "type": "color", "value": color(rng)})),
             _ => ("variable.bind", json!({"ids": [one(&layers, rng)], "field": "fill", "variable": format!("v{}", rng.below(4))})),
         },
         26 => ("effect.add", json!({"ids": [one(&layers, rng)], "type": "dropShadow"})),

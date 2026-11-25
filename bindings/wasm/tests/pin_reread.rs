@@ -12,7 +12,7 @@ const FILE: &str = "Reread.kdesign";
 
 fn rectangle(doc: &mut DesignDocument, name: &str, x: f64) -> Value {
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    doc.execute("node.create", json!({"type":"rectangle","parent":frame,"name":name,"x":x,"y":20,"width":40,"height":40})).unwrap()["id"].clone()
+    doc.execute("node.add", json!({"type":"rectangle","parent":frame,"name":name,"x":x,"y":20,"width":40,"height":40})).unwrap()["id"].clone()
 }
 
 /// `live`'s file as another program saved it after `edit`, read again.

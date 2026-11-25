@@ -63,7 +63,7 @@ fn scene() -> (Session, NodeId, NodeId) {
     kition_design_text::scan_system_fonts();
     let mut s = Session::new();
     let r = id(&ex(&mut s, "shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})));
-    let t = id(&ex(&mut s, "text.create", json!({"text": "Hello", "x": 400, "y": 100, "props": {"fontSize": 40}})));
+    let t = id(&ex(&mut s, "text.add", json!({"text": "Hello", "x": 400, "y": 100, "props": {"fontSize": 40}})));
     ex(&mut s, "select.set", json!({"ids": [r]}));
     (s, r, t)
 }
@@ -197,10 +197,10 @@ fn gestures_show_what_they_are_doing() {
 #[test]
 fn an_edit_an_instance_refuses_shows_not_allowed_and_is_undone() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 200})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 200})));
     ex(&mut s, "shape.rectangle", json!({"x": 50, "y": 50, "width": 100, "height": 100, "parent": f}));
-    let main = id(&ex(&mut s, "component.create", json!({"ids": [f]})));
-    let inst = id(&ex(&mut s, "instance.create", json!({"component": main, "x": 400, "y": 0})));
+    let main = id(&ex(&mut s, "component.add", json!({"ids": [f]})));
+    let inst = id(&ex(&mut s, "instance.add", json!({"component": main, "x": 400, "y": 0})));
     // The rectangle inside the instance: (450,50)–(550,150).
     let inner = s.doc().unwrap().node(inst).unwrap().children[0];
     let before = s.doc().unwrap().world_bounds(inner).unwrap();
@@ -262,7 +262,7 @@ fn the_pen_shows_what_a_click_would_do() {
     }
     s.escape().unwrap();
     // With an open path selected, its end points go on with it.
-    let path = id(&ex(&mut s, "vector.create", json!({"points": [[400, 100], [500, 100], [500, 200]], "closed": false})));
+    let path = id(&ex(&mut s, "vector.add", json!({"points": [[400, 100], [500, 100], [500, 200]], "closed": false})));
     ex(&mut s, "select.set", json!({"ids": [path]}));
     s.set_tool(ToolId::Pen);
     assert_eq!(hover(&mut s, (500.0, 200.0), NONE), Cursor::Pen(PenCursor::Close), "an end point of the selected open path");
@@ -272,7 +272,7 @@ fn the_pen_shows_what_a_click_would_do() {
 #[test]
 fn vector_edit_mode_shows_each_tool_and_modifier() {
     let mut s = Session::new();
-    let path = id(&ex(&mut s, "vector.create", json!({"points": [[100, 100], [300, 100], [300, 300]], "closed": false})));
+    let path = id(&ex(&mut s, "vector.add", json!({"points": [[100, 100], [300, 100], [300, 300]], "closed": false})));
     ex(&mut s, "vector.edit.begin", json!({"id": path}));
     let (point, segment, midpoint, empty) = ((300.0, 100.0), (150.0, 100.0), (200.0, 100.0), (200.0, 250.0));
     use Cursor::*;

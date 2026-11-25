@@ -45,15 +45,15 @@ fn text_made_by_commands_is_readable_on_its_page() {
             ex(&mut s, "page.setBackground", json!({"color": c}));
         }
         let made = [
-            ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 0})),
-            ex(&mut s, "node.create", json!({"type": "text", "text": "Hi", "x": 0, "y": 40})),
-            ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 80, "props": {"fontSize": 20}})),
+            ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 0})),
+            ex(&mut s, "node.add", json!({"type": "text", "text": "Hi", "x": 0, "y": 40})),
+            ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 80, "props": {"fontSize": 20}})),
         ];
         for m in &made {
             assert_eq!(&fills(&s, m), want, "{why}");
         }
         // A fill that is asked for is the fill.
-        let red = ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 120, "props": {"fill": "#FF0000"}}));
+        let red = ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 120, "props": {"fill": "#FF0000"}}));
         assert_eq!(fills(&s, &red), vec![Paint::solid(Color::from_hex("#FF0000").unwrap())], "{why}: a named fill");
         // Other layers keep their defaults.
         let rect = ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 200, "width": 10, "height": 10}));
@@ -72,7 +72,7 @@ fn text_in_a_frame_is_readable_on_the_frame() {
         if let Some(parent) = parent {
             p["parent"] = json!(parent);
         }
-        let f = id_of(&ex(s, "frame.create", p)["id"]).unwrap();
+        let f = id_of(&ex(s, "frame.add", p)["id"]).unwrap();
         if let Some(fills) = fills {
             ex(s, "node.set", json!({"id": f, "props": {"fills": fills}}));
         }
@@ -93,7 +93,7 @@ fn text_in_a_frame_is_readable_on_the_frame() {
         (stacked, &black, "the fill on top counts"),
     ];
     for (parent, want, why) in cases {
-        let t = ex(&mut s, "text.create", json!({"text": "Hi", "x": 10, "y": 10, "parent": parent}));
+        let t = ex(&mut s, "text.add", json!({"text": "Hi", "x": 10, "y": 10, "parent": parent}));
         assert_eq!(&fills(&s, &t), want, "{why}");
     }
     // The Text tool reads it the same way.
@@ -106,7 +106,7 @@ fn text_in_a_frame_is_readable_on_the_frame() {
     let typed = s.ds().unwrap().text_edit.as_ref().unwrap().id;
     assert_eq!(s.doc().unwrap().node(typed).unwrap().fills, black, "the Text tool in a white frame");
     crate::textedit::end(&mut s).unwrap();
-    let t = ex(&mut s, "text.create", json!({"text": "Hi", "x": 10, "y": 10, "parent": light}));
+    let t = ex(&mut s, "text.add", json!({"text": "Hi", "x": 10, "y": 10, "parent": light}));
     ex(&mut s, "edit.undo", json!({}));
     assert!(s.doc().unwrap().node(id_of(&t["id"]).unwrap()).is_none());
 }

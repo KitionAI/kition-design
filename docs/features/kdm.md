@@ -167,7 +167,7 @@ writer control. `outside.rs::fixed_seed_mixed_table` adds 200 independent writes
 | Editor tools, view, fonts and saved defaults | No complete family audit | View/preference/tool-state commands do not write the file. Tool-driven pointer mutation beyond `tool.place` and the board tools, and saved-default dependencies, are not audited. |
 
 Propagation: `review2.rs::propagated_writes_hold_sources_and_report_targets`
-checks five propagating writes (`style.update` to users, `variable.set` to bound layers, a
+checks five propagating writes (`style.set` to users, `variable.set` to bound layers, a
 main's layer to instance copies, an auto layout child's width to siblings, a frame's width to a
 `scale`-constrained child). A colleague's change of the source (the style/variable value, the
 main's layer, the parent's spacing, the child's constraints) refuses; a colleague's edit of a

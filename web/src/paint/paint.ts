@@ -1,7 +1,7 @@
 /**
  * Paints as the engine's JSON gives them (`query('selection')` nodes, `selectionColors`, styles)
  * read into one shape the panels work with, and written back as the `paint` that `fill.set`,
- * `stroke.set`, `selection.setPaint` and `text.style` take.
+ * `stroke.set`, `select.setPaint` and `text.style` take.
  */
 import { BLACK, type Color, color as makeColor, cssColor, lerp, readColor, toCssHex, toHex, withAlpha } from './color'
 

@@ -11,8 +11,8 @@ fn links_archives_and_junk() {
     assert_eq!(shown_path("/kits/token=ui.kdesign"), "/kits/token=ui.kdesign", "files are shown as they are");
 
     let mut s = Session::new();
-    let f = s.execute("frame.create", &serde_json::json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
-    s.execute("component.create", &serde_json::json!({"ids": [f["id"]]})).unwrap();
+    let f = s.execute("frame.add", &serde_json::json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": "Chip"})).unwrap();
+    s.execute("component.add", &serde_json::json!({"ids": [f["id"]]})).unwrap();
     s.execute("library.publish", &serde_json::json!({})).unwrap();
     let lib = s.doc().unwrap().published.clone().unwrap();
     let back = read_archive(&archive(&lib).unwrap()).unwrap();

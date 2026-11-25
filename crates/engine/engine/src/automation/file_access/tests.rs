@@ -225,11 +225,11 @@ fn commands_run_confined_read_and_write_only_inside() {
     // Unconfined, the outside is writable: the bait files a confined command must not reach.
     let bait = f.p("outside/bait.kdesign");
     let mut s = Session::new();
-    s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
+    s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
     s.execute("file.saveAs", &json!({"path": bait})).unwrap();
     std::fs::copy(&bait, f.0.join("outside/readable/ok.kdesign")).unwrap();
     let mut s = Session::new();
-    s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
+    s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
     s.prefs.recent_files = vec![bait.clone(), f.p("root/in.txt")];
     confined(Some(&roots), || {
         let e = s.execute("file.export", &json!({"format": "png", "path": f.p("outside/x.png")})).unwrap_err().to_string();
@@ -260,7 +260,7 @@ fn no_command_reaches_outside_the_roots() {
     // Bait the sweep could pick up: a document, an SVG, a PNG and variables JSON, each holding a
     // name that must never show up in a document or a result.
     let mut s = Session::new();
-    s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 20, "height": 10, "name": "BAIT-LAYER"})).unwrap();
+    s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 20, "height": 10, "name": "BAIT-LAYER"})).unwrap();
     s.execute("file.saveAs", &json!({"path": f.p("outside/bait.kdesign")})).unwrap();
     s.execute("file.export", &json!({"format": "png", "path": f.p("outside/bait.png")})).unwrap();
     std::fs::write(
@@ -301,7 +301,7 @@ fn recent_files_outside_the_roots_are_never_opened_removed_or_named() {
     let roots = Arc::new(f.rw());
     let (bait, gone, ok) = (f.p("outside/bait.kdesign"), f.p("outside/gone.kdesign"), f.p("root/ok.kdesign"));
     let mut s = Session::new();
-    s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
+    s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 20, "height": 10})).unwrap();
     s.execute("file.saveAs", &json!({"path": bait})).unwrap();
     s.execute("file.saveAs", &json!({"path": ok})).unwrap();
     let mut s = Session::new();

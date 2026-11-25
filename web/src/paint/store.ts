@@ -7,7 +7,7 @@
 import { useSyncExternalStore } from 'react'
 import { type Color, sameColor } from './color'
 
-/** One frozen paint slot of `selection.colors` (`PaintTarget`). */
+/** One frozen paint slot of `select.colors` (`PaintTarget`). */
 export type PaintSlot = { id: number; fills: boolean; index: number; range: [number, number] | null } & Record<string, unknown>
 
 export type PickerTarget =

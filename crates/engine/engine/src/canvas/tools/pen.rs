@@ -274,7 +274,7 @@ impl Session {
             props["brush"] = serde_json::to_value(b).unwrap_or_default();
         }
         self.execute(
-            "node.create",
+            "node.add",
             &json!({"type": "vector", "path": local.to_svg(), "closed": false, "parent": parent, "name": "Vector", "props": props}),
         )?;
         Ok(())

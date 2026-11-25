@@ -584,7 +584,7 @@ fn object(rest: &mut Rest<'_>) {
                 }
             }
         }
-        "object.frameSelection" | "object.group" | "object.wrapInSection" => wrap(rest, &targets, false),
+        "object.frameSelection" | "arrange.group" | "object.wrapInSection" => wrap(rest, &targets, false),
         "object.mask" if targets.len() > 1 => wrap(rest, &targets, true),
         "object.mask" | "object.releaseMask" => {
             // Toggles or clears the mask flag (`cmd/structure.rs:57,358`).
@@ -593,7 +593,7 @@ fn object(rest: &mut Rest<'_>) {
                 set(rest, narrowed, target, &["props.is_mask"], false);
             }
         }
-        "object.ungroup" | "object.removeFrame" => {
+        "arrange.ungroup" | "object.removeFrame" => {
             // Children go to the container's parent at its index, world places kept, its opacity
             // multiplied in (`cmd/structure.rs:324`).
             let narrowed = clear(rest, &targets);
@@ -775,7 +775,7 @@ fn wrap(rest: &mut Rest<'_>, targets: &[NodeId], mask: bool) {
         }
         let fields: &[&str] = if mask && Some(target) == bottom { &["frame", "props.is_mask"] } else { &["frame"] };
         placed(rest, target, fields);
-        if rest.command == "object.group" {
+        if rest.command == "arrange.group" {
             // cmd/structure.rs:174 refuses sections even when their box is unchanged.
             rest.need(target.0, &["kind"], false);
         }

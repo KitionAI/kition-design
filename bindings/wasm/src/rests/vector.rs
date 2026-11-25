@@ -64,7 +64,7 @@ pub(super) fn rest(rest: &mut Rest<'_>) {
             let targets = rest.targets();
             boolean(rest, &targets, command == "bool.subtract");
         }
-        "vector.create" => create(rest),
+        "vector.add" => create(rest),
         "vector.edit.begin" => {
             let targets = rest.targets();
             begin(rest, &targets);
@@ -254,7 +254,7 @@ fn boolean(rest: &mut Rest<'_>, targets: &[NodeId], subtract: bool) {
     }
 }
 
-/// `vector.create`: on the current page, or in `parent` (re-flowed when it has auto layout, its
+/// `vector.add`: on the current page, or in `parent` (re-flowed when it has auto layout, its
 /// transform chain when it is a group) (`cmd/create.rs:283-332`, `derived.rs:104`).
 fn create(rest: &mut Rest<'_>) {
     reset(rest);

@@ -47,13 +47,13 @@ fn extended_collections_override_follow_updates_and_reset() {
     std::fs::create_dir_all(&d).unwrap();
     let lib_path = d.join("theme.kdesign").to_string_lossy().into_owned();
     let mut lib = Session::new();
-    ex(&mut lib, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(&mut lib, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
     ex(
         &mut lib,
-        "variable.create",
+        "variable.add",
         json!({"collection": "Theme", "name": "primary", "type": "color", "values": {"Light": "#0000ff", "Dark": "#ffffff"}}),
     );
-    ex(&mut lib, "variable.create", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
+    ex(&mut lib, "variable.add", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
     let lid = ex(&mut lib, "library.publish", json!({}))["id"].as_str().unwrap().to_string();
     ex(&mut lib, "file.saveAs", json!({"path": lib_path}));
 
@@ -83,7 +83,7 @@ fn extended_collections_override_follow_updates_and_reset() {
     ex(&mut s, "variable.setMode", json!({"ids": [r], "collection": ext, "mode": "Dark"}));
     assert_eq!(fill_hex(&s, r), "FF0000");
     // Variables of its own are fine; modes and inherited names and variables aren't its to change.
-    ex(&mut s, "variable.create", json!({"collection": ext, "name": "extra", "type": "number", "value": 1}));
+    ex(&mut s, "variable.add", json!({"collection": ext, "name": "extra", "type": "number", "value": 1}));
     for (cmd, p) in [
         ("variable.addMode", json!({"collection": ext, "name": "Dim"})),
         ("variable.renameMode", json!({"collection": ext, "mode": "Dark", "name": "Night"})),
@@ -100,7 +100,7 @@ fn extended_collections_override_follow_updates_and_reset() {
     // The library changes a value and gains a variable: inherited values follow, overrides stay.
     ex(&mut lib, "variable.set", json!({"variable": "primary", "mode": "Light", "value": "#00ff00"}));
     ex(&mut lib, "variable.set", json!({"variable": "primary", "mode": "Dark", "value": "#222222"}));
-    ex(&mut lib, "variable.create", json!({"collection": "Theme", "name": "gap", "type": "number", "value": 8}));
+    ex(&mut lib, "variable.add", json!({"collection": "Theme", "name": "gap", "type": "number", "value": 8}));
     ex(&mut lib, "library.publish", json!({}));
     ex(&mut lib, "file.save", json!({}));
     ex(&mut s, "library.acceptUpdates", json!({}));
@@ -129,16 +129,16 @@ fn extended_collections_override_follow_updates_and_reset() {
 
 /// A "Theme" collection (Light/Dark) with one variable of each type and an alias.
 fn theme(s: &mut Session) {
-    ex(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
     ex(
         s,
-        "variable.create",
+        "variable.add",
         json!({"collection": "Theme", "name": "color/primary", "type": "color", "values": {"Light": "#0000ff80", "Dark": "#ffffff"}}),
     );
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "radius", "type": "number", "values": {"Light": 4, "Dark": 6.5}}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "label", "type": "string", "value": "Say \"hi\""}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "on", "type": "boolean", "value": false}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "accent", "type": "color", "value": "#000000"}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "radius", "type": "number", "values": {"Light": 4, "Dark": 6.5}}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "label", "type": "string", "value": "Say \"hi\""}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "on", "type": "boolean", "value": false}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "accent", "type": "color", "value": "#000000"}));
     ex(s, "variable.set", json!({"variable": "accent", "mode": "Dark", "value": {"alias": "color/primary"}}));
     ex(s, "variable.update", json!({"variable": "radius", "scopes": ["CORNER_RADIUS"], "description": "Corners"}));
 }
@@ -234,8 +234,8 @@ fn variables_export_and_import_round_trip() {
 #[test]
 fn variables_import_checks_what_it_reads() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Theme"}));
-    ex(&mut s, "variable.create", json!({"collection": "Theme", "name": "size", "type": "color", "value": "#000000"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Theme"}));
+    ex(&mut s, "variable.add", json!({"collection": "Theme", "name": "size", "type": "color", "value": "#000000"}));
     let before = s.doc().unwrap().variables.clone();
     for p in
         [json!({}), json!({"variables": 3}), json!({"variables": "{"}), json!({"variables": {"nope": 1}}), json!({"variables": "/no/such/file.json"})]
@@ -280,9 +280,9 @@ fn gradient_rect(s: &mut Session) -> NodeId {
         ColorStop { position: 1.0, color: Color::BLACK },
     ];
     ex(s, "fill.set", json!({"ids": [r], "index": 0, "paint": Paint::gradient(g)}));
-    ex(s, "variable.createCollection", json!({"name": "T"}));
-    ex(s, "variable.create", json!({"collection": "T", "name": "brand", "type": "color", "value": "#ff0000"}));
-    ex(s, "variable.create", json!({"collection": "T", "name": "ink", "type": "color", "value": "#00ff00"}));
+    ex(s, "variable.addCollection", json!({"name": "T"}));
+    ex(s, "variable.add", json!({"collection": "T", "name": "brand", "type": "color", "value": "#ff0000"}));
+    ex(s, "variable.add", json!({"collection": "T", "name": "ink", "type": "color", "value": "#00ff00"}));
     r
 }
 
@@ -345,16 +345,15 @@ fn variant_properties_follow_string_variables() {
     let mut s = Session::new();
     let mut variants = Vec::new();
     for (k, (state, color)) in [("Default", "#ff0000"), ("Hover", "#0000ff")].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
         ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": f, "props": {"name": "Bg", "fill": color}}));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 200})));
-    ex(&mut s, "variable.createCollection", json!({"name": "UI", "modes": ["Calm", "Busy"]}));
-    ex(&mut s, "variable.create", json!({"collection": "UI", "name": "state", "type": "string", "values": {"Calm": "Default", "Busy": "Hover"}}));
-    ex(&mut s, "variable.create", json!({"collection": "UI", "name": "count", "type": "number", "value": 1}));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 200})));
+    ex(&mut s, "variable.addCollection", json!({"name": "UI", "modes": ["Calm", "Busy"]}));
+    ex(&mut s, "variable.add", json!({"collection": "UI", "name": "state", "type": "string", "values": {"Calm": "Default", "Busy": "Hover"}}));
+    ex(&mut s, "variable.add", json!({"collection": "UI", "name": "count", "type": "number", "value": 1}));
     let main = |s: &Session| match s.doc().unwrap().node(i).unwrap().kind {
         NodeKind::Instance { component, .. } => component,
         _ => panic!(),
@@ -399,10 +398,10 @@ fn variables_export_as_dart_constants_for_flutter() {
 #[test]
 fn dart_export_names_are_valid_dart() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "2 brand-tokens", "modes": ["Default", "high contrast"]}));
-    ex(&mut s, "variable.createCollection", json!({"name": "Brand tokens"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "2 brand-tokens", "modes": ["Default", "high contrast"]}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Brand tokens"}));
     for name in ["space/2xl", "class", "a b", "a-b", "\u{65e5}\u{672c}", "it's $5\\"] {
-        ex(&mut s, "variable.create", json!({"collection": "2 brand-tokens", "name": name, "type": "string", "value": name}));
+        ex(&mut s, "variable.add", json!({"collection": "2 brand-tokens", "name": name, "type": "string", "value": name}));
     }
     let dart = ex(&mut s, "variable.export", json!({"format": "dart"}))["text"].as_str().unwrap().to_string();
     for want in [
@@ -425,14 +424,14 @@ fn dart_export_names_are_valid_dart() {
 #[test]
 fn dart_export_names_never_shadow_dart_types() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Color"}));
-    ex(&mut s, "variable.createCollection", json!({"name": "String"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Color"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "String"}));
     for name in ["double", "int", "bool", "num"] {
-        ex(&mut s, "variable.create", json!({"collection": "Color", "name": name, "type": "number", "value": 1}));
+        ex(&mut s, "variable.add", json!({"collection": "Color", "name": name, "type": "number", "value": 1}));
     }
-    ex(&mut s, "variable.create", json!({"collection": "Color", "name": "ratio", "type": "number", "value": 0.125}));
-    ex(&mut s, "variable.create", json!({"collection": "Color", "name": "third", "type": "number", "value": 1.0 / 3.0}));
-    ex(&mut s, "variable.create", json!({"collection": "Color", "name": "huge", "type": "number", "value": 1.5e21}));
+    ex(&mut s, "variable.add", json!({"collection": "Color", "name": "ratio", "type": "number", "value": 0.125}));
+    ex(&mut s, "variable.add", json!({"collection": "Color", "name": "third", "type": "number", "value": 1.0 / 3.0}));
+    ex(&mut s, "variable.add", json!({"collection": "Color", "name": "huge", "type": "number", "value": 1.5e21}));
     let dart = ex(&mut s, "variable.export", json!({"format": "dart"}))["text"].as_str().unwrap().to_string();
     // A class `Color` would hide dart:ui's `Color`, a constant `double` the type of those after it.
     for want in [
@@ -481,14 +480,14 @@ fn paints_replaced_through_node_set_keep_unchanged_stop_bindings() {
 #[test]
 fn css_export_gives_lengths_a_unit_and_keeps_opacity_bare() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Brand"}));
-    ex(&mut s, "variable.create", json!({"collection": "Brand", "name": "card", "type": "number", "value": 12}));
-    ex(&mut s, "variable.create", json!({"collection": "Brand", "name": "fade", "type": "number", "value": 0.5}));
-    ex(&mut s, "variable.create", json!({"collection": "Brand", "name": "half", "type": "number", "value": 0.5}));
-    ex(&mut s, "variable.create", json!({"collection": "Brand", "name": "dim", "type": "number", "value": 1}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Brand"}));
+    ex(&mut s, "variable.add", json!({"collection": "Brand", "name": "card", "type": "number", "value": 12}));
+    ex(&mut s, "variable.add", json!({"collection": "Brand", "name": "fade", "type": "number", "value": 0.5}));
+    ex(&mut s, "variable.add", json!({"collection": "Brand", "name": "half", "type": "number", "value": 0.5}));
+    ex(&mut s, "variable.add", json!({"collection": "Brand", "name": "dim", "type": "number", "value": 1}));
     ex(&mut s, "variable.set", json!({"variable": "dim", "value": {"alias": "half"}}));
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
-    let g = idv(&ex(&mut s, "frame.create", json!({"x": 200, "y": 0, "width": 100, "height": 100})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let g = idv(&ex(&mut s, "frame.add", json!({"x": 200, "y": 0, "width": 100, "height": 100})));
     ex(&mut s, "node.set", json!({"id": f, "props": {"cornerRadius": 12, "opacity": 0.5}}));
     ex(&mut s, "variable.bind", json!({"ids": [f], "field": "cornerRadius", "variable": "card"}));
     ex(&mut s, "variable.bind", json!({"ids": [f], "field": "opacity", "variable": "fade"}));
@@ -501,14 +500,14 @@ fn css_export_gives_lengths_a_unit_and_keeps_opacity_bare() {
 #[test]
 fn review_a_long_alias_chain_keeps_its_role_to_the_end() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Brand"}));
-    ex(&mut s, "variable.create", json!({"collection": "Brand", "name": "o0", "type": "number", "value": 0.5}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Brand"}));
+    ex(&mut s, "variable.add", json!({"collection": "Brand", "name": "o0", "type": "number", "value": 0.5}));
     // o12 -> o11 -> … -> o0: longer than any fixed number of rounds would reach.
     for i in 1..=12 {
-        ex(&mut s, "variable.create", json!({"collection": "Brand", "name": format!("o{i}"), "type": "number", "value": 1}));
+        ex(&mut s, "variable.add", json!({"collection": "Brand", "name": format!("o{i}"), "type": "number", "value": 1}));
         ex(&mut s, "variable.set", json!({"variable": format!("o{i}"), "value": {"alias": format!("o{}", i - 1)}}));
     }
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
     ex(&mut s, "variable.bind", json!({"ids": [f], "field": "opacity", "variable": "o12"}));
     let css = ex(&mut s, "variable.export", json!({"format": "css"}))["text"].as_str().unwrap_or_default().to_string();
     assert!(css.contains("--o0: 0.5;"), "{css}");

@@ -43,15 +43,15 @@ fn dir(name: &str) -> std::path::PathBuf {
 /// and saved at `path`; returns (session, library id).
 fn core(path: &str) -> (Session, String) {
     let mut lib = Session::new();
-    ex(&mut lib, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(&mut lib, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
     ex(
         &mut lib,
-        "variable.create",
+        "variable.add",
         json!({"collection": "Theme", "name": "primary", "type": "color", "values": {"Light": "#0000ff", "Dark": "#ffffff"}}),
     );
-    ex(&mut lib, "variable.create", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
-    ex(&mut lib, "variable.createCollection", json!({"name": "Other"}));
-    ex(&mut lib, "variable.create", json!({"collection": "Other", "name": "size", "type": "number", "value": 1}));
+    ex(&mut lib, "variable.add", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
+    ex(&mut lib, "variable.addCollection", json!({"name": "Other"}));
+    ex(&mut lib, "variable.add", json!({"collection": "Other", "name": "size", "type": "number", "value": 1}));
     let id = ex(&mut lib, "library.publish", json!({}))["id"].as_str().unwrap().to_string();
     ex(&mut lib, "file.saveAs", json!({"path": path}));
     (lib, id)
@@ -74,8 +74,8 @@ fn variables_new_to_an_extended_collection_are_an_update_of_their_own() {
 
     // The library only adds a variable to the extended collection (and one to a collection this
     // file doesn't use): that alone is an update, listed by name.
-    ex(&mut lib, "variable.create", json!({"collection": "Theme", "name": "gap", "type": "number", "value": 8}));
-    ex(&mut lib, "variable.create", json!({"collection": "Other", "name": "unused", "type": "number", "value": 2}));
+    ex(&mut lib, "variable.add", json!({"collection": "Theme", "name": "gap", "type": "number", "value": 8}));
+    ex(&mut lib, "variable.add", json!({"collection": "Other", "name": "unused", "type": "number", "value": 2}));
     republish(&mut lib);
     let u = ex(&mut s, "library.updates", json!({}));
     assert_eq!(u["count"], 1, "{u}");
@@ -110,7 +110,7 @@ fn an_extended_collection_can_be_extended_again() {
         .to_string();
     let bprimary = var(&brand, &bext, "primary").id.clone();
     ex(&mut brand, "variable.set", json!({"variable": bprimary, "mode": "Light", "value": "#ff0000"}));
-    ex(&mut brand, "variable.create", json!({"collection": bext, "name": "logo", "type": "number", "value": 3}));
+    ex(&mut brand, "variable.add", json!({"collection": bext, "name": "logo", "type": "number", "value": 3}));
     let brand_id = ex(&mut brand, "library.publish", json!({}))["id"].as_str().unwrap().to_string();
     ex(&mut brand, "file.saveAs", json!({"path": brand_path}));
 

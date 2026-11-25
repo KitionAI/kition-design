@@ -291,7 +291,7 @@ impl KitDocument for DesignDocument {
     fn create(name: &str, width: u32, height: u32) -> Result<Self, String> {
         let mut session = Session::with_document(kition_design_doc::Document::new(title_of(name)));
         let (w, h) = (f64::from(width.clamp(1, 100_000)), f64::from(height.clamp(1, 100_000)));
-        no_files(|| session.execute("frame.create", &json!({ "x": 0, "y": 0, "width": w, "height": h }))).map_err(engine_error)?;
+        no_files(|| session.execute("frame.add", &json!({ "x": 0, "y": 0, "width": w, "height": h }))).map_err(engine_error)?;
         session.ui_requests.clear();
         session.set_selection(Vec::new());
         if let Ok(ds) = session.ds_mut() {
@@ -488,7 +488,7 @@ impl KitDocument for DesignDocument {
             } else if command.id == "style.renameFolder" {
                 command.places = &["folder"];
             }
-            if matches!(command.id.as_str(), "node.create" | "node.reparent" | "node.reorder" | "page.move") {
+            if matches!(command.id.as_str(), "node.add" | "node.reparent" | "node.reorder" | "page.move") {
                 command.places = &["index"];
             }
         }

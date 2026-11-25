@@ -11,7 +11,7 @@
 //! | `selection` | — | the Design panel's selection: `{ ids, count, kind, types, nodes, common, mixed, parentAutoLayout, canAlign, booleanOperation, text, component, page, parents, allParentsAutoLayout, insideInstance, hasStatus, canAddVariant, canCombineVariants }` (see [`selection`], [`crate::panels::selection_facts`]) |
 //! | `node` | `{ id, depth? }` | the engine's `node_json` for one layer with the panels' keys ([`crate::panels::node_json`]) |
 //! | `document` | `{ depth?, allPages? }` | the engine's document summary (`inspect::document`) |
-//! | `selectionColors` | `{ ids? }` | `selection.colors` |
+//! | `selectionColors` | `{ ids? }` | `select.colors` |
 //! | `componentProperties` | `{ id? }` | `component.properties` |
 //! | `instanceExposed` | `{ id? }` | `instance.exposed` |
 //! | `prototype` | — | `{ interactions: [{ id, name, interactions }], flows, settings, frames: [{ id, name }] }` |
@@ -333,7 +333,14 @@ fn vector_edit(doc: &DesignDocument) -> Result<Value, String> {
 fn checked(doc: &DesignDocument) -> Value {
     let ids: Vec<&str> = kition_design_engine::catalog::items()
         .map(|m| m.id)
-        .chain(["view.devMode", "pref.keepTool", "pref.highlightHover", "pref.renameDuplicates", "pref.showDimensions", "pref.numberKeysOpacity"])
+        .chain([
+            "view.devMode",
+            "prefs.keepTool",
+            "prefs.highlightHover",
+            "prefs.renameDuplicates",
+            "prefs.showDimensions",
+            "prefs.numberKeysOpacity",
+        ])
         .filter(|id| kition_design_engine::cmd::view::checked(doc.session(), id).unwrap_or(false))
         .collect::<BTreeSet<_>>()
         .into_iter()
@@ -552,7 +559,7 @@ pub fn query(doc: &DesignDocument, name: &str, params: &Value) -> Result<Value, 
             let all = params.get("allPages").and_then(Value::as_bool).unwrap_or(false);
             Ok(kition_design_engine::inspect::document(doc.session(), depth, all))
         }
-        "selectionColors" => via("selection.colors"),
+        "selectionColors" => via("select.colors"),
         "componentProperties" => via("component.properties"),
         "instanceExposed" => via("instance.exposed"),
         "prototype" => prototype(doc),

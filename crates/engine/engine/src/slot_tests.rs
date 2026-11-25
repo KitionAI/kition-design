@@ -10,25 +10,25 @@ use serde_json::{Value, json};
 /// A "Card" component (300×200 at the origin) with a "Title" text and a "Content" slot (280×140 at
 /// 10,50) holding a default "Placeholder" rectangle. Returns (card, title, content, placeholder).
 fn slot_card(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 200, "name": "Card"})));
-    let title = idv(&ex(s, "text.create", json!({"text": "Title", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
-    let content = idv(&ex(s, "frame.create", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 200, "name": "Card"})));
+    let title = idv(&ex(s, "text.add", json!({"text": "Title", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
+    let content = idv(&ex(s, "frame.add", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
     let ph = idv(&ex(
         s,
         "shape.rectangle",
         json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": content, "props": {"name": "Placeholder", "fill": "#cccccc"}}),
     ));
-    let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
+    let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
     ex(s, "component.makeSlot", json!({"id": content}));
     (c, title, content, ph)
 }
 
 /// A 40×20 "Chip" component at (0, 400) with a red "Dot". Returns (chip, dot).
 fn chip(s: &mut Session) -> (NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 400, "width": 40, "height": 20, "name": "Chip"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 400, "width": 40, "height": 20, "name": "Chip"})));
     let dot =
         idv(&ex(s, "shape.ellipse", json!({"x": 2, "y": 2, "width": 16, "height": 16, "parent": f, "props": {"name": "Dot", "fill": "#ff0000"}})));
-    (idv(&ex(s, "component.create", json!({"ids": [f]}))), dot)
+    (idv(&ex(s, "component.add", json!({"ids": [f]}))), dot)
 }
 
 fn refused(s: &mut Session, cmd: &str, p: Value) {
@@ -47,7 +47,7 @@ fn props_of(s: &mut Session, id: NodeId) -> Vec<Value> {
 fn a_refused_slot_names_make_slot() {
     let mut s = Session::new();
     let (c, ..) = slot_card(&mut s);
-    let other = idv(&ex(&mut s, "frame.create", json!({"x": 150, "y": 10, "width": 40, "height": 30, "parent": c, "name": "Other"})));
+    let other = idv(&ex(&mut s, "frame.add", json!({"x": 150, "y": 10, "width": 40, "height": 30, "parent": c, "name": "Other"})));
     let err = s.execute("component.makeSlot", &json!({"id": other, "name": "Content"})).unwrap_err().to_string();
     assert!(err.contains("`component.makeSlot`") && err.contains("a property named `Content` already exists"), "{err}");
 }
@@ -62,7 +62,7 @@ fn slots_are_frames_of_a_main_with_a_slot_property() {
     assert_eq!(p[0]["layers"], json!([content.0]));
     assert_eq!(slots_of(s.doc().unwrap(), c), vec![(content, "Content".to_string())]);
     // A second frame named "Content" gets a fresh property name.
-    let other = idv(&ex(&mut s, "frame.create", json!({"x": 150, "y": 10, "width": 40, "height": 30, "parent": c, "name": "Content"})));
+    let other = idv(&ex(&mut s, "frame.add", json!({"x": 150, "y": 10, "width": 40, "height": 30, "parent": c, "name": "Content"})));
     let r = ex(&mut s, "component.makeSlot", json!({"id": other}));
     assert_eq!(r["name"], "Content 2");
     ex(&mut s, "component.removeSlot", json!({"id": other}));
@@ -72,8 +72,8 @@ fn slots_are_frames_of_a_main_with_a_slot_property() {
     ex(&mut s, "component.editProperty", json!({"id": c, "name": "Content", "preferred": [chip]}));
     assert_eq!(props_of(&mut s, c)[0]["preferred"], json!([chip.0]));
     // What isn't a slot, or can't become one.
-    let loose = idv(&ex(&mut s, "frame.create", json!({"x": 900, "y": 0, "width": 50, "height": 50})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 0})));
+    let loose = idv(&ex(&mut s, "frame.add", json!({"x": 900, "y": 0, "width": 50, "height": 50})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 0})));
     let islot = copy_of(&s, i, content);
     for (cmd, p) in [
         ("component.makeSlot", json!({"id": c})),
@@ -104,8 +104,8 @@ fn instances_fill_slots_with_their_own_content() {
     let mut s = Session::new();
     let (c, title, content, ph) = slot_card(&mut s);
     let (chip, dot) = chip(&mut s);
-    let a = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 0})));
-    let b = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 800, "y": 0})));
+    let a = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 0})));
+    let b = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 800, "y": 0})));
     let (aslot, aph) = (copy_of(&s, a, content), copy_of(&s, a, ph));
     // The default content shows (and follows the main) until the slot is edited.
     assert!(!slot_edited(s.doc().unwrap(), aslot));
@@ -186,16 +186,15 @@ fn slot_content_survives_variants_copies_and_detach() {
     let mut variants = Vec::new();
     let mut slots = Vec::new();
     for (k, state) in ["Default", "Hover"].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 400.0, "y": 0, "width": 300, "height": 200, "name": format!("State={state}")})));
-        let content = idv(&ex(&mut s, "frame.create", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 400.0, "y": 0, "width": 300, "height": 200, "name": format!("State={state}")})));
+        let content = idv(&ex(&mut s, "frame.add", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
         slots.push(content);
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
     ex(&mut s, "component.addProperty", json!({"id": set, "name": "Body", "type": "slot", "layer": slots[0]}));
     ex(&mut s, "component.bindProperty", json!({"layer": slots[1], "property": "Body"}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 600})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 600})));
     let ichip = idv(&ex(&mut s, "instance.slotInsert", json!({"id": i, "slot": "Body", "component": chip})));
     ex(&mut s, "node.set", json!({"id": ichip, "props": {"fill": "#abcdef"}}));
     // Variant switch: the content moves along.
@@ -229,7 +228,7 @@ fn removing_a_slot_takes_the_instances_content_away() {
     let mut s = Session::new();
     let (c, _title, content, _ph) = slot_card(&mut s);
     let (chip, _) = chip(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 0})));
     let islot = copy_of(&s, i, content);
     let ichip = idv(&ex(&mut s, "instance.slotInsert", json!({"id": islot, "component": chip})));
     ex(&mut s, "component.removeSlot", json!({"id": content}));
@@ -248,7 +247,7 @@ fn drops_land_in_slots() {
     let mut s = Session::new();
     let (c, title, content, _ph) = slot_card(&mut s);
     let (chip, _) = chip(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 0})));
     let islot = copy_of(&s, i, content);
     let page = s.page().unwrap();
     let doc = s.doc().unwrap().clone();
@@ -275,7 +274,7 @@ fn drops_land_in_slots() {
     assert_eq!(node(&s, rect).parent, Some(islot));
     healthy(&s);
     // Into a slot still showing the main's default content: it becomes the instance's own.
-    let j = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 300})));
+    let j = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 300})));
     let jslot = copy_of(&s, j, content);
     let dot = idv(&ex(&mut s, "shape.ellipse", json!({"x": 1000, "y": 100, "width": 20, "height": 20})));
     s.set_selection(vec![]);
@@ -297,7 +296,7 @@ fn drags_into_auto_layout_slots_take_their_place_in_the_flow() {
     let (c, _title, content, ph) = slot_card(&mut s);
     ex(&mut s, "node.set", json!({"id": content, "props": {"layout": "vertical", "gap": 8, "padding": 10, "sizingH": "fixed", "sizingV": "fixed"}}));
     ex(&mut s, "node.set", json!({"id": c, "props": {"layout": "vertical", "padding": 10, "gap": 10}}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 400, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 400, "y": 0})));
     let (islot, iph) = (copy_of(&s, i, content), copy_of(&s, i, ph));
     let rect = idv(&ex(&mut s, "shape.rectangle", json!({"x": 1000, "y": 0, "width": 30, "height": 30})));
     s.set_tool(ToolId::Move);
@@ -340,14 +339,14 @@ fn slots_of_nested_instances_fill_from_the_outer_main_and_its_instances() {
     let (container, _title, content, ph) = slot_card(&mut s);
     let (chip, _) = chip(&mut s);
     // A "Page" component holding a Card instance whose slot the Page main fills.
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 800, "width": 400, "height": 300, "name": "Page"})));
-    let nested = idv(&ex(&mut s, "instance.create", json!({"component": container, "x": 20, "y": 20, "parent": f})));
-    let pagec = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 800, "width": 400, "height": 300, "name": "Page"})));
+    let nested = idv(&ex(&mut s, "instance.add", json!({"component": container, "x": 20, "y": 20, "parent": f})));
+    let pagec = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     let nslot = copy_of(&s, nested, content);
     let mchip = idv(&ex(&mut s, "instance.slotInsert", json!({"id": nslot, "component": chip})));
     assert_eq!(owning_component(s.doc().unwrap(), mchip), Some(pagec));
     // Page instances mirror that content (it's the Page main's) ...
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": pagec, "x": 600, "y": 800})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": pagec, "x": 600, "y": 800})));
     healthy(&s);
     let inested = copy_of(&s, i, nested);
     let islot = copy_of(&s, inested, nslot);
@@ -391,7 +390,7 @@ fn random_slot_edits_keep_instances_consistent() {
         let (card, _title, content, _ph) = slot_card(&mut s);
         let (chip, _) = chip(&mut s);
         for k in 0..3 {
-            ex(&mut s, "instance.create", json!({"component": card, "x": 400 + k * 350, "y": 0}));
+            ex(&mut s, "instance.add", json!({"component": card, "x": 400 + k * 350, "y": 0}));
         }
         for step in 0..50 {
             let doc = s.doc().unwrap().clone();

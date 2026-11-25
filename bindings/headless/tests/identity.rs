@@ -65,7 +65,7 @@ fn design() -> Vec<u8> {
     let mut doc = DesignDocument::create("Plan.kdesign", 800, 600).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].as_u64().unwrap();
     let mut rect = |name: &str, x: u64| {
-        doc.execute("node.create", json!({ "type": "rectangle", "parent": frame, "name": name, "x": x, "y": 20, "width": 40, "height": 40 })).unwrap()
+        doc.execute("node.add", json!({ "type": "rectangle", "parent": frame, "name": name, "x": x, "y": 20, "width": 40, "height": 40 })).unwrap()
             ["id"]
             .as_u64()
             .unwrap()
@@ -167,9 +167,7 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     let mut opened = DesignDocument::open("Fork.kdesign", &fork_bytes).unwrap();
     assert_eq!(opened.doc_id().as_deref(), Some(fork_id.as_str()));
     let frame = opened.inspect().unwrap()["tree"][0]["id"].as_u64().unwrap();
-    opened
-        .execute("node.create", json!({ "type": "rectangle", "parent": frame, "name": "New", "x": 20, "y": 200, "width": 40, "height": 40 }))
-        .unwrap();
+    opened.execute("node.add", json!({ "type": "rectangle", "parent": frame, "name": "New", "x": 20, "y": 200, "width": 40, "height": 40 })).unwrap();
     let edited = opened.save_file(None).unwrap();
     let reopened = DesignDocument::open("Fork.kdesign", &edited).unwrap();
     assert_eq!(reopened.doc_id().as_deref(), Some(fork_id.as_str()));

@@ -176,22 +176,22 @@ fn text_drawn_on_a_dark_page_is_white_and_on_a_light_page_black() {
     let mut s = Session::empty();
     s.set_ui_dark(true);
     ex(&mut s, "file.new", json!({}));
-    ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 200}));
+    ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 200}));
     let t = draw_text(&mut s, 50.0, 50.0);
     assert_eq!(s.doc().unwrap().node(t).unwrap().fills, vec![Paint::solid(Color::BLACK)]);
-    let made = id_of(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 300}))["id"]).unwrap();
+    let made = id_of(&ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 300}))["id"]).unwrap();
     assert_eq!(s.doc().unwrap().node(made).unwrap().fills, vec![Paint::solid(Color::WHITE)]);
 }
 
 #[test]
 fn a_copy_of_a_page_keeps_its_flows_prototype_settings_and_guides() {
     let mut s = Session::new();
-    ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100}));
-    let start = ex(&mut s, "frame.create", json!({"x": 200, "y": 0, "width": 100, "height": 100}))["id"].clone();
+    ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100}));
+    let start = ex(&mut s, "frame.add", json!({"x": 200, "y": 0, "width": 100, "height": 100}))["id"].clone();
     ex(&mut s, "proto.flow.add", json!({"start": start, "name": "Checkout"}));
     ex(&mut s, "proto.settings", json!({"device": "iPhone 16", "responsive": true}));
     ex(&mut s, "guide.add", json!({"vertical": true, "offset": 25}));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     let source = s.page().unwrap();
     let copy = id_of(&ex(&mut s, "page.duplicate", json!({}))["id"]).unwrap();
     let frames = s.doc().unwrap().node(copy).unwrap().children.clone();
@@ -216,7 +216,7 @@ fn a_copy_of_a_page_keeps_its_flows_prototype_settings_and_guides() {
 #[test]
 fn a_copy_of_a_page_keeps_a_flow_that_starts_in_a_section() {
     let mut s = Session::new();
-    let start = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100}))["id"]).unwrap();
+    let start = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100}))["id"]).unwrap();
     ex(&mut s, "object.wrapInSection", json!({"ids": [start]}));
     ex(&mut s, "proto.flow.add", json!({"start": start, "name": "Onboarding"}));
     let copy = id_of(&ex(&mut s, "page.duplicate", json!({}))["id"]).unwrap();

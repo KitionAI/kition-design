@@ -253,7 +253,7 @@ fn everyone_in_a_live_session_shares_the_timer_and_the_vote() {
 fn clicks_vote_while_a_vote_runs() {
     let mut s = board();
     let a = sticky(&mut s, 0.0, "A");
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     let click = |s: &mut Session, x: f64, y: f64, alt: bool| {
         let mut down = PointerEvent::at(PointerKind::Down, x, y, 1.0);
         down.alt = alt;
@@ -263,7 +263,7 @@ fn clicks_vote_while_a_vote_runs() {
     // No vote: a click selects.
     click(&mut s, 100.0, 100.0, false);
     assert_eq!(s.selection(), vec![a]);
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     ex(&mut s, "board.vote", json!({"action": "start"}));
     click(&mut s, 100.0, 100.0, false);
     click(&mut s, 50.0, 150.0, false);

@@ -430,7 +430,7 @@ function AssetList() {
         ) : null}
         <div className="design-assets-title">{t('Local components')}</div>
         {listing && folders.length === 0 ? (
-          <div className="design-assets-hint">{query ? t('No matching components') : t('No components yet. Select layers and press {keys}.', { keys: prettyShortcut(editor.byId.get('component.create')?.shortcut) })}</div>
+          <div className="design-assets-hint">{query ? t('No matching components') : t('No components yet. Select layers and press {keys}.', { keys: prettyShortcut(editor.byId.get('component.add')?.shortcut) })}</div>
         ) : null}
         <TileFolders source="local" folders={folders} tile={tile} query={query} library={null} onDown={tileDown} onPlace={(item) => place(item, null)} onMenu={(event, item) => setMenu({ x: event.clientX, y: event.clientY, tile: item })} />
         <hr className="design-separator" style={{ marginBottom: 10 }} />

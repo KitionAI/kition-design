@@ -8,7 +8,7 @@ use serde_json::json;
 
 fn editing_list(indent: u8) -> (Session, NodeId) {
     let mut s = Session::new();
-    let value = s.execute("node.create", &json!({"type":"text", "props":{"characters":"a"}})).unwrap();
+    let value = s.execute("node.add", &json!({"type":"text", "props":{"characters":"a"}})).unwrap();
     let id = NodeId(value["id"].as_u64().unwrap());
     s.execute("text.listStyle", &json!({"ids":[id.0], "style":"bulleted"})).unwrap();
     s.execute("node.set", &json!({"id":id.0, "props":{"indentation":indent}})).unwrap();
@@ -51,7 +51,7 @@ fn outdent_from_zero_reports_true() {
 #[test]
 fn indent_plain_text_reports_false() {
     let mut s = Session::new();
-    let value = s.execute("node.create", &json!({"type":"text", "props":{"characters":"a"}})).unwrap();
+    let value = s.execute("node.add", &json!({"type":"text", "props":{"characters":"a"}})).unwrap();
     let id = NodeId(value["id"].as_u64().unwrap());
     s.execute("text.edit.begin", &json!({"id":id.0, "caret":0})).unwrap();
     let before = s.doc().unwrap().clone();

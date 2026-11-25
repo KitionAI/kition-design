@@ -9,7 +9,7 @@ use crate::Session;
 use crate::params::id_of;
 
 fn text(s: &mut Session, chars: &str) -> NodeId {
-    id_of(&s.execute("text.create", &json!({"text": chars, "x": 0, "y": 0})).unwrap()["id"]).unwrap()
+    id_of(&s.execute("text.add", &json!({"text": chars, "x": 0, "y": 0})).unwrap()["id"]).unwrap()
 }
 
 fn data(s: &Session, id: NodeId) -> TextData {
@@ -30,7 +30,7 @@ fn links(s: &Session, id: NodeId) -> Vec<Option<String>> {
 fn heading(s: &mut Session) -> String {
     let src = text(s, "Heading");
     s.execute("node.set", &json!({"ids": [src], "props": {"fontSize": 32, "fontStyle": "Bold"}})).unwrap();
-    let id = s.execute("style.create", &json!({"type": "text", "name": "Type/Heading", "from": src})).unwrap()["id"].as_str().unwrap().to_string();
+    let id = s.execute("style.add", &json!({"type": "text", "name": "Type/Heading", "from": src})).unwrap()["id"].as_str().unwrap().to_string();
     s.execute("edit.delete", &json!({"ids": [src]})).unwrap();
     id
 }
@@ -55,10 +55,7 @@ fn styles_apply_to_layers_and_ranges() {
     assert!(d.style_at(8).fills.is_some(), "range fills stay");
     // A range takes another style: the layer as a whole is linked to none.
     let b = s
-        .execute(
-            "style.create",
-            &json!({"type": "text", "name": "Type/Body", "value": {"fontFamily": "Inter", "fontStyle": "Regular", "fontSize": 14}}),
-        )
+        .execute("style.add", &json!({"type": "text", "name": "Type/Body", "value": {"fontFamily": "Inter", "fontStyle": "Regular", "fontSize": 14}}))
         .unwrap();
     let b = b["id"].as_str().unwrap().to_string();
     s.execute("style.apply", &json!({"ids": [t], "style": b, "start": 0, "end": 5})).unwrap();
@@ -84,7 +81,7 @@ fn editing_text_applies_to_the_selected_chars() {
     s.execute("text.edit.caret", &json!({"index": 6})).unwrap();
     s.execute("text.edit.caret", &json!({"index": 11, "extend": true})).unwrap();
     s.execute("text.style", &json!({"id": t, "start": 6, "end": 11, "fontSize": 20})).unwrap();
-    let c = s.execute("style.create", &json!({"type": "text", "name": "Type/Caption"})).unwrap()["id"].as_str().unwrap().to_string();
+    let c = s.execute("style.add", &json!({"type": "text", "name": "Type/Caption"})).unwrap()["id"].as_str().unwrap().to_string();
     let style = s.doc().unwrap().style(&c).cloned().unwrap();
     let StyleKind::Text { style: def } = style.kind else { panic!("not a text style") };
     assert_eq!(def.font_size, 20.0);
@@ -121,7 +118,7 @@ fn edits_unlink_and_style_edits_follow() {
         _ => panic!("not a text style"),
     };
     def.font_size = 40.0;
-    s.execute("style.update", &json!({"style": h, "value": serde_json::to_value(&def).unwrap()})).unwrap();
+    s.execute("style.set", &json!({"style": h, "value": serde_json::to_value(&def).unwrap()})).unwrap();
     assert_eq!(data(&s, a).style_at(2).font_size, 40.0);
     assert_eq!(data(&s, b).style_at(0).font_size, 50.0);
     assert_eq!(layer_link(&s, a).as_deref(), Some(h.as_str()), "following the style keeps the link");

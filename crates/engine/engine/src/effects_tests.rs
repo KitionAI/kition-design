@@ -125,7 +125,7 @@ fn negative_or_fractional_index_is_refused_not_item_zero() {
         let set = json!({"ids": [r], "index": index, "effect": {"type": "dropShadow"}});
         assert!(s.execute("effect.set", &set).is_err(), "effect.set index {index}");
         let upd = json!({"ids": [r], "index": index, "format": "svg"});
-        assert!(s.execute("export.update", &upd).is_err(), "export.update index {index}");
+        assert!(s.execute("export.set", &upd).is_err(), "export.set index {index}");
         assert!(s.execute("export.remove", &json!({"ids": [r], "index": index})).is_err(), "export.remove index {index}");
         let n = s.doc().unwrap().node(r).unwrap();
         assert_eq!(n.effects, before.effects, "index {index}");

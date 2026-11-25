@@ -15,7 +15,7 @@ fn id(v: Value) -> NodeId {
 }
 
 fn section(s: &mut Session, x: f64, y: f64, w: f64, h: f64) -> NodeId {
-    id(s.execute("node.create", &json!({"type": "section", "x": x, "y": y, "width": w, "height": h})).unwrap())
+    id(s.execute("node.add", &json!({"type": "section", "x": x, "y": y, "width": w, "height": h})).unwrap())
 }
 
 fn get(s: &mut Session, node: NodeId) -> Value {
@@ -63,8 +63,8 @@ fn hidden_contents_skip_rendering_and_hit_testing() {
 #[test]
 fn wrap_in_new_section() {
     let mut s = Session::new();
-    let a = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
-    let b = id(s.execute("frame.create", &json!({"x": 200, "y": 50, "width": 100, "height": 100})).unwrap());
+    let a = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let b = id(s.execute("frame.add", &json!({"x": 200, "y": 50, "width": 100, "height": 100})).unwrap());
     let before = (s.doc().unwrap().world_bounds(a).unwrap(), s.doc().unwrap().world_bounds(b).unwrap());
     let sec = id(s.execute("object.wrapInSection", &json!({"ids": [a, b]})).unwrap());
     let doc = s.doc().unwrap();
@@ -84,9 +84,9 @@ fn wrap_in_new_section() {
 fn ready_for_dev_turns_changed_until_resolved() {
     let mut s = Session::new();
     let sec = section(&mut s, 0.0, 0.0, 400.0, 400.0);
-    let f = id(s.execute("frame.create", &json!({"x": 20, "y": 20, "width": 100, "height": 100, "parent": sec})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 20, "y": 20, "width": 100, "height": 100, "parent": sec})).unwrap());
     let r = id(s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 10, "height": 10, "parent": f})).unwrap());
-    let other = id(s.execute("frame.create", &json!({"x": 600, "y": 0, "width": 100, "height": 100})).unwrap());
+    let other = id(s.execute("frame.add", &json!({"x": 600, "y": 0, "width": 100, "height": 100})).unwrap());
     s.execute("node.set", &json!({"ids": [sec, f], "props": {"devStatus": "readyForDev"}})).unwrap();
     let changed = |s: &mut Session, n: NodeId| get(s, n).get("devChanged").is_some();
     assert!(!changed(&mut s, sec) && !changed(&mut s, f), "marking isn't a change");
@@ -123,10 +123,10 @@ fn frames_in_sections_are_prototype_screens() {
     let sec = section(&mut s, 0.0, 0.0, 800.0, 400.0);
     let inner = section(&mut s, 0.0, 0.0, 300.0, 300.0);
     s.execute("node.reparent", &json!({"ids": [inner], "parent": sec})).unwrap();
-    let a = id(s.execute("frame.create", &json!({"x": 400, "y": 20, "width": 100, "height": 100, "parent": sec})).unwrap());
-    let b = id(s.execute("frame.create", &json!({"x": 20, "y": 20, "width": 100, "height": 100, "parent": inner})).unwrap());
+    let a = id(s.execute("frame.add", &json!({"x": 400, "y": 20, "width": 100, "height": 100, "parent": sec})).unwrap());
+    let b = id(s.execute("frame.add", &json!({"x": 20, "y": 20, "width": 100, "height": 100, "parent": inner})).unwrap());
     let child = id(s.execute("shape.rectangle", &json!({"x": 1, "y": 1, "width": 10, "height": 10, "parent": b})).unwrap());
-    let loose = id(s.execute("frame.create", &json!({"x": 0, "y": 600, "width": 100, "height": 100})).unwrap());
+    let loose = id(s.execute("frame.add", &json!({"x": 0, "y": 600, "width": 100, "height": 100})).unwrap());
     let doc = s.doc().unwrap();
     assert_eq!(doc.top_level_frame(child), Some(b));
     assert_eq!(doc.top_level_frame(sec), None);

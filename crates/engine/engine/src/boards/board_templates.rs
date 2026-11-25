@@ -142,11 +142,11 @@ impl Builder<'_> {
     }
 
     fn title(&mut self, text: &str) -> Result<NodeId> {
-        self.top("node.create", 0.0, 0.0, json!({"type": "text", "text": text, "props": {"fontSize": 32, "fills": ["#1E1E1E"]}}))
+        self.top("node.add", 0.0, 0.0, json!({"type": "text", "text": text, "props": {"fontSize": 32, "fills": ["#1E1E1E"]}}))
     }
 
     fn section(&mut self, name: &str, (x, y, w, h): (f64, f64, f64, f64), fill: &str) -> Result<NodeId> {
-        self.top("node.create", x, y, json!({"type": "section", "name": name, "width": w, "height": h, "props": {"fills": [fill]}}))
+        self.top("node.add", x, y, json!({"type": "section", "name": name, "width": w, "height": h, "props": {"fills": [fill]}}))
     }
 
     /// A sticky in `section` (or on the page) at (`x`, `y`) in it.

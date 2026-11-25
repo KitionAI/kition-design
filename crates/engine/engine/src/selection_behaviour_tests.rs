@@ -53,12 +53,12 @@ struct Scene {
 }
 
 fn scene(s: &mut Session) -> Scene {
-    let f = id(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
+    let f = id(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
     let a = rect(s, 20.0, 20.0, Some(f));
     let b = rect(s, 80.0, 20.0, Some(f));
-    let g = id(&ex(s, "object.group", json!({"ids": [a, b]})));
+    let g = id(&ex(s, "arrange.group", json!({"ids": [a, b]})));
     let c = rect(s, 20.0, 120.0, Some(f));
-    let n = id(&ex(s, "frame.create", json!({"x": 200, "y": 20, "width": 150, "height": 150, "parent": f})));
+    let n = id(&ex(s, "frame.add", json!({"x": 200, "y": 20, "width": 150, "height": 150, "parent": f})));
     // Positions are in the parent's space.
     let d = rect(s, 20.0, 20.0, Some(n));
     let e1 = rect(s, 20.0, 200.0, Some(f));
@@ -70,8 +70,8 @@ fn scene(s: &mut Session) -> Scene {
     ex(s, "object.toggleLock", json!({"ids": [lk], "locked": true}));
     let hid = rect(s, 500.0, 200.0, None);
     ex(s, "object.toggleVisible", json!({"ids": [hid], "visible": false}));
-    let empty = id(&ex(s, "frame.create", json!({"x": 600, "y": 0, "width": 80, "height": 80})));
-    ex(s, "select.none", json!({}));
+    let empty = id(&ex(s, "frame.add", json!({"x": 600, "y": 0, "width": 80, "height": 80})));
+    ex(s, "edit.deselectAll", json!({}));
     Scene { f, g, a, b, c, n, d, u, r, r2, lk, hid, empty }
 }
 
@@ -152,8 +152,8 @@ fn double_click_enters_one_level() {
     let mut s = Session::new();
     let k = scene(&mut s);
     let comp_child = rect(&mut s, 800.0, 0.0, None);
-    let comp = id(&ex(&mut s, "component.create", json!({"ids": [comp_child]})));
-    let inst = id(&ex(&mut s, "instance.create", json!({"component": comp, "x": 300, "y": 200, "parent": k.f})));
+    let comp = id(&ex(&mut s, "component.add", json!({"ids": [comp_child]})));
+    let inst = id(&ex(&mut s, "instance.add", json!({"component": comp, "x": 300, "y": 200, "parent": k.f})));
     let inst_child = s.doc().unwrap().node(inst).unwrap().children[0];
     // (point, selection before, selection after, derivation)
     let rows: Vec<((f64, f64), Vec<NodeId>, Vec<NodeId>, &str)> = vec![
@@ -192,7 +192,7 @@ fn a_double_click_anywhere_on_the_selected_shape_edits_its_points() {
 fn a_double_click_on_an_unselected_shape_edits_it_without_a_selecting_click() {
     let mut s = Session::new();
     let r = id(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     // The press and release of the click that selects it, and the double-click, came in one frame:
     // only the double-click reached the tool, with nothing selected.
     s.pointer(&ev(PointerKind::DoubleClick, 50.0, 50.0, NONE)).unwrap();
@@ -255,8 +255,13 @@ fn keyboard_selection() {
         ("select.parent", vec![k.f], vec![k.f], "silent: Shift+Enter on a top-level layer keeps it (pinned)"),
         ("select.next", vec![k.b], vec![k.a], "Tab selects the next layer down the layers list"),
         ("select.previous", vec![k.a], vec![k.b], "Shift+Tab selects the previous one"),
-        ("select.all", vec![k.a], vec![k.a, k.b], "Select all selects the selection's siblings"),
-        ("select.all", vec![], visible_unlocked.clone(), "with nothing selected, all layers on the page (hidden and locked ones can't be selected)"),
+        ("edit.selectAll", vec![k.a], vec![k.a, k.b], "Select all selects the selection's siblings"),
+        (
+            "edit.selectAll",
+            vec![],
+            visible_unlocked.clone(),
+            "with nothing selected, all layers on the page (hidden and locked ones can't be selected)",
+        ),
         (
             "select.inverse",
             vec![k.r],
@@ -397,7 +402,7 @@ fn a_layer_stacked_below_the_selection_doesnt_take_a_drag_from_inside_it() {
     // selection drags); a filled layer above it still does.
     let mut s = Session::new();
     let at = |s: &Session, i: NodeId| s.doc().unwrap().world_bounds(i).unwrap().origin();
-    let frame = id(&ex(&mut s, "frame.create", json!({"x": 300, "y": 0, "width": 200, "height": 200})));
+    let frame = id(&ex(&mut s, "frame.add", json!({"x": 300, "y": 0, "width": 200, "height": 200})));
     for (parent, dx, where_) in [(None, 0.0, "on the canvas"), (Some(frame), 300.0, "in a top-level frame")] {
         // `back` (0,0) filled, `front` (20,20) stroke only, `top` (60,60) filled; each 100×100, so
         // the presses are well clear of the stroke.

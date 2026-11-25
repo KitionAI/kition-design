@@ -116,37 +116,33 @@ pub fn collect(doc: &Document, ids: &[NodeId]) -> Vec<SelectionColor> {
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
+        spec!("select.colors", "Selection colors", "{ids?} → {colors: [{paint, targets}]}; includes descendants and text ranges", false, |s, p| {
+            Ok(json!({"colors": collect(s.doc()?, &targets(s, p))}))
+        }),
+        spec!("select.setPaint", "Change selection color", "{targets: [{id, fills, index, range: [start,end] | null}], paint}", true, set_paint),
         spec!(
-            "selection.colors",
-            "Selection colors",
-            "{ids?} → {colors: [{paint, targets}]}; includes descendants and text ranges",
-            false,
-            |s, p| { Ok(json!({"colors": collect(s.doc()?, &targets(s, p))})) }
-        ),
-        spec!("selection.setPaint", "Change selection color", "{targets: [{id, fills, index, range: [start,end] | null}], paint}", true, set_paint),
-        spec!(
-            "selection.applyColorStyle",
+            "select.applyColorStyle",
             "Apply selection color style",
             "{targets, style}; applies the color style to matching fill/stroke lists (text ranges keep typography)",
             true,
             apply_style
         ),
         spec!(
-            "selection.bindColorVariable",
+            "select.bindColorVariable",
             "Apply selection color variable",
             "{targets, variable (id or name)}; binds the color variable to matching solid fill/stroke slots, replacing a color style there (text ranges with fills of their own take its value in the layer's modes)",
             true,
             bind_variable
         ),
         spec!(
-            "selection.detachColor",
+            "select.detachColor",
             "Detach selection color",
             "{targets}; unlinks the color style or variable of matching fill/stroke lists, keeping their values",
             true,
             detach
         ),
         spec!(
-            "selection.selectColor",
+            "select.selectColor",
             "Select layers with color",
             "{targets} → {ids}; selects the layers owning these paint slots",
             false,
@@ -169,7 +165,7 @@ fn checked_targets(s: &Session, p: &Value, cmd: &str) -> Result<Vec<PaintTarget>
 }
 
 fn set_paint(s: &mut Session, p: &Value) -> Result<Value> {
-    const CMD: &str = "selection.setPaint";
+    const CMD: &str = "select.setPaint";
     let targets = checked_targets(s, p, CMD)?;
     let paint = get(p, "paint").and_then(paint_of).ok_or_else(|| bad(CMD, "`paint` must be a paint"))?;
     for target in &targets {
@@ -202,7 +198,7 @@ fn set_paint(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn apply_style(s: &mut Session, p: &Value) -> Result<Value> {
-    const CMD: &str = "selection.applyColorStyle";
+    const CMD: &str = "select.applyColorStyle";
     let targets = checked_targets(s, p, CMD)?;
     let name = req_string(CMD, p, "style")?;
     let style = s.doc()?.style(&name).cloned().ok_or_else(|| bad(CMD, "no such color style"))?;
@@ -247,7 +243,7 @@ fn unbind_slot(n: &mut kition_design_doc::Node, fills: bool, index: usize) -> bo
     n.bound.len() != before
 }
 
-/// Why `variable` can't be applied to `targets` (`selection.bindColorVariable`), if it can't: a
+/// Why `variable` can't be applied to `targets` (`select.bindColorVariable`), if it can't: a
 /// variable that isn't a color, or a gradient. Scopes don't refuse, as with `variable.bind`; they
 /// only filter what the menu offers ([`in_scope`]).
 pub fn bind_refusal(doc: &Document, targets: &[PaintTarget], variable: &str) -> Option<String> {
@@ -280,7 +276,7 @@ pub fn in_scope(doc: &Document, targets: &[PaintTarget], variable: &str) -> bool
 }
 
 fn bind_variable(s: &mut Session, p: &Value) -> Result<Value> {
-    const CMD: &str = "selection.bindColorVariable";
+    const CMD: &str = "select.bindColorVariable";
     let targets = checked_targets(s, p, CMD)?;
     let name = req_string(CMD, p, "variable")?;
     let doc = s.doc()?;
@@ -320,7 +316,7 @@ fn bind_variable(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn detach(s: &mut Session, p: &Value) -> Result<Value> {
-    let targets = checked_targets(s, p, "selection.detachColor")?;
+    let targets = checked_targets(s, p, "select.detachColor")?;
     for target in &targets {
         let Some(field) = list_field(s.doc()?, target) else { continue };
         let n = s.doc_mut()?.get_mut(target.id)?;
@@ -337,7 +333,7 @@ fn detach(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn select_color(s: &mut Session, p: &Value) -> Result<Value> {
-    let ts = checked_targets(s, p, "selection.selectColor")?;
+    let ts = checked_targets(s, p, "select.selectColor")?;
     let ids: Vec<_> = ts.iter().map(|t| t.id).collect::<BTreeSet<_>>().into_iter().collect();
     crate::cmd::edit::select_and_page(s, ids.clone())?;
     Ok(json!({"ids": ids}))

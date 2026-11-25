@@ -130,7 +130,7 @@ fn editing_several_vectors_at_once() {
     // from editing points.
     let mut s = Session::new();
     let a = rect(&mut s, 0.0);
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 400, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 400, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
     assert!(
         crate::vectoredit::enter_targets(s.doc().unwrap(), &[a, f]).is_none(),
         "silent: a frame in the selection leaves Enter to select its children (pinned)"
@@ -225,7 +225,7 @@ fn editing_several_vectors_at_once() {
 fn several_handles_drag_together() {
     // An open curve through (0,0), (100,0) and (200,0); its end handles point to (30,-30) and (170,30).
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"path": "M0 0 C30 -30 70 -30 100 0 C130 30 170 30 200 0"}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"path": "M0 0 C30 -30 70 -30 100 0 C130 30 170 30 200 0"}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     ex(&mut s, "vector.edit.selectAll", json!({}));
     let handles = |s: &Session| {
@@ -286,7 +286,7 @@ fn rounding_points_next_to_curves() {
     ];
     for (path, at, r, rounded, why) in rows {
         let mut s = Session::new();
-        let id = id_of(&ex(&mut s, "vector.create", json!({"path": path}))["id"]).unwrap();
+        let id = id_of(&ex(&mut s, "vector.add", json!({"path": path}))["id"]).unwrap();
         ex(&mut s, "vector.edit.begin", json!({"id": id}));
         let v = point_at(&s, id, at);
         let before = net(&s, id);
@@ -348,7 +348,7 @@ fn stroke_bounds(s: &Session, id: NodeId) -> Rect {
 fn a_cap_and_a_join_per_point() {
     // A 100-wide open line, stroke 10 centred, no caps on the layer.
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [id], "props": {"strokeWeight": 10, "strokeAlign": "center", "stroke": "#000000"}}));
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     let (start, end) = (point_at(&s, id, (0.0, 0.0)), point_at(&s, id, (100.0, 0.0)));
@@ -373,7 +373,7 @@ fn a_cap_and_a_join_per_point() {
 
     // A V with a sharp tip at (50, 0); the layer joins with a miter.
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 100], [50, 0], [100, 100]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 100], [50, 0], [100, 100]], "closed": false}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [id], "props": {"strokeWeight": 10, "strokeAlign": "center", "stroke": "#000000", "strokeJoin": "miter"}}));
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     let tip = point_at(&s, id, (50.0, 0.0));
@@ -399,8 +399,8 @@ fn a_cap_and_a_join_per_point() {
     assert!(!svg.contains("stroke-width"), "the SVG stroke is an outline");
     // Several layers at once.
     let mut s = Session::new();
-    let a = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
-    let b = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 50], [100, 50]], "closed": false}))["id"]).unwrap();
+    let a = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
+    let b = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 50], [100, 50]], "closed": false}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"ids": [a, b]}));
     ex(&mut s, "vector.edit.selectAll", json!({}));
     ex(&mut s, "vector.edit.strokeCap", json!({"cap": "round"}));
@@ -433,7 +433,7 @@ fn the_pen_on_existing_points_outside_edit_mode() {
     assert!(n.regions.is_empty(), "silent: the loop it makes isn't filled, as in edit mode (pinned)");
     // With an open path selected, the Pen continues it from an end point.
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
     s.set_selection(vec![id]);
     pen(&mut s, &[(100.0, 0.0), (100.0, 100.0)]);
     let e = editing(&s).expect("the pen continues the path in edit mode");
@@ -441,7 +441,7 @@ fn the_pen_on_existing_points_outside_edit_mode() {
     assert!(e.anchor.is_some(), "and the pen keeps going from it");
     // Another layer's end point while drawing: docs silent, the new path's point lands on it.
     let mut s = Session::new();
-    let other = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 200], [100, 200]], "closed": false}))["id"]).unwrap();
+    let other = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 200], [100, 200]], "closed": false}))["id"]).unwrap();
     s.set_selection(vec![]);
     pen(&mut s, &[(0.0, 0.0), (100.0, 0.0), (100.0, 200.0)]);
     s.pen_finish().unwrap();

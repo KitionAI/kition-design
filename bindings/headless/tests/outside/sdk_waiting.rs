@@ -9,10 +9,10 @@ async fn waiting_for_sdk_variable_import_reads_matching_names_and_not_another_co
         "variable.import names",
         |f| {
             prepare(f, |d| {
-                d.execute("variable.createCollection", json!({"name":"Brand"})).unwrap();
-                d.execute("variable.create", json!({"collection":"Brand","name":"Primary","type":"number","value":8})).unwrap();
+                d.execute("variable.addCollection", json!({"name":"Brand"})).unwrap();
+                d.execute("variable.add", json!({"collection":"Brand","name":"Primary","type":"number","value":8})).unwrap();
                 let exported = d.execute("variable.export", json!({})).unwrap();
-                d.execute("variable.createCollection", json!({"name":"Other"})).unwrap();
+                d.execute("variable.addCollection", json!({"name":"Other"})).unwrap();
                 exported
             })
         },

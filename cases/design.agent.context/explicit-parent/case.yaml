@@ -2,7 +2,7 @@ format: 1
 id: design.agent.context/explicit-parent
 feature: design.agent.context
 intent: >-
-  An agent's node.create with a parent on another page, and its edit by id there, leave the current page, the selection, the view and the tool as they were.
+  An agent's node.add with a parent on another page, and its edit by id there, leave the current page, the selection, the view and the tool as they were.
 layer: gate
 source:
   kind: synthetic

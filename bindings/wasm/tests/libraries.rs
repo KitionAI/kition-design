@@ -29,14 +29,14 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 /// each publish.
 fn library_versions() -> (Vec<u8>, Vec<u8>) {
     let mut s = Session::with_document(kition_design_doc::Document::new("Design System"));
-    let f = ex(&mut s, "frame.create", json!({ "x": 0, "y": 0, "width": 120, "height": 40, "name": "Button" }))["id"].clone();
+    let f = ex(&mut s, "frame.add", json!({ "x": 0, "y": 0, "width": 120, "height": 40, "name": "Button" }))["id"].clone();
     ex(&mut s, "node.set", json!({ "id": f, "props": { "fill": "#0000ff" } }));
-    ex(&mut s, "style.create", json!({ "type": "paint", "name": "Brand", "from": f }));
-    let button = ex(&mut s, "component.create", json!({ "ids": [f] }))["id"].clone();
-    let theme = ex(&mut s, "variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }))["id"].clone();
+    ex(&mut s, "style.add", json!({ "type": "paint", "name": "Brand", "from": f }));
+    let button = ex(&mut s, "component.add", json!({ "ids": [f] }))["id"].clone();
+    let theme = ex(&mut s, "variable.addCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }))["id"].clone();
     ex(
         &mut s,
-        "variable.create",
+        "variable.add",
         json!({ "collection": theme, "name": "Primary", "type": "color", "values": { "Light": "#ffffff", "Dark": "#000000" } }),
     );
     ex(&mut s, "library.publish", json!({ "description": "Synthetic test library" }));
@@ -204,7 +204,7 @@ fn a_library_is_published_from_the_open_file() {
     let _turn = turn();
     let (mut doc, frame) = design();
     doc.execute("node.set", json!({ "id": frame, "props": { "name": "Card" } })).unwrap();
-    doc.execute("component.create", json!({ "ids": [frame] })).unwrap();
+    doc.execute("component.add", json!({ "ids": [frame] })).unwrap();
     let published = doc.execute("library.publish", json!({ "description": "Cards" })).unwrap();
     assert_eq!(published["version"], 1, "{published}");
     let saved = doc.save_file(None).unwrap();
@@ -235,8 +235,8 @@ fn page_names(doc: &DesignDocument) -> Vec<String> {
 /// A second library file: the component "Icon".
 fn icons() -> Vec<u8> {
     let mut s = Session::with_document(kition_design_doc::Document::new("Icons"));
-    let f = ex(&mut s, "frame.create", json!({ "x": 0, "y": 0, "width": 24, "height": 24, "name": "Icon" }))["id"].clone();
-    ex(&mut s, "component.create", json!({ "ids": [f] }));
+    let f = ex(&mut s, "frame.add", json!({ "x": 0, "y": 0, "width": 24, "height": 24, "name": "Icon" }))["id"].clone();
+    ex(&mut s, "component.add", json!({ "ids": [f] }));
     ex(&mut s, "library.publish", json!({}));
     kition_design_format::save_bytes(s.doc().unwrap()).unwrap()
 }

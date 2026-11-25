@@ -179,7 +179,7 @@ fn files_dialogs_history_and_plugins_are_off_limits() {
         ("collab.recoverFile", json!({"path": "copy.kdesign", "file": "x", "session": 1, "client": 1, "seq": 0})),
         ("window.new", json!({"path": "C:/Windows/win.ini"})),
         ("doc.switch", json!({"index": 0})),
-        ("pref.keepTool", json!({})),
+        ("prefs.keepTool", json!({})),
         // Without a name it would open inline renaming in the layers panel: a UI request.
         ("object.rename", json!({})),
     ];

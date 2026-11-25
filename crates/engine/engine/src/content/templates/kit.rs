@@ -100,7 +100,7 @@ impl Kit {
 
     fn create(&mut self, kind: &str, parent: NodeId, extra: Value, props: Value) -> Result<NodeId> {
         let base = json!({"type": kind, "parent": parent.0, "select": false, "props": self.resolved(props)});
-        self.made("node.create", merged(base, extra))
+        self.made("node.add", merged(base, extra))
     }
 
     /// A layer of `kind` (frame, component, rectangle, ellipse…) at `[x, y, width, height]`.
@@ -190,7 +190,7 @@ impl Kit {
     /// Paint styles: (name, colour).
     pub fn colors(&mut self, list: &[(&str, &str)]) -> Result<()> {
         for (name, hex) in list {
-            let v = self.run("style.create", json!({"type": "paint", "name": name, "value": [hex]}))?;
+            let v = self.run("style.add", json!({"type": "paint", "name": name, "value": [hex]}))?;
             self.keep_style(name, &v);
         }
         Ok(())
@@ -200,7 +200,7 @@ impl Kit {
     pub fn type_styles(&mut self, list: &[(&str, f64, &str, f64)]) -> Result<()> {
         for (name, size, weight, line) in list {
             let value = json!({"fontSize": size, "fontStyle": weight, "lineHeight": line});
-            let v = self.run("style.create", json!({"type": "text", "name": name, "value": value}))?;
+            let v = self.run("style.add", json!({"type": "text", "name": name, "value": value}))?;
             self.keep_style(name, &v);
         }
         Ok(())
@@ -214,10 +214,10 @@ impl Kit {
 
     /// A variable collection with `modes`, and its variables: (name, type, one value per mode).
     pub fn variables(&mut self, collection: &str, modes: &[&str], vars: Vec<(&str, &str, Vec<Value>)>) -> Result<()> {
-        self.run("variable.createCollection", json!({"name": collection, "modes": modes}))?;
+        self.run("variable.addCollection", json!({"name": collection, "modes": modes}))?;
         for (name, kind, values) in vars {
             let values: Map<String, Value> = modes.iter().map(ToString::to_string).zip(values).collect();
-            self.run("variable.create", json!({"collection": collection, "name": name, "type": kind, "values": values}))?;
+            self.run("variable.add", json!({"collection": collection, "name": name, "type": kind, "values": values}))?;
         }
         Ok(())
     }
@@ -256,7 +256,7 @@ impl Kit {
 
     /// An instance of `component` in `parent` with component `properties` and layer `props`.
     pub fn instance(&mut self, component: NodeId, parent: NodeId, properties: Value, props: Value) -> Result<NodeId> {
-        let id = self.made("instance.create", json!({"component": component.0, "parent": parent.0, "x": 0, "y": 0}))?;
+        let id = self.made("instance.add", json!({"component": component.0, "parent": parent.0, "x": 0, "y": 0}))?;
         if properties.as_object().is_some_and(|o| !o.is_empty()) {
             self.run("instance.setProperties", json!({"ids": [id.0], "properties": properties}))?;
         }

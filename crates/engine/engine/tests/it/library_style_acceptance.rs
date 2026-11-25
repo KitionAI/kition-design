@@ -34,7 +34,7 @@ fn accepted_library_paint_reaches_linked_layer() {
     std::fs::create_dir(&fixture.0).unwrap();
     let path = fixture.0.join("library.kdesign");
     let mut publisher = Session::new();
-    run(&mut publisher, "style.create", json!({"type":"paint","name":"Brand","value":"#0000ff"}));
+    run(&mut publisher, "style.add", json!({"type":"paint","name":"Brand","value":"#0000ff"}));
     let publication = run(&mut publisher, "library.publish", json!({}));
     assert_eq!(publication["components"], 0);
     assert_eq!(publication["styles"], 1);
@@ -46,7 +46,7 @@ fn accepted_library_paint_reaches_linked_layer() {
     let applied = run(&mut consumer, "library.applyStyle", json!({"library":publication["id"],"style":"Brand","id":layer}));
     let style = applied["style"].as_str().unwrap();
     assert_eq!(layer_paint(&consumer, layer), "0000FF");
-    run(&mut publisher, "style.update", json!({"style":"Brand","value":"#00ff00"}));
+    run(&mut publisher, "style.set", json!({"style":"Brand","value":"#00ff00"}));
     run(&mut publisher, "library.publish", json!({}));
     run(&mut publisher, "file.save", json!({}));
     assert_eq!(run(&mut consumer, "library.updates", json!({}))["count"], 1);

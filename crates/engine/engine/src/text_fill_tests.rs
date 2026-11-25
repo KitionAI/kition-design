@@ -8,7 +8,7 @@ use crate::params::id_of;
 #[test]
 fn range_fill_sets_and_clears() {
     let mut s = Session::new();
-    let t = id_of(&s.execute("text.create", &json!({"text": "Hello brand world", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
+    let t = id_of(&s.execute("text.add", &json!({"text": "Hello brand world", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
     s.execute("text.style", &json!({"id": t, "start": 6, "end": 11, "textFills": ["#0D99FF"]})).unwrap();
     let fill_at = |s: &Session, i: usize| {
         let n = s.doc().unwrap().node(t).unwrap().clone();

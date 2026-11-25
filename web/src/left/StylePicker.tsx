@@ -163,7 +163,7 @@ export function StylePicker({ request, onClose }: { request: StylePickerRequest;
     const name = edit.name.trim()
     if (name && name !== style.name) params.name = name
     if (edit.description !== (style.description ?? '')) params.description = edit.description
-    if (Object.keys(params).length > 1) void run('style.update', params)
+    if (Object.keys(params).length > 1) void run('style.set', params)
   }
   const endPreview = () => {
     if (!previewing.current) return
@@ -235,11 +235,11 @@ export function StylePicker({ request, onClose }: { request: StylePickerRequest;
     else void run('text.preview', { command: 'style.apply', params: { ids, style: style.id } })
   }
   const create = async () => {
-    if (devRefuses(designKit, 'style.create')) return
+    if (devRefuses(designKit, 'style.add')) return
     let n = 1
     while (styles.some((s) => s.name === `${BASE[slot]} ${n}`)) n += 1
     const name = `${BASE[slot]} ${n}`
-    const made = await run<{ id?: string }>('style.create', { type: CREATE[slot], name, ...(ids[0] != null ? { from: ids[0] } : {}) })
+    const made = await run<{ id?: string }>('style.add', { type: CREATE[slot], name, ...(ids[0] != null ? { from: ids[0] } : {}) })
     if (made?.id) {
       setQuery('')
       setEdit({ id: made.id, name, description: '', focus: true })
@@ -537,7 +537,7 @@ function StylePaint({ styleId, index, styles, onClose }: { styleId: string; inde
     <ColorPicker
       paint={paint}
       onClose={onClose}
-      onChange={(next, phase) => write('style.update', { style: styleId, value: value(next) }, phase, null)}
+      onChange={(next, phase) => write('style.set', { style: styleId, value: value(next) }, phase, null)}
       testId="design-style-color"
     />
   )
@@ -658,7 +658,7 @@ function StyleEditor({ style, def, name, description, focus, onName, onDescripti
       {properties}
       <div className="design-style-buttons">
         {hasSelection && firstId != null ? (
-          <button type="button" className="design-dark-button" data-tip={t('Take the values from the first selected layer')} onClick={() => void run('style.update', { style: style.id, from: firstId })}>
+          <button type="button" className="design-dark-button" data-tip={t('Take the values from the first selected layer')} onClick={() => void run('style.set', { style: style.id, from: firstId })}>
             {t('Update from selection')}
           </button>
         ) : null}
@@ -685,7 +685,7 @@ function TextProperties({ style, def, bindCell }: { style: StyleJson; def: TextD
   const { t, run } = useDesignKit()
   const families = useQuery<{ families: Array<{ family: string; styles: string[] }> }>('fontFamilies')
   const [menu, setMenu] = useState<{ anchor: Element; items: MenuEntry[] } | null>(null)
-  const set = (change: Partial<TextDef>) => void run('style.update', { style: style.id, value: { ...def, ...change } })
+  const set = (change: Partial<TextDef>) => void run('style.set', { style: style.id, value: { ...def, ...change } })
   const family = families?.families.find((f) => f.family === def.fontFamily)
   const bound = (field: string) => style.bound?.[field]
   return (

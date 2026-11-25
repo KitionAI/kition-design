@@ -221,9 +221,9 @@ fn remove_mode_and_escape() {
 fn groups_rotated_and_ineligible_layers() {
     let mut s = Session::new();
     let (a, b) = squares(&mut s);
-    let g = id(&ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(&ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let line = id(&ex(&mut s, "shape.line", json!({"x": 0, "y": 5, "width": 20})));
-    let frame = id(&ex(&mut s, "frame.create", json!({"x": 100, "y": 100, "width": 50, "height": 50})));
+    let frame = id(&ex(&mut s, "frame.add", json!({"x": 100, "y": 100, "width": 50, "height": 50})));
     let r = ex(&mut s, "shapeBuilder.regions", json!({"ids": [g, line, frame]}));
     assert_eq!(r["sources"], json!([a, b, line]), "groups give their shapes; lines take part through their strokes; frames don't");
     // The merged shape lands in the group, which stays selected.
@@ -274,7 +274,7 @@ fn junk_params_never_panic() {
     let mut s = Session::new();
     let a = rect(&mut s, 0.0, 0.0, 0.0, 10.0, "#ff0000");
     let b = rect(&mut s, -1e8, -1e8, 2e8, 2e8, "#0000ff");
-    let v = id(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [20, 20], [20, 0], [0, 20]], "closed": true})));
+    let v = id(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [20, 20], [20, 0], [0, 20]], "closed": true})));
     s.set_selection(vec![a, b, v]);
     let _ = s.execute("shapeBuilder.regions", &json!({}));
     for p in [[10.0, 5.0], [5.0, 10.0], [1e7, 1e7]] {

@@ -155,7 +155,7 @@ fn thin_strokes_are_easy_to_enter_and_bend() {
             drag(&mut s, (100.0, 100.0), (200.0, 50.0), NONE);
             *s.selection().first().unwrap()
         } else {
-            let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[100, 100], [200, 50]], "closed": false}))["id"]).unwrap();
+            let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[100, 100], [200, 50]], "closed": false}))["id"]).unwrap();
             // Styled like a pen stroke: 1 px, no fill.
             ex(&mut s, "node.set", json!({"ids": [id], "props": {"fills": [], "strokes": ["#000000"], "strokeWeight": 1}}));
             s.set_selection(vec![id]);
@@ -182,7 +182,7 @@ fn thin_strokes_are_easy_to_enter_and_bend() {
 #[test]
 fn the_pen_follows_the_documented_rules() {
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     ex(&mut s, "vector.edit.tool", json!({"tool": "pen"}));
     // Clicking an end point continues the path from it.
@@ -296,7 +296,7 @@ fn deleting_points_vs_delete_and_heal() {
     // the neighbours' quarter-circle handles and cut inside).
     let mut s = Session::new();
     let circle = "M50 0 C77.6 0 100 22.4 100 50 C100 77.6 77.6 100 50 100 C22.4 100 0 77.6 0 50 C0 22.4 22.4 0 50 0 Z";
-    let id = id_of(&ex(&mut s, "vector.create", json!({"path": circle}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"path": circle}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     let top = point_at(&s, id, (50.0, 0.0));
     ex(&mut s, "vector.deleteHeal", json!({"vertices": [top]}));
@@ -333,7 +333,7 @@ fn handles_follow_their_mirroring() {
     ];
     for (mode, want, why) in rows {
         let mut s = Session::new();
-        let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0], [200, 0]], "closed": false}))["id"]).unwrap();
+        let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0], [200, 0]], "closed": false}))["id"]).unwrap();
         ex(&mut s, "vector.edit.begin", json!({"id": id}));
         let mid = point_at(&s, id, (100.0, 0.0));
         let n = net(&s, id);
@@ -423,7 +423,7 @@ fn bend_paint_bucket_cut_join_and_eraser_tools() {
 
     // Join: two points on top of each other merge into one.
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"path": "M0 0 L50 0 M50 0 L100 0"}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"path": "M0 0 L50 0 M50 0 L100 0"}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     let before = net(&s, id).vertices.len();
     ex(&mut s, "vector.edit.selectAll", json!({}));
@@ -434,7 +434,7 @@ fn bend_paint_bucket_cut_join_and_eraser_tools() {
 
     // Eraser: erasing through a path keeps one layer.
     let mut s = Session::new();
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}))["id"]).unwrap();
     let page = s.page().unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     ex(&mut s, "vector.edit.erase", json!({"points": [[50, 0]], "radius": 10}));
@@ -446,37 +446,37 @@ fn bend_paint_bucket_cut_join_and_eraser_tools() {
 fn vector_paths_take_the_requested_size_and_refuse_empty_geometry() {
     let mut s = Session::new();
     let path = "M0 0 L24 0 L24 24 L0 24 Z";
-    let intrinsic = id_of(&ex(&mut s, "vector.create", json!({"path": path}))["id"]).unwrap();
+    let intrinsic = id_of(&ex(&mut s, "vector.add", json!({"path": path}))["id"]).unwrap();
     let n = s.doc().unwrap().node(intrinsic).unwrap();
     assert_eq!((n.width, n.height), (24.0, 24.0), "a path without a size keeps its intrinsic box");
     // Both sides: each scales independently, like resizing a vector.
-    let both = id_of(&ex(&mut s, "vector.create", json!({"path": path, "width": 16, "height": 8}))["id"]).unwrap();
+    let both = id_of(&ex(&mut s, "vector.add", json!({"path": path, "width": 16, "height": 8}))["id"]).unwrap();
     let n = s.doc().unwrap().node(both).unwrap();
     assert_eq!((n.width, n.height), (16.0, 8.0));
     let n = net(&s, both);
     let max = n.vertices.iter().fold((0.0f64, 0.0f64), |(x, y), v| (x.max(v.x), y.max(v.y)));
     assert!((max.0 - 16.0).abs() < 1e-9 && (max.1 - 8.0).abs() < 1e-9, "{max:?}: the geometry itself is scaled");
     // One side: the other keeps its proportion.
-    let width = id_of(&ex(&mut s, "vector.create", json!({"path": path, "width": 16}))["id"]).unwrap();
+    let width = id_of(&ex(&mut s, "vector.add", json!({"path": path, "width": 16}))["id"]).unwrap();
     let n = s.doc().unwrap().node(width).unwrap();
     assert_eq!((n.width, n.height), (16.0, 16.0));
     // A path or point set that draws nothing is an error, not an invisible zero-size layer.
-    let e = s.execute("vector.create", &json!({"path": "M5 5"})).unwrap_err().to_string();
+    let e = s.execute("vector.add", &json!({"path": "M5 5"})).unwrap_err().to_string();
     assert!(e.contains("draws nothing"), "{e}");
-    let e = s.execute("vector.create", &json!({"points": [[5, 5], [5, 5]]})).unwrap_err().to_string();
+    let e = s.execute("vector.add", &json!({"points": [[5, 5], [5, 5]]})).unwrap_err().to_string();
     assert!(e.contains("draws nothing"), "{e}");
     // A size on an axis the geometry has none of is refused, not silently ignored.
-    let e = s.execute("vector.create", &json!({"path": "M0 0 L0 24", "width": 16})).unwrap_err().to_string();
+    let e = s.execute("vector.add", &json!({"path": "M0 0 L0 24", "width": 16})).unwrap_err().to_string();
     assert!(e.contains("horizontal extent"), "{e}");
-    let e = s.execute("vector.create", &json!({"path": "M0 0 L24 0", "height": 16})).unwrap_err().to_string();
+    let e = s.execute("vector.add", &json!({"path": "M0 0 L24 0", "height": 16})).unwrap_err().to_string();
     assert!(e.contains("vertical extent"), "{e}");
     // But 0 on an axis it has none of is what it already is: a horizontal line with height 0.
-    let line = id_of(&ex(&mut s, "vector.create", json!({"path": "M0 0 L24 0", "width": 16, "height": 0}))["id"]).unwrap();
+    let line = id_of(&ex(&mut s, "vector.add", json!({"path": "M0 0 L24 0", "width": 16, "height": 0}))["id"]).unwrap();
     let n = s.doc().unwrap().node(line).unwrap();
     assert_eq!((n.width, n.height), (16.0, 0.0));
     // A size of 0 or less on an axis it has would flatten it, so it is refused, alone or with the other.
     for p in [json!({"path": path, "width": 0}), json!({"path": path, "width": 16, "height": 0}), json!({"path": path, "width": -4, "height": 8})] {
-        let e = s.execute("vector.create", &p).unwrap_err().to_string();
+        let e = s.execute("vector.add", &p).unwrap_err().to_string();
         assert!(e.contains("positive"), "{p}: {e}");
     }
 }
@@ -487,15 +487,15 @@ fn vector_points_take_the_requested_size() {
     let points = json!([[10, 20], [34, 20], [34, 32]]);
     let corners = |s: &Session, id: NodeId| net(s, id).vertices.iter().map(|v| (v.x, v.y)).collect::<Vec<_>>();
     // Both sides: each axis scales on its own; the vertices move with the box.
-    let both = id_of(&ex(&mut s, "vector.create", json!({"points": points, "x": 10, "y": 20, "width": 48, "height": 6}))["id"]).unwrap();
+    let both = id_of(&ex(&mut s, "vector.add", json!({"points": points, "x": 10, "y": 20, "width": 48, "height": 6}))["id"]).unwrap();
     let n = s.doc().unwrap().node(both).unwrap();
     assert_eq!((n.width, n.height), (48.0, 6.0));
     assert_eq!(corners(&s, both), vec![(0.0, 0.0), (48.0, 0.0), (48.0, 6.0)]);
     // One side: the other keeps its proportion.
-    let one = id_of(&ex(&mut s, "vector.create", json!({"points": points, "height": 24}))["id"]).unwrap();
+    let one = id_of(&ex(&mut s, "vector.add", json!({"points": points, "height": 24}))["id"]).unwrap();
     let n = s.doc().unwrap().node(one).unwrap();
     assert_eq!((n.width, n.height), (48.0, 24.0));
     assert_eq!(corners(&s, one), vec![(0.0, 0.0), (48.0, 0.0), (48.0, 24.0)]);
-    let e = s.execute("vector.create", &json!({"points": points, "width": 16, "height": -1})).unwrap_err().to_string();
+    let e = s.execute("vector.add", &json!({"points": points, "width": 16, "height": -1})).unwrap_err().to_string();
     assert!(e.contains("positive"), "{e}");
 }

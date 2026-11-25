@@ -16,7 +16,7 @@ fn design() -> DesignDocument {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     let frame = frame_id(&doc);
     doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80, "parent": frame })).unwrap();
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     doc.mark_saved();
     doc
 }
@@ -45,21 +45,21 @@ fn the_catalog_has_undo_redo_unique_ids_menus_and_mutates() {
     assert_eq!(find("edit.undo").shortcut.as_deref(), Some("Cmd+Z"));
     assert_eq!(find("edit.redo").shortcut.as_deref(), Some("Cmd+Shift+Z"));
     assert_eq!(find("edit.undo").menu, Some(vec!["Edit".to_owned()]));
-    assert_eq!(find("text.alignLeft").menu, Some(vec!["Text".to_owned(), "Alignment".to_owned()]));
+    assert_eq!(find("format.alignLeft").menu, Some(vec!["Text".to_owned(), "Alignment".to_owned()]));
     assert_eq!(find("layout.add").shortcut.as_deref(), Some("Shift+A"));
     assert_eq!(find("layout.add").title, "Add auto layout");
-    assert_eq!(find("component.create").shortcut.as_deref(), Some("Cmd+Alt+K"));
-    assert_eq!(find("object.group").shortcut.as_deref(), Some("Cmd+G"));
+    assert_eq!(find("component.add").shortcut.as_deref(), Some("Cmd+Alt+K"));
+    assert_eq!(find("arrange.group").shortcut.as_deref(), Some("Cmd+G"));
     assert_eq!(find("object.removeFill").shortcut.as_deref(), Some("Alt+/"));
     assert!(find("edit.undo").enabled, "the rectangle can be undone");
     assert!(!find("edit.redo").enabled, "nothing to redo");
     for id in [
         "shape.rectangle",
-        "frame.create",
-        "text.create",
+        "frame.add",
+        "text.add",
         "layout.add",
-        "component.create",
-        "object.group",
+        "component.add",
+        "arrange.group",
         "edit.undo",
         "edit.redo",
         "edit.cut",
@@ -69,8 +69,8 @@ fn the_catalog_has_undo_redo_unique_ids_menus_and_mutates() {
         assert!(find(id).mutates, "{id} changes the design");
     }
     for id in [
-        "select.all",
-        "select.none",
+        "edit.selectAll",
+        "edit.deselectAll",
         "select.set",
         "edit.copy",
         "view.outlines",
@@ -78,7 +78,7 @@ fn the_catalog_has_undo_redo_unique_ids_menus_and_mutates() {
         "tool.rectangle",
         "file.export",
         "inspect.properties",
-        "pref.keepTool",
+        "prefs.keepTool",
         "page.select",
     ] {
         assert!(!find(id).mutates, "{id} does not change the design");
@@ -212,7 +212,7 @@ fn queries_answer_the_panels() {
     // The Design panel: shared values and mixed ones.
     let nothing = doc.query("selection", &json!({})).unwrap();
     assert_eq!(nothing["page"]["background"], "#F5F5F5");
-    doc.execute("select.all", json!({})).unwrap();
+    doc.execute("edit.selectAll", json!({})).unwrap();
     doc.execute("select.set", json!({ "ids": [id] })).unwrap();
     doc.execute("layout.add", json!({ "direction": "vertical" })).unwrap();
     let one = doc.query("selection", &json!({})).unwrap();
@@ -275,7 +275,7 @@ fn chrome_shows_frame_labels_the_size_pill_and_auto_layout_handles() {
     assert_eq!(al["padding"].as_array().unwrap().len(), 4);
     assert_eq!(al["padding"][0]["key"], "paddingTop");
     // The label's area is the engine's: a press on it selects the frame.
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     let quad = doc.chrome(1.0)["labels"][0]["quad"].clone();
     let (x, y) = (quad[0][0].as_f64().unwrap() + 2.0, quad[0][1].as_f64().unwrap() + 2.0);
     doc.pointer(&event(PointerAction::Down, x, y)).unwrap();

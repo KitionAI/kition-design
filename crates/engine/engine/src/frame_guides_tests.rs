@@ -19,8 +19,8 @@ fn guides(s: &Session, owner: NodeId) -> Vec<(bool, f64)> {
 /// A frame at (100, 50) with a child rectangle.
 fn setup() -> (Session, NodeId, NodeId) {
     let mut s = Session::new();
-    let frame = id(s.execute("node.create", &json!({"type": "frame", "x": 100, "y": 50, "width": 300, "height": 200})).unwrap());
-    let rect = id(s.execute("node.create", &json!({"type": "rectangle", "parent": frame, "x": 10, "y": 10, "width": 20, "height": 20})).unwrap());
+    let frame = id(s.execute("node.add", &json!({"type": "frame", "x": 100, "y": 50, "width": 300, "height": 200})).unwrap());
+    let rect = id(s.execute("node.add", &json!({"type": "rectangle", "parent": frame, "x": 10, "y": 10, "width": 20, "height": 20})).unwrap());
     (s, frame, rect)
 }
 
@@ -77,7 +77,7 @@ fn frame_guides_move_with_the_frame_and_snap_its_layers() {
     let t = Targets::gather(s.doc().unwrap(), page, &[rect]);
     assert_eq!(t.snap_rect(Rect::new(241.0, 300.0, 249.0, 310.0), 4.0).0, -1.0);
     // Layers outside the frame don't snap to it.
-    let outside = id(s.execute("node.create", &json!({"type": "rectangle", "x": 1000, "y": 1000, "width": 5, "height": 5})).unwrap());
+    let outside = id(s.execute("node.add", &json!({"type": "rectangle", "x": 1000, "y": 1000, "width": 5, "height": 5})).unwrap());
     let t = Targets::gather(s.doc().unwrap(), page, &[outside]);
     assert_eq!(t.snap_rect(Rect::new(241.0, 1000.0, 249.0, 1010.0), 4.0).0, 0.0);
 }

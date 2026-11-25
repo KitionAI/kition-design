@@ -31,7 +31,7 @@ fn ev(kind: PointerKind, x: f64, y: f64) -> PointerEvent {
 fn a_drag_held_still_keeps_its_preview() {
     let mut s = Session::new();
     // A child of a rotated frame, the case the canvas showed stale while dragging.
-    let f = id_of(&s.execute("frame.create", &json!({"x": 100, "y": 100, "width": 300, "height": 200})).unwrap()["id"]).unwrap();
+    let f = id_of(&s.execute("frame.add", &json!({"x": 100, "y": 100, "width": 300, "height": 200})).unwrap()["id"]).unwrap();
     s.execute("node.set", &json!({"id": f, "rotation": 25})).unwrap();
     let r = rect(&mut s, Some(f));
     // Snapping would pull the layer onto the frame's edges and centre.

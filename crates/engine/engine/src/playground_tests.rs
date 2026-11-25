@@ -26,16 +26,16 @@ fn button(s: &mut Session) -> (NodeId, NodeId) {
     for (i, (state, fill)) in [("Rest", "#0000FF"), ("Hover", "#FF0000")].into_iter().enumerate() {
         let f = id(run(
             s,
-            "frame.create",
+            "frame.add",
             json!({"x": 200 * i, "y": 0, "width": 120, "height": 40, "name": format!("State={state}"), "props": {"fill": fill}}),
         ));
-        let label = id(run(s, "text.create", json!({"text": "Buy", "x": 40, "y": 10, "parent": f, "name": "Label"})));
+        let label = id(run(s, "text.add", json!({"text": "Buy", "x": 40, "y": 10, "parent": f, "name": "Label"})));
         let icon = id(run(
             s,
             "shape.ellipse",
             json!({"x": 8, "y": 8, "width": 24, "height": 24, "parent": f, "props": {"fill": "#FFFFFF", "name": "Icon"}}),
         ));
-        let c = id(run(s, "component.create", json!({"ids": [f]})));
+        let c = id(run(s, "component.add", json!({"ids": [f]})));
         run(s, "component.addProperty", json!({"id": c, "name": "Label", "type": "text", "default": "Buy"}));
         run(s, "component.addProperty", json!({"id": c, "name": "Icon", "type": "boolean", "default": true}));
         run(s, "component.bindProperty", json!({"id": label, "property": "Label", "field": "characters"}));
@@ -43,7 +43,7 @@ fn button(s: &mut Session) -> (NodeId, NodeId) {
         comps.push(c);
     }
     let set = id(run(s, "component.combineVariants", json!({"ids": comps})));
-    let inst = id(run(s, "instance.create", json!({"component": set, "x": 0, "y": 300})));
+    let inst = id(run(s, "instance.add", json!({"component": set, "x": 0, "y": 300})));
     (set, inst)
 }
 

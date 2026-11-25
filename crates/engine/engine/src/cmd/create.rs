@@ -51,14 +51,14 @@ pub const FRAME_PRESETS: &[(&str, &str, f64, f64)] = &[
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         spec!(
-            "node.create",
+            "node.add",
             "Create layer",
             "{type: rectangle|ellipse|polygon|star|line|arrow|vector|text|frame|section|component|slice, x?, y? (relative to the parent frame; groups don't count), width?, height?, parent? (id; default: the page), index?, name?, text? (for text), characters? (the same as text), path? (SVG path data for vector), points?: [[x, y]] (vector: instead of path), closed?: bool (vector points: a closed shape), props?: {node.set keys}, select? (default true)}",
             true,
             create
         ),
         spec!(
-            "frame.create",
+            "frame.add",
             "Create frame",
             "{preset? (name from FRAME_PRESETS), x?, y?, width?, height?, parent?, name?, props?} (a preset without x/y lands to the right of the page's frames)",
             true,
@@ -70,11 +70,11 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!("shape.star", "Star", "{x, y, width, height, parent?, props? {pointCount, innerRadius}}", true, |s, p| create_kind(s, p, "star")),
         spec!("shape.line", "Line", "{x, y, width (length), parent?, props? {rotation}}", true, |s, p| create_kind(s, p, "line")),
         spec!("shape.arrow", "Arrow", "{x, y, width (length), parent?, props?}", true, |s, p| create_kind(s, p, "arrow")),
-        spec!("text.create", "Text", "{text, x, y, parent?, width? (fixed width wraps), props? (fontSize, fontFamily, …)}", true, |s, p| {
+        spec!("text.add", "Text", "{text, x, y, parent?, width? (fixed width wraps), props? (fontSize, fontFamily, …)}", true, |s, p| {
             create_kind(s, p, "text")
         }),
         spec!(
-            "vector.create",
+            "vector.add",
             "Vector",
             "{path (SVG path data) | points [[x,y],..], closed?, x?, y?, width?, height? (scale the path; one keeps its proportion), parent?, props?}",
             true,
@@ -177,7 +177,7 @@ pub(crate) struct PathShape {
     pub offset: (f64, f64),
 }
 
-/// The network SVG path data `d` draws, for `node.create` and `node.set`: the path's own box moves
+/// The network SVG path data `d` draws, for `node.add` and `node.set`: the path's own box moves
 /// to the origin, and `width`/`height` scale it as [`vector_scale`] says. Data that doesn't parse
 /// or draws nothing is refused.
 pub(crate) fn path_network(cmd: &str, d: &str, width: Option<f64>, height: Option<f64>) -> Result<PathShape> {
@@ -235,7 +235,7 @@ fn vector_scale(width: Option<f64>, height: Option<f64>, bw: f64, bh: f64, what:
 }
 
 pub fn create(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "node.create";
+    let cmd = "node.add";
     let t = string(p, "type").ok_or_else(|| bad(cmd, "`type` is required"))?;
     let (mut kind, base) = kind_for(&t).ok_or_else(|| bad(cmd, format!("unknown type `{t}`")))?;
     let page = s.page()?;
@@ -345,7 +345,7 @@ fn frame_create(s: &mut Session, p: &Value) -> Result<Value> {
         let (_, pname, w, h) = FRAME_PRESETS
             .iter()
             .find(|(_, n, _, _)| n.eq_ignore_ascii_case(&name))
-            .ok_or_else(|| bad("frame.create", format!("unknown preset `{name}`")))?;
+            .ok_or_else(|| bad("frame.add", format!("unknown preset `{name}`")))?;
         if let Some(o) = q.as_object_mut() {
             o.entry("width").or_insert(json!(w));
             o.entry("height").or_insert(json!(h));

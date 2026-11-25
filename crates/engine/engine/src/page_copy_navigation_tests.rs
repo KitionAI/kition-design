@@ -12,7 +12,7 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 }
 
 fn frame(s: &mut Session, x: f64) -> NodeId {
-    id_of(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 100, "height": 100}))["id"]).unwrap()
+    id_of(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 100, "height": 100}))["id"]).unwrap()
 }
 
 fn dest(s: &Session, id: NodeId) -> NodeId {

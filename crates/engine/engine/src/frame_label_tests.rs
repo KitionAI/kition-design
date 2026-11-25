@@ -19,7 +19,7 @@ fn ex(s: &mut Session, c: &str, p: Value) -> Value {
 /// top edge, from its top-left corner, as the canvas would publish it at zoom 1.
 fn setup() -> (Session, NodeId, [Point; 4]) {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 100, "y": 100, "width": 200, "height": 100}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 100, "y": 100, "width": 200, "height": 100}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"id": f, "rotation": 30}));
     let w = s.doc().unwrap().world_transform(f);
     let q = [(0.0, -18.0), (60.0, -18.0), (60.0, -4.0), (0.0, -4.0)].map(|(x, y)| w * Point::new(x, y));

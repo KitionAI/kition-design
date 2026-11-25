@@ -12,9 +12,9 @@ use kition_design_doc::*;
 
 /// A main component named `name` at `x`, made from a 120×40 frame with a "Bg" rectangle.
 fn component(s: &mut Session, name: &str, x: f64) -> NodeId {
-    let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 120, "height": 40, "name": name})));
+    let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 120, "height": 40, "name": name})));
     ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 120, "height": 40, "parent": f, "props": {"name": "Bg"}}));
-    idv(&ex(s, "component.create", json!({"ids": [f]})))
+    idv(&ex(s, "component.add", json!({"ids": [f]})))
 }
 
 fn undo_len(s: &Session) -> usize {
@@ -30,8 +30,8 @@ fn combine_is_offered_for_two_or_more_main_components_only() {
     let mut s = Session::new();
     let a = component(&mut s, "A", 0.0);
     let b = component(&mut s, "B", 200.0);
-    let frame = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
-    let inst = idv(&ex(&mut s, "instance.create", json!({"component": a, "x": 0, "y": 400})));
+    let frame = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
+    let inst = idv(&ex(&mut s, "instance.add", json!({"component": a, "x": 0, "y": 400})));
     let doc = s.doc().unwrap();
     assert!(can_combine_variants(doc, &[a, b]));
     assert!(!can_combine_variants(doc, &[]), "nothing selected");
@@ -49,7 +49,7 @@ fn combine_is_offered_for_two_or_more_main_components_only() {
     assert!(!can_combine_variants(doc, &[set, a]), "a set isn't a component");
 
     // Components in different frames still combine.
-    let holder = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 600, "width": 300, "height": 100})));
+    let holder = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 600, "width": 300, "height": 100})));
     let e = component(&mut s, "E", 0.0);
     ex(&mut s, "node.reparent", json!({"ids": [e], "parent": holder}));
     assert!(can_combine_variants(s.doc().unwrap(), &[a, e]));
@@ -62,8 +62,8 @@ fn add_variant_is_offered_for_sets_variants_and_lone_components() {
     let b = component(&mut s, "B", 200.0);
     let lone = component(&mut s, "Lone", 400.0);
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": [a, b]})));
-    let frame = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
-    let inst = idv(&ex(&mut s, "instance.create", json!({"component": lone, "x": 0, "y": 400})));
+    let frame = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
+    let inst = idv(&ex(&mut s, "instance.add", json!({"component": lone, "x": 0, "y": 400})));
     let doc = s.doc().unwrap();
     assert!(can_add_variant(doc, set));
     assert!(can_add_variant(doc, a));
@@ -101,12 +101,12 @@ fn combining_variants_again_is_refused_instead_of_nesting_sets() {
 fn combining_refuses_nested_components_and_components_inside_instances() {
     let mut s = Session::new();
     // A "Card" component holding an "Icon" component.
-    let card = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
-    let icon = idv(&ex(&mut s, "frame.create", json!({"x": 10, "y": 10, "width": 20, "height": 20, "name": "Icon", "parent": card})));
-    let icon = idv(&ex(&mut s, "component.create", json!({"ids": [icon]})));
-    let card = idv(&ex(&mut s, "component.create", json!({"ids": [card]})));
+    let card = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let icon = idv(&ex(&mut s, "frame.add", json!({"x": 10, "y": 10, "width": 20, "height": 20, "name": "Icon", "parent": card})));
+    let icon = idv(&ex(&mut s, "component.add", json!({"ids": [icon]})));
+    let card = idv(&ex(&mut s, "component.add", json!({"ids": [card]})));
     let other = component(&mut s, "Other", 300.0);
-    let inst = idv(&ex(&mut s, "instance.create", json!({"component": card, "x": 0, "y": 300})));
+    let inst = idv(&ex(&mut s, "instance.add", json!({"component": card, "x": 0, "y": 300})));
     let inner = kids(&s, inst).into_iter().find(|c| matches!(node(&s, *c).kind, NodeKind::Component { .. })).expect("the instance's copy of Icon");
 
     let doc = s.doc().unwrap();
@@ -123,7 +123,7 @@ fn combining_refuses_nested_components_and_components_inside_instances() {
 fn add_variant_on_a_lone_component_makes_it_a_set_in_one_step() {
     let mut s = Session::new();
     let c = component(&mut s, "Button", 0.0);
-    let inst = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 0, "y": 300})));
+    let inst = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 0, "y": 300})));
     let before = s.doc().unwrap().clone();
     let steps = undo_len(&s);
 
@@ -164,7 +164,7 @@ fn add_variant_on_a_lone_component_keeps_prop_value_names_and_rolls_back_on_erro
 #[test]
 fn add_variant_on_a_lone_component_in_auto_layout_keeps_its_place() {
     let mut s = Session::new();
-    let row = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 100, "name": "Row"})));
+    let row = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 100, "name": "Row"})));
     ex(&mut s, "layout.add", json!({"ids": [row]}));
     let first = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 40, "parent": row})));
     let c = component(&mut s, "Chip", 0.0);

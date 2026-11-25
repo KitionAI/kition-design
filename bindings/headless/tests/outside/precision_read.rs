@@ -40,7 +40,7 @@ async fn case(
 async fn caret_motion_reads_fixed_text_content_and_not_box_height() {
     case(
         |f| prepare(f, |d| {
-            d.execute("text.create", json!({"parent":f.frame,"text":"abcd","width":100,"props":{"textAutoResize":"none","height":30}})).unwrap()["id"].clone()
+            d.execute("text.add", json!({"parent":f.frame,"text":"abcd","width":100,"props":{"textAutoResize":"none","height":30}})).unwrap()["id"].clone()
         }),
         |_, text| vec![step("text.edit.begin", json!({"id":text,"caret":2})), step("text.edit.key", json!({"key":"Left"}))],
         |_, text| vec![("node.set", json!({"id":text,"props":{"characters":"efgh"}}))],
@@ -51,8 +51,8 @@ async fn caret_motion_reads_fixed_text_content_and_not_box_height() {
 #[tokio::test(flavor = "multi_thread")]
 async fn text_styling_outside_auto_layout_does_not_read_minimum_width() {
     case(
-        |f| prepare(f, |d| d.execute("text.create", json!({"parent":f.frame,"text":"abcd"})).unwrap()["id"].clone()),
-        |_, text| vec![step("text.bold", json!({"ids":[text]}))],
+        |f| prepare(f, |d| d.execute("text.add", json!({"parent":f.frame,"text":"abcd"})).unwrap()["id"].clone()),
+        |_, text| vec![step("format.bold", json!({"ids":[text]}))],
         |_, text| vec![("node.set", json!({"id":text,"props":{"characters":"efgh"}}))],
         |_, text| vec![("node.set", json!({"id":text,"props":{"minWidth":300}}))],
     )
@@ -76,7 +76,7 @@ async fn a_local_paste_reads_its_copied_main_and_not_unrelated_library_links() {
         |f| {
             let mut library = DesignDocument::create("Unrelated.kdesign", 100, 100).unwrap();
             let main = library.inspect().unwrap()["tree"][0]["id"].clone();
-            library.execute("component.create", json!({"ids":[main]})).unwrap();
+            library.execute("component.add", json!({"ids":[main]})).unwrap();
             library.execute("library.publish", json!({})).unwrap();
             let bytes = library.save_file(None).unwrap();
             std::fs::write(f.workspace.path().join("Unrelated.kdesign"), &bytes).unwrap();
@@ -95,7 +95,7 @@ async fn a_local_paste_reads_its_copied_main_and_not_unrelated_library_links() {
 fn fitted_text(f: &Fixture) -> Value {
     prepare(f, |d| {
         d.execute("layout.add", json!({"ids":[f.destination],"direction":"vertical"})).unwrap();
-        d.execute("text.create", json!({"parent":f.destination,"text":"Fitted"})).unwrap()["id"].clone()
+        d.execute("text.add", json!({"parent":f.destination,"text":"Fitted"})).unwrap()["id"].clone()
     })
 }
 
@@ -126,7 +126,7 @@ async fn refitting_a_container_holds_text_membership_and_not_non_text_membership
     case(
         fitted_text,
         |f, _| vec![step("text.refit", json!({"ids":[f.destination]}))],
-        |f, _| vec![("text.create", json!({"parent":f.destination,"text":"New text"}))],
+        |f, _| vec![("text.add", json!({"parent":f.destination,"text":"New text"}))],
         |f, _| vec![("shape.rectangle", json!({"parent":f.destination,"width":20,"height":20}))],
     )
     .await;
@@ -137,7 +137,7 @@ async fn outlining_an_open_path_reads_its_stroke_and_not_its_fill() {
     case(
         |f| {
             prepare(f, |d| {
-                let vector = d.execute("vector.create", json!({"parent":f.frame,"path":"M0 0 L100 0","closed":false})).unwrap()["id"].clone();
+                let vector = d.execute("vector.add", json!({"parent":f.frame,"path":"M0 0 L100 0","closed":false})).unwrap()["id"].clone();
                 d.execute("stroke.add", json!({"ids":[vector]})).unwrap();
                 vector
             })
@@ -172,7 +172,7 @@ async fn removing_a_stroke_region_reads_the_remainders_appearance() {
         |f| {
             prepare(f, |d| {
                 let line =
-                    d.execute("vector.create", json!({"parent":f.frame,"x":300,"y":300,"path":"M0 0 L100 0","closed":false})).unwrap()["id"].clone();
+                    d.execute("vector.add", json!({"parent":f.frame,"x":300,"y":300,"path":"M0 0 L100 0","closed":false})).unwrap()["id"].clone();
                 d.execute("stroke.add", json!({"ids":[line]})).unwrap();
                 d.execute("node.set", json!({"id":line,"props":{"strokeWeight":10}})).unwrap();
                 let crossing = d.execute("shape.rectangle", json!({"parent":f.frame,"x":340,"y":280,"width":20,"height":40})).unwrap()["id"].clone();
@@ -193,7 +193,7 @@ async fn shape_builder_holds_a_groups_sources_when_deletion_keeps_its_bounds() {
             prepare(f, |d| {
                 let first = d.execute("shape.rectangle", json!({"parent":f.frame,"x":300,"y":330,"width":80,"height":40})).unwrap()["id"].clone();
                 let second = d.execute("shape.rectangle", json!({"parent":f.frame,"x":300,"y":330,"width":80,"height":40})).unwrap()["id"].clone();
-                let group = d.execute("object.group", json!({"ids":[first,second]})).unwrap()["id"].clone();
+                let group = d.execute("arrange.group", json!({"ids":[first,second]})).unwrap()["id"].clone();
                 json!({"group":group,"second":second})
             })
         },

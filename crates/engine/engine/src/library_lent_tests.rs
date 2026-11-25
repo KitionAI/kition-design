@@ -44,8 +44,8 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 /// One library file's bytes after each publish: a "Button" component in each colour of `colors`.
 fn library_versions(colors: &[&str]) -> Vec<Vec<u8>> {
     let mut s = Session::new();
-    let f = ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"}))["id"].clone();
-    let c = ex(&mut s, "component.create", json!({"ids": [f]}))["id"].clone();
+    let f = ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Button"}))["id"].clone();
+    let c = ex(&mut s, "component.add", json!({"ids": [f]}))["id"].clone();
     let mut out = Vec::new();
     for color in colors {
         ex(&mut s, "node.set", json!({"id": c, "props": {"fill": color}}));

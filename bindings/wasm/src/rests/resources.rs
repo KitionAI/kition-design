@@ -384,7 +384,7 @@ pub(super) fn rest(rest: &mut Rest<'_>) {
     family(&mut h, command, params, &targets);
     // Direct resource names are already replayed by the typed name parameters. The mode-keyed
     // `values` map has no declared object path, so its aliases still need reference replay.
-    let dynamic_values = command == "variable.create"
+    let dynamic_values = command == "variable.add"
         && params
             .get("values")
             .and_then(Value::as_object)

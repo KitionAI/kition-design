@@ -26,7 +26,7 @@ fn drag(s: &mut Session, from: (f64, f64), to: (f64, f64), alt: bool) {
 /// An open path from (0, 50) to (100, 50) (its right side is below it) with a 10 wide centred
 /// stroke, in vector edit mode with the Variable width tool.
 fn path(s: &mut Session) -> NodeId {
-    let r = ex(s, "vector.create", json!({"points": [[0, 50], [100, 50]], "closed": false}));
+    let r = ex(s, "vector.add", json!({"points": [[0, 50], [100, 50]], "closed": false}));
     let id = crate::params::id_of(&r["id"]).unwrap();
     ex(s, "node.set", json!({"id": id, "props": {"strokes": ["#000000"], "strokeWeight": 10, "strokeAlign": "center"}}));
     ex(s, "vector.edit.begin", json!({"id": id}));

@@ -12,7 +12,7 @@ fn id(v: serde_json::Value) -> kition_design_doc::NodeId {
 #[test]
 fn resize_to_fit_keeps_contents_in_place() {
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap());
     let a = id(s.execute("shape.rectangle", &json!({"x": 50, "y": 40, "width": 100, "height": 50, "parent": f})).unwrap());
     let b = id(s.execute("shape.ellipse", &json!({"x": 120, "y": 100, "width": 30, "height": 30, "parent": f})).unwrap());
     let before = (s.doc().unwrap().world_bounds(a).unwrap(), s.doc().unwrap().world_bounds(b).unwrap());
@@ -24,9 +24,9 @@ fn resize_to_fit_keeps_contents_in_place() {
     s.undo().unwrap();
     assert_eq!(s.doc().unwrap().world_bounds(f).unwrap().width(), 400.0);
     // Sections too; empty containers and plain shapes are left alone.
-    let sec = id(s.execute("node.create", &json!({"type": "section", "x": 600, "y": 0, "width": 500, "height": 500})).unwrap());
+    let sec = id(s.execute("node.add", &json!({"type": "section", "x": 600, "y": 0, "width": 500, "height": 500})).unwrap());
     s.execute("node.reparent", &json!({"ids": [f], "parent": sec})).unwrap();
-    let empty = id(s.execute("frame.create", &json!({"x": 0, "y": 600, "width": 80, "height": 80})).unwrap());
+    let empty = id(s.execute("frame.add", &json!({"x": 0, "y": 600, "width": 80, "height": 80})).unwrap());
     let r = s.execute("object.resizeToFit", &json!({"ids": [sec, empty, a]})).unwrap();
     assert_eq!(r["ids"].as_array().unwrap().len(), 1);
     assert_eq!(s.doc().unwrap().world_bounds(sec).unwrap().width(), 400.0, "section wraps the frame");
@@ -42,7 +42,7 @@ fn resize_to_fit_keeps_contents_in_place() {
 #[test]
 fn dev_status_prop() {
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 40, "height": 40})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 40, "height": 40})).unwrap());
     s.execute("node.set", &json!({"id": f, "props": {"devStatus": "readyForDev"}})).unwrap();
     assert_eq!(s.doc().unwrap().node(f).unwrap().dev_status, kition_design_doc::DevStatus::ReadyForDev);
     assert_eq!(s.execute("node.get", &json!({"id": f})).unwrap()["devStatus"], json!("readyForDev"));

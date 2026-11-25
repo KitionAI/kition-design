@@ -15,7 +15,7 @@ fn design() -> (DesignDocument, Value, Value) {
     let frame = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
     let rect = doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80, "parent": frame })).unwrap()["id"].clone();
     doc.execute("fill.set", json!({ "ids": [rect], "color": "#ff0000" })).unwrap();
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     doc.mark_saved();
     (doc, frame, rect)
 }
@@ -109,7 +109,7 @@ fn undo_a_press_or_a_key_end_an_open_interaction_first() {
 #[test]
 fn text_editing_keeps_its_own_interaction() {
     let (mut doc, frame, _) = design();
-    let text = doc.execute("text.create", json!({ "text": "Hello", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
+    let text = doc.execute("text.add", json!({ "text": "Hello", "x": 10, "y": 150, "parent": frame })).unwrap()["id"].clone();
     doc.execute("select.set", json!({ "ids": [text] })).unwrap();
     doc.key("Enter", ToolMods::default(), 1.0).unwrap();
     assert_eq!(doc.inspect().unwrap()["editing"], "text");
@@ -216,7 +216,7 @@ fn text_styles_and_text_previews() {
     let (w, h) = png_size(&row);
     assert!(w > 10 && h > 10 && w <= 800 && h <= 120, "{w} × {h}");
     let style =
-        doc.execute("style.create", json!({ "type": "text", "name": "Headings/Title", "value": { "fontFamily": family, "fontSize": 32 } })).unwrap();
+        doc.execute("style.add", json!({ "type": "text", "name": "Headings/Title", "value": { "fontFamily": family, "fontSize": 32 } })).unwrap();
     let styles = doc.query("textStyles", &json!({})).unwrap();
     let title = styles["styles"].as_array().unwrap().iter().find(|s| s["name"] == "Headings/Title").unwrap().clone();
     assert_eq!((title["folder"].as_str(), title["label"].as_str()), (Some("Headings"), Some("Title")));
@@ -276,7 +276,7 @@ fn comment_pins_sit_in_document_pixels_and_crowded_ones_cluster() {
 #[test]
 fn prototype_connections_run_from_layers_to_frames() {
     let (mut doc, frame, rect) = design();
-    let other = doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 200, "height": 300 })).unwrap()["id"].clone();
+    let other = doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 200, "height": 300 })).unwrap()["id"].clone();
     doc.execute("proto.interaction.add", json!({ "id": rect, "dest": other })).unwrap();
     doc.execute("select.set", json!({ "ids": [rect] })).unwrap();
     let all = doc.query("protoConnections", &json!({ "zoom": 1 })).unwrap();

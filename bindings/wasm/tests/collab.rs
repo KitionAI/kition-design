@@ -433,7 +433,7 @@ fn view(doc: &DesignDocument) -> std::sync::Arc<kition_design_doc::Document> {
 fn a_restore_through_the_host_keeps_the_name_the_publication_and_the_comments() {
     let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
     let card = the_rect(&doc);
-    doc.execute("component.create", json!({ "ids": [card] })).unwrap();
+    doc.execute("component.add", json!({ "ids": [card] })).unwrap();
     doc.execute("file.rename", json!({ "name": "Shop" })).unwrap();
     let saved = doc.snapshot().unwrap();
     let then = DesignDocument::open_with_replica("Design.kdesign", &[], &saved, &doc.blobs().unwrap()).unwrap().state_json().unwrap();

@@ -33,7 +33,7 @@ fn fill_hex(s: &Session, id: NodeId) -> String {
 /// to 120; both selected.
 fn square_and_path(s: &mut Session) -> (NodeId, NodeId) {
     let r = id(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100, "props": {"fill": "#ff0000"}})));
-    let l = id(&ex(s, "vector.create", json!({"points": [[-20, 50], [120, 50]], "closed": false})));
+    let l = id(&ex(s, "vector.add", json!({"points": [[-20, 50], [120, 50]], "closed": false})));
     ex(s, "node.set", json!({"id": l, "props": {"strokes": ["#000000"], "strokeWeight": 10, "strokeAlign": "center"}}));
     s.set_selection(vec![r, l]);
     (r, l)
@@ -148,7 +148,7 @@ fn a_centred_stroke_on_a_sharp_star_makes_three_regions() {
         let r = if i % 2 == 0 { 100.0 } else { 40.0 };
         pts.push([150.0 + r * a.cos(), 150.0 + r * a.sin()]);
     }
-    let v = id(&ex(&mut s, "vector.create", json!({"points": pts, "closed": true})));
+    let v = id(&ex(&mut s, "vector.add", json!({"points": pts, "closed": true})));
     ex(&mut s, "node.set", json!({"id": v, "props": {"fill": "#ff0000", "strokes": ["#0000ff"], "strokeWeight": 8, "strokeAlign": "center"}}));
     s.set_selection(vec![v]);
     let out = ex(&mut s, "shapeBuilder.regions", json!({}));

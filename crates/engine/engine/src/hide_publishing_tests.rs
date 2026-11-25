@@ -17,8 +17,8 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 }
 
 fn component(s: &mut Session, name: &str, x: f64) -> NodeId {
-    let f = id_of(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 80, "height": 40, "name": name}))["id"]).unwrap();
-    id_of(&ex(s, "component.create", json!({"ids": [f]}))["id"]).unwrap()
+    let f = id_of(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 80, "height": 40, "name": name}))["id"]).unwrap();
+    id_of(&ex(s, "component.add", json!({"ids": [f]}))["id"]).unwrap()
 }
 
 fn name(s: &Session, id: NodeId) -> String {
@@ -104,7 +104,7 @@ fn what_isnt_a_component_is_refused() {
     let mut s = Session::new();
     let r = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10}))["id"]).unwrap();
     for p in [json!({"ids": [r]}), json!({"ids": []}), json!({"ids": [999_999]}), json!({"ids": "x"}), json!({"on": "yes"})] {
-        ex(&mut s, "select.none", json!({}));
+        ex(&mut s, "edit.deselectAll", json!({}));
         let e = s.execute(CMD, &p).expect_err(&p.to_string());
         assert!(!matches!(e, EngineError::Internal { .. }), "{p}: {e}");
     }

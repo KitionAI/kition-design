@@ -21,13 +21,13 @@ fn num(n: f64) -> Expr {
 /// layer bound to the label and a rectangle bound to the colour.
 fn setup() -> (Session, NodeId, NodeId, NodeId, NodeId) {
     let mut s = Session::new();
-    let a = id_of(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"})).unwrap()["id"]).unwrap();
-    let b = id_of(&s.execute("frame.create", &json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"})).unwrap()["id"]).unwrap();
-    let t = id_of(&s.execute("text.create", &json!({"text": "x", "x": 10, "y": 10, "parent": a})).unwrap()["id"]).unwrap();
+    let a = id_of(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"})).unwrap()["id"]).unwrap();
+    let b = id_of(&s.execute("frame.add", &json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"})).unwrap()["id"]).unwrap();
+    let t = id_of(&s.execute("text.add", &json!({"text": "x", "x": 10, "y": 10, "parent": a})).unwrap()["id"]).unwrap();
     let r = id_of(&s.execute("shape.rectangle", &json!({"x": 10, "y": 50, "width": 10, "height": 10, "parent": a})).unwrap()["id"]).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
     for (name, kind, value) in [("count", "number", json!(0)), ("label", "string", json!("Zero")), ("bg", "color", json!("#FFFFFF"))] {
-        s.execute("variable.create", &json!({"collection": "Theme", "name": name, "type": kind, "value": value})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Theme", "name": name, "type": kind, "value": value})).unwrap();
     }
     s.execute("variable.set", &json!({"variable": "bg", "mode": "Dark", "value": "#000000"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [t], "field": "characters", "variable": "label"})).unwrap();
@@ -92,7 +92,7 @@ fn set_mode_switches_the_prototype_and_keeps_nested_choices() {
     let (mut s, a, b, _, r) = setup();
     // B chose Light explicitly; a group inside A chose Light too (nested: it wins).
     s.execute("variable.setMode", &json!({"ids": [b], "collection": "Theme", "mode": "Light"})).unwrap();
-    let g = id_of(&s.execute("frame.create", &json!({"x": 40, "y": 40, "width": 20, "height": 20, "parent": a})).unwrap()["id"]).unwrap();
+    let g = id_of(&s.execute("frame.add", &json!({"x": 40, "y": 40, "width": 20, "height": 20, "parent": a})).unwrap()["id"]).unwrap();
     let r2 = id_of(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5, "parent": g})).unwrap()["id"]).unwrap();
     s.execute("variable.bind", &json!({"ids": [r2], "field": "fill", "variable": "bg"})).unwrap();
     s.execute("variable.setMode", &json!({"ids": [g], "collection": "Theme", "mode": "Light"})).unwrap();

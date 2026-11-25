@@ -50,15 +50,15 @@ fn outline(doc: &Document) -> Vec<String> {
 /// property and an instance of it setting the property, and a click from the frame to the
 /// instance.
 fn build(s: &mut Session) {
-    let frame = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
-    s.execute("text.create", &json!({"text": "Hello 😀", "x": 10, "y": 10, "parent": frame})).unwrap();
+    let frame = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
+    s.execute("text.add", &json!({"text": "Hello 😀", "x": 10, "y": 10, "parent": frame})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 40, "width": 50, "height": 20, "parent": frame})).unwrap();
     s.execute("layout.add", &json!({"ids": [frame], "direction": "vertical"})).unwrap();
-    let card = id(&s.execute("frame.create", &json!({"x": 300, "y": 0, "width": 120, "height": 60})).unwrap());
-    let label = id(&s.execute("text.create", &json!({"text": "Label", "x": 10, "y": 10, "parent": card})).unwrap());
-    let comp = id(&s.execute("component.create", &json!({"ids": [card]})).unwrap());
+    let card = id(&s.execute("frame.add", &json!({"x": 300, "y": 0, "width": 120, "height": 60})).unwrap());
+    let label = id(&s.execute("text.add", &json!({"text": "Label", "x": 10, "y": 10, "parent": card})).unwrap());
+    let comp = id(&s.execute("component.add", &json!({"ids": [card]})).unwrap());
     s.execute("component.addProperty", &json!({"id": comp, "name": "Title", "type": "text", "default": "Label", "layer": label})).unwrap();
-    let inst = id(&s.execute("instance.create", &json!({"component": comp, "x": 300, "y": 200})).unwrap());
+    let inst = id(&s.execute("instance.add", &json!({"component": comp, "x": 300, "y": 200})).unwrap());
     s.execute("instance.setProperties", &json!({"ids": [inst], "properties": {"Title": "Changed"}})).unwrap();
     s.execute("proto.interaction.add", &json!({"id": frame, "dest": inst})).unwrap();
 }

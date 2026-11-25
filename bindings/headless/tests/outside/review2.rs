@@ -23,8 +23,8 @@ async fn outcome(f: &Fixture, basis: &Value, command: &str, params: Value, neces
 fn library(f: &Fixture, path: &str) -> Value {
     let mut lib = DesignDocument::create(path, 100, 100).unwrap();
     let main = lib.inspect().unwrap()["tree"][0]["id"].clone();
-    lib.execute("component.create", json!({"ids":[main]})).unwrap();
-    lib.execute("node.create", json!({"type":"rectangle","parent":main,"width":10,"height":10})).unwrap();
+    lib.execute("component.add", json!({"ids":[main]})).unwrap();
+    lib.execute("node.add", json!({"type":"rectangle","parent":main,"width":10,"height":10})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
     let bytes = lib.save_file(None).unwrap();
     std::fs::write(f.workspace.path().join(path), &bytes).unwrap();
@@ -32,7 +32,7 @@ fn library(f: &Fixture, path: &str) -> Value {
         d.lend_library(path, Some(&bytes)).unwrap();
         let link = d.execute("library.add", json!({"path":path})).unwrap()["id"].clone();
         let local = d.execute("library.import", json!({"library":link,"component":"Frame 1"})).unwrap()["component"].clone();
-        let instance = d.execute("instance.create", json!({"component":local,"parent":f.frame})).unwrap()["id"].clone();
+        let instance = d.execute("instance.add", json!({"component":local,"parent":f.frame})).unwrap()["id"].clone();
         json!({"link":link,"main":local,"instance":instance})
     })
 }
@@ -111,8 +111,8 @@ async fn audited_families_hold_what_they_read() {
             }
             let setup = rewrite(&f, |doc| match case {
                 "variable.import" => {
-                    doc.execute("variable.createCollection", json!({"name":"Brand"})).unwrap();
-                    doc.execute("variable.create", json!({"collection":"Brand","name":"Primary","type":"color","value":"#ff0000"})).unwrap();
+                    doc.execute("variable.addCollection", json!({"name":"Brand"})).unwrap();
+                    doc.execute("variable.add", json!({"collection":"Brand","name":"Primary","type":"color","value":"#ff0000"})).unwrap();
                     let exported = doc.execute("variable.export", json!({})).unwrap();
                     json!({"export":exported})
                 }
@@ -206,16 +206,15 @@ async fn propagated_writes_hold_sources_and_report_targets() {
                     json!({})
                 }
                 "variable" => {
-                    d.execute("variable.createCollection", json!({"name":"Tokens"})).unwrap();
-                    let v =
-                        d.execute("variable.create", json!({"collection":"Tokens","name":"Brand","type":"color","value":"#ff0000"})).unwrap()["id"]
-                            .clone();
+                    d.execute("variable.addCollection", json!({"name":"Tokens"})).unwrap();
+                    let v = d.execute("variable.add", json!({"collection":"Tokens","name":"Brand","type":"color","value":"#ff0000"})).unwrap()["id"]
+                        .clone();
                     d.execute("variable.bind", json!({"ids":[f.a],"field":"fill","variable":v})).unwrap();
                     json!({"variable":v})
                 }
                 "component" => {
                     let child = d
-                        .execute("node.create", json!({"type":"rectangle","parent":f.component,"name":"Inner","x":5,"y":5,"width":10,"height":10}))
+                        .execute("node.add", json!({"type":"rectangle","parent":f.component,"name":"Inner","x":5,"y":5,"width":10,"height":10}))
                         .unwrap()["id"]
                         .clone();
                     json!({"child":child})
@@ -238,9 +237,9 @@ async fn propagated_writes_hold_sources_and_report_targets() {
             // (agent write, the source change that must refuse, the consequence change that must not, ids the receipt must name)
             let (command, params, source, consequence, expect) = match family {
                 "style" => (
-                    "style.update",
+                    "style.set",
                     json!({"style":f.style,"value":["#00f"]}),
-                    ("style.update", json!({"style":f.style,"value":["#0f0"]})),
+                    ("style.set", json!({"style":f.style,"value":["#0f0"]})),
                     ("node.set", json!({"id":f.a,"props":{"name":"Renamed"}})),
                     vec![json!(f.a)],
                 ),

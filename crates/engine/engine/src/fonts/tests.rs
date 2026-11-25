@@ -5,7 +5,7 @@ use crate::params::id_of;
 use kition_design_doc::{Style, StyleRun, TextStyle};
 
 fn text(s: &mut Session, family: &str) -> kition_design_doc::NodeId {
-    let id = id_of(&s.execute("text.create", &json!({"text": "Hamburgefonstiv", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
+    let id = id_of(&s.execute("text.add", &json!({"text": "Hamburgefonstiv", "x": 0, "y": 0})).unwrap()["id"]).unwrap();
     if let NodeKind::Text(t) = &mut s.doc_mut().unwrap().get_mut(id).unwrap().kind {
         t.style.font_family = family.into();
     }
@@ -40,8 +40,8 @@ fn lists_families_of_layers_ranges_styles_and_variables_once_each() {
         kind: StyleKind::Text { style: TextStyle { font_family: "Kition Design Missing C".into(), ..TextStyle::default() } },
         bound: Default::default(),
     });
-    s.execute("variable.createCollection", &json!({"name": "Type", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Type", "name": "Family", "type": "string", "value": "Kition Design Missing D"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Type", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Type", "name": "Family", "type": "string", "value": "Kition Design Missing D"})).unwrap();
     s.execute("variable.set", &json!({"variable": "Family", "mode": "Dark", "value": "Kition Design Missing H"})).unwrap();
     let var = s.doc().unwrap().variables.get("Family").unwrap().id.clone();
     s.doc_mut().unwrap().get_mut(b).unwrap().bound.insert("fontFamily".into(), var);
@@ -89,8 +89,8 @@ fn a_family_found_only_by_the_system_scan_is_not_missing() {
 fn blank_families_and_aliases_are_handled() {
     let mut s = Session::new();
     text(&mut s, "  ");
-    s.execute("variable.createCollection", &json!({"name": "Type"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Type", "name": "Base", "type": "string", "value": "Kition Design Missing F"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Type"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Type", "name": "Base", "type": "string", "value": "Kition Design Missing F"})).unwrap();
     let base = s.doc().unwrap().variables.get("Base").unwrap().id.clone();
     let t = text(&mut s, "Kition Design Missing G");
     let doc = s.doc_mut().unwrap();
@@ -124,9 +124,9 @@ fn blank_families_and_aliases_are_handled() {
 #[test]
 fn branching_alias_chains_are_walked_once_per_variable() {
     let mut s = Session::new();
-    s.execute("variable.createCollection", &json!({"name": "Type"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Type"})).unwrap();
     for i in 0..32 {
-        s.execute("variable.create", &json!({"collection": "Type", "name": format!("V{i}"), "type": "string", "value": "x"})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Type", "name": format!("V{i}"), "type": "string", "value": "x"})).unwrap();
     }
     let doc = s.doc_mut().unwrap();
     let ids: Vec<String> = doc.variables.variables.iter().map(|v| v.id.clone()).collect();
@@ -174,7 +174,7 @@ fn refit_measures_stale_text_boxes_again() {
     if let NodeKind::Text(t) = &mut s.doc_mut().unwrap().get_mut(fixed).unwrap().kind {
         t.auto_resize = kition_design_doc::TextAutoResize::None;
     }
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     let want_a = stale(&mut s, a, -30.0);
     let want_b = stale(&mut s, b, 25.0);
     s.doc_mut().unwrap().get_mut(fixed).unwrap().width = 7.0;
@@ -206,8 +206,8 @@ fn refit_measures_stale_text_boxes_again() {
 fn refit_reaches_text_in_instances() {
     let mut s = Session::new();
     let t = text(&mut s, "Kition Design Refit C");
-    let comp = id_of(&s.execute("component.create", &json!({"ids": [t]})).unwrap()["id"]).unwrap();
-    let inst = id_of(&s.execute("instance.create", &json!({"component": comp, "x": 300, "y": 0})).unwrap()["id"]).unwrap();
+    let comp = id_of(&s.execute("component.add", &json!({"ids": [t]})).unwrap()["id"]).unwrap();
+    let inst = id_of(&s.execute("instance.add", &json!({"component": comp, "x": 300, "y": 0})).unwrap()["id"]).unwrap();
     let copy = s.doc().unwrap().node(inst).unwrap().children[0];
     let want = stale(&mut s, copy, -20.0);
     let r = s.execute("text.refit", &json!({"ids": [inst]})).unwrap();

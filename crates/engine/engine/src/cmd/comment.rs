@@ -632,7 +632,7 @@ mod tests {
     #[test]
     fn comment_thread_lifecycle_and_anchoring() {
         let mut s = Session::new();
-        let f = s.execute("node.create", &json!({"type": "frame", "x": 100, "y": 100, "width": 200, "height": 200})).unwrap();
+        let f = s.execute("node.add", &json!({"type": "frame", "x": 100, "y": 100, "width": 200, "height": 200})).unwrap();
         let fid = crate::params::id_of(&f["id"]).unwrap();
         let c = s.execute("comment.add", &json!({"x": 150, "y": 160, "text": "Tighten this", "anchor": true})).unwrap();
         let cid = c["id"].as_u64().unwrap();

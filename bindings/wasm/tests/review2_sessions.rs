@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 fn setup() -> (DesignDocument, Value, Value) {
     let mut doc = DesignDocument::create("Sessions.kdesign", 320, 240).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    let a = doc.execute("node.create", json!({"type":"rectangle","parent":frame,"x":10,"y":10,"width":20,"height":20})).unwrap()["id"].clone();
+    let a = doc.execute("node.add", json!({"type":"rectangle","parent":frame,"x":10,"y":10,"width":20,"height":20})).unwrap()["id"].clone();
     (doc, frame, a)
 }
 
@@ -61,9 +61,9 @@ fn a_repeated_duplicate_holds_the_last_sources_and_copies() {
 #[test]
 fn a_paste_holds_copied_mains_and_resources() {
     let (mut doc, frame, a) = setup();
-    let main = doc.execute("frame.create", json!({"parent":frame,"x":100,"y":10,"width":30,"height":30})).unwrap()["id"].clone();
-    doc.execute("component.create", json!({"ids":[main]})).unwrap();
-    let style = doc.execute("style.create", json!({"type":"paint","name":"Accent","value":["#f00"]})).unwrap()["id"].clone();
+    let main = doc.execute("frame.add", json!({"parent":frame,"x":100,"y":10,"width":30,"height":30})).unwrap()["id"].clone();
+    doc.execute("component.add", json!({"ids":[main]})).unwrap();
+    let style = doc.execute("style.add", json!({"type":"paint","name":"Accent","value":["#f00"]})).unwrap()["id"].clone();
     doc.execute("style.apply", json!({"ids":[a],"style":style})).unwrap();
     doc.execute("edit.copy", json!({"ids":[main, a]})).unwrap();
     let under = doc.under("edit.paste", &json!({})).unwrap().unwrap();

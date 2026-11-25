@@ -14,7 +14,7 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 }
 
 fn rect(s: &mut Session, x: f64, y: f64, parent: Option<NodeId>) -> NodeId {
-    id_of(&ex(s, "node.create", json!({"type": "rectangle", "parent": parent, "x": x, "y": y, "width": 20, "height": 20}))["id"]).unwrap()
+    id_of(&ex(s, "node.add", json!({"type": "rectangle", "parent": parent, "x": x, "y": y, "width": 20, "height": 20}))["id"]).unwrap()
 }
 
 fn area(s: &mut Session, x: f64, y: f64, w: f64, h: f64, extra: Value) -> Vec<NodeId> {
@@ -36,7 +36,7 @@ fn sorted(mut v: Vec<NodeId>) -> Vec<NodeId> {
 #[test]
 fn a_box_selects_like_a_marquee() {
     let mut s = Session::new();
-    let frame = id_of(&ex(&mut s, "frame.create", json!({"x": 300, "y": 0, "width": 200, "height": 200}))["id"]).unwrap();
+    let frame = id_of(&ex(&mut s, "frame.add", json!({"x": 300, "y": 0, "width": 200, "height": 200}))["id"]).unwrap();
     let inner = rect(&mut s, 20.0, 20.0, Some(frame));
     let a = rect(&mut s, 0.0, 0.0, None);
     let b = rect(&mut s, 100.0, 0.0, None);

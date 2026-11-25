@@ -500,7 +500,7 @@ mod tests {
     use crate::params::id_of;
 
     fn frame(s: &mut Session, x: f64) -> NodeId {
-        let r = s.execute("node.create", &json!({"type": "frame", "x": x, "y": 0, "width": 100, "height": 200})).unwrap();
+        let r = s.execute("node.add", &json!({"type": "frame", "x": x, "y": 0, "width": 100, "height": 200})).unwrap();
         id_of(&r["id"]).unwrap()
     }
 
@@ -585,7 +585,7 @@ mod tests {
         assert!(s.execute("proto.flow.rename", &json!({"start": b, "name": "  "})).is_err());
         assert!(s.execute("proto.flow.rename", &json!({"start": 4242, "name": "x"})).is_err());
         // Only top-level frames start flows.
-        let r = s.execute("node.create", &json!({"type": "rectangle", "parent": a, "x": 5, "y": 5, "width": 10, "height": 10})).unwrap();
+        let r = s.execute("node.add", &json!({"type": "rectangle", "parent": a, "x": 5, "y": 5, "width": 10, "height": 10})).unwrap();
         let child = id_of(&r["id"]).unwrap();
         assert!(s.execute("proto.flow.add", &json!({"start": child})).is_err());
         s.execute("proto.flow.remove", &json!({"start": a})).unwrap();
@@ -600,7 +600,7 @@ mod tests {
         let mut s = Session::new();
         let a = frame(&mut s, 0.0);
         let b = frame(&mut s, 200.0);
-        let r = s.execute("node.create", &json!({"type": "rectangle", "parent": b, "x": 205, "y": 5, "width": 10, "height": 10})).unwrap();
+        let r = s.execute("node.add", &json!({"type": "rectangle", "parent": b, "x": 205, "y": 5, "width": 10, "height": 10})).unwrap();
         let child = id_of(&r["id"]).unwrap();
         let last = |s: &mut Session| {
             let r = s.ui_requests.pop().unwrap();

@@ -1,6 +1,6 @@
 /**
  * The Frame tool's panel (upstream `panels/frame_presets.rs`): frame presets by category (Phone
- * open at first). Choosing one runs `frame.create`, returns to the Move tool and shows the frame.
+ * open at first). Choosing one runs `frame.add`, returns to the Move tool and shows the frame.
  */
 import { useState } from 'react'
 import { useDesignKit, useQuery } from '../kit/hooks'
@@ -18,7 +18,7 @@ export function FramePresets() {
   const [, redraw] = useState(0)
   const categories = [...new Set(presets.map((p) => p.category))]
   const choose = async (preset: Preset) => {
-    await run('frame.create', { preset: preset.name })
+    await run('frame.add', { preset: preset.name })
     await run('tool.set', { tool: 'move' })
     await viewTo('view.zoomSelection')
   }

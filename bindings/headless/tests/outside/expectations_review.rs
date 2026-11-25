@@ -18,7 +18,7 @@ async fn review_grouping_holds_the_kind_used_to_reject_sections() {
     let basis = f.basis().await;
     f.colleague(&[("object.convertToSection", json!({"ids":[f.destination]}))]);
     let before = f.bytes();
-    let answer = f.write(&basis, "object.group", json!({"ids":[f.destination,other]})).await;
+    let answer = f.write(&basis, "arrange.group", json!({"ids":[f.destination,other]})).await;
     assert_eq!(answer["error"]["code"], "conflict", "grouping tests whether a target is a section: {}", answer["error"]);
     assert_eq!(f.bytes(), before);
     f.shutdown().await;
@@ -102,13 +102,13 @@ async fn review_a_new_image_preset_holds_the_capacity_it_checks() {
 async fn review_an_id_addressed_swap_reads_the_instances_variable_mode() {
     let f = Fixture::new(Guard::Premise);
     let made = prepare(&f, |d| {
-        let collection = d.execute("variable.createCollection", json!({"name":"Opacity modes","modes":["Light","Dark"]})).unwrap()["id"].clone();
+        let collection = d.execute("variable.addCollection", json!({"name":"Opacity modes","modes":["Light","Dark"]})).unwrap()["id"].clone();
         let variable = d
-            .execute("variable.create", json!({"collection":collection,"name":"opacity","type":"number","values":{"Light":0.2,"Dark":0.8}}))
+            .execute("variable.add", json!({"collection":collection,"name":"opacity","type":"number","values":{"Light":0.2,"Dark":0.8}}))
             .unwrap()["id"]
             .clone();
-        let main = d.execute("frame.create", json!({"name":"Bound main","x":900,"y":100})).unwrap()["id"].clone();
-        d.execute("component.create", json!({"ids":[main]})).unwrap();
+        let main = d.execute("frame.add", json!({"name":"Bound main","x":900,"y":100})).unwrap()["id"].clone();
+        d.execute("component.add", json!({"ids":[main]})).unwrap();
         d.execute("variable.bind", json!({"ids":[main],"variable":variable,"field":"opacity"})).unwrap();
         json!({"collection":collection,"main":main})
     });

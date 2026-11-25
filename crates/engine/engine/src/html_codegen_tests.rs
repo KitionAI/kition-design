@@ -14,14 +14,14 @@ fn id(v: Value) -> kition_design_doc::NodeId {
 #[test]
 fn frames_become_nested_html_with_flexbox_and_absolute_children() {
     let mut s = Session::new();
-    let card = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 120})).unwrap());
+    let card = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 120})).unwrap());
     s.execute("node.set", &json!({"id": card, "props": {"name": "Card"}})).unwrap();
     let a = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 50, "height": 20, "parent": card})).unwrap());
     let b = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 30, "width": 50, "height": 20, "parent": card})).unwrap());
     for r in [a, b] {
         s.execute("node.set", &json!({"id": r, "props": {"name": "Row", "fill": "#0D99FF"}})).unwrap();
     }
-    let t = id(s.execute("text.create", &json!({"text": "Hi & <bye>", "x": 0, "y": 60})).unwrap());
+    let t = id(s.execute("text.add", &json!({"text": "Hi & <bye>", "x": 0, "y": 60})).unwrap());
     s.execute("node.reparent", &json!({"ids": [t], "parent": card})).unwrap();
     s.execute("layout.add", &json!({"ids": [card]})).unwrap();
     s.execute("node.set", &json!({"id": card, "props": {"layoutMode": "vertical", "gap": 8}})).unwrap();
@@ -46,11 +46,11 @@ fn frames_become_nested_html_with_flexbox_and_absolute_children() {
 #[test]
 fn class_names_are_valid_and_deep_trees_are_bounded() {
     let mut s = Session::new();
-    let mut parent = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let mut parent = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     s.execute("node.set", &json!({"id": parent, "props": {"name": "1 Ünïcode / Name!!"}})).unwrap();
     let root = parent;
     for _ in 0..30 {
-        parent = id(s.execute("frame.create", &json!({"x": 1, "y": 1, "width": 90, "height": 90, "parent": parent})).unwrap());
+        parent = id(s.execute("frame.add", &json!({"x": 1, "y": 1, "width": 90, "height": 90, "parent": parent})).unwrap());
     }
     let code = code_for(s.doc().unwrap(), root, CodeLang::Html);
     assert!(code.starts_with("<div class=\"layer-1-unicode-name\">"), "{}", code.lines().next().unwrap());
@@ -62,10 +62,10 @@ fn class_names_are_valid_and_deep_trees_are_bounded() {
 fn non_ascii_layer_names_transliterate_into_readable_classes() {
     let mut s = Session::new();
     // Korean reads as its romanization instead of layer- (#1235), with duplicates numbered.
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 300, "height": 200})).unwrap());
     s.execute("node.set", &json!({"id": f, "props": {"name": "로그인 화면"}})).unwrap();
-    let a = id(s.execute("text.create", &json!({"text": "Login", "x": 0, "y": 0, "parent": f})).unwrap());
-    let b = id(s.execute("text.create", &json!({"text": "Login", "x": 0, "y": 40, "parent": f})).unwrap());
+    let a = id(s.execute("text.add", &json!({"text": "Login", "x": 0, "y": 0, "parent": f})).unwrap());
+    let b = id(s.execute("text.add", &json!({"text": "Login", "x": 0, "y": 40, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": a, "props": {"name": "로그인"}})).unwrap();
     s.execute("node.set", &json!({"id": b, "props": {"name": "로그인"}})).unwrap();
     let code = code_for(s.doc().unwrap(), f, CodeLang::Html);
@@ -76,10 +76,10 @@ fn non_ascii_layer_names_transliterate_into_readable_classes() {
 #[test]
 fn other_scripts_and_symbol_names_transliterate_or_fall_back_to_the_kind() {
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "按钮"})).unwrap());
-    let k = id(s.execute("text.create", &json!({"text": "Ok", "x": 0, "y": 0, "parent": f})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "按钮"})).unwrap());
+    let k = id(s.execute("text.add", &json!({"text": "Ok", "x": 0, "y": 0, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": k, "props": {"name": "кнопка"}})).unwrap();
-    let hash = id(s.execute("text.create", &json!({"text": "###", "x": 0, "y": 20, "parent": f})).unwrap());
+    let hash = id(s.execute("text.add", &json!({"text": "###", "x": 0, "y": 20, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": hash, "props": {"name": "###"}})).unwrap();
     let digit = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 40, "width": 10, "height": 10, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": digit, "props": {"name": "4버튼"}})).unwrap();
@@ -94,12 +94,12 @@ fn other_scripts_and_symbol_names_transliterate_or_fall_back_to_the_kind() {
 fn long_names_cut_at_a_word_boundary() {
     let mut s = Session::new();
     let long = format!("{}-{}", "a".repeat(30), "b".repeat(30));
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": long})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": long})).unwrap());
     let code = code_for(s.doc().unwrap(), f, CodeLang::Html);
     let word = "a".repeat(30);
     assert!(code.contains(&format!("<div class=\"{word}\">")), "cut back to the first word: {code}");
     let unbroken = "c".repeat(50);
-    let g = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": unbroken})).unwrap());
+    let g = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "name": unbroken})).unwrap());
     let code = code_for(s.doc().unwrap(), g, CodeLang::Html);
     assert!(code.contains(&format!("class=\"{}\"", "c".repeat(40))), "one long word cuts at 40: {code}");
 }
@@ -107,9 +107,9 @@ fn long_names_cut_at_a_word_boundary() {
 #[test]
 fn leptos_wraps_the_markup_in_a_component_with_text_as_string_literals() {
     let mut s = Session::new();
-    let card = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 120})).unwrap());
+    let card = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 120})).unwrap());
     s.execute("node.set", &json!({"id": card, "props": {"name": "Card"}})).unwrap();
-    let t = id(s.execute("text.create", &json!({"text": "Say \"hi\" {x}\nسلام", "x": 0, "y": 60})).unwrap());
+    let t = id(s.execute("text.add", &json!({"text": "Say \"hi\" {x}\nسلام", "x": 0, "y": 60})).unwrap());
     s.execute("node.reparent", &json!({"ids": [t], "parent": card})).unwrap();
 
     let code = code_for(s.doc().unwrap(), card, CodeLang::Leptos);
@@ -132,8 +132,8 @@ fn web_code(s: &mut Session, id: kition_design_doc::NodeId, language: &str, unit
 #[test]
 fn rem_preserves_text_in_web_markup() {
     let mut s = Session::new();
-    let frame = id(s.execute("frame.create", &json!({"width": 200, "height": 100, "name": "Card"})).unwrap());
-    s.execute("text.create", &json!({"text": "Tile 24px", "parent": frame, "name": "Label"})).unwrap();
+    let frame = id(s.execute("frame.add", &json!({"width": 200, "height": 100, "name": "Card"})).unwrap());
+    s.execute("text.add", &json!({"text": "Tile 24px", "parent": frame, "name": "Label"})).unwrap();
     let mut changed = Vec::new();
     for language in ["html", "react", "leptos"] {
         let px = web_code(&mut s, frame, language, "px");
@@ -151,9 +151,9 @@ fn rem_preserves_text_in_web_markup() {
 #[test]
 fn rem_preserves_text_property_default() {
     let mut s = Session::new();
-    let frame = id(s.execute("frame.create", &json!({"width": 100, "height": 40, "name": "Chip"})).unwrap());
-    let label = id(s.execute("text.create", &json!({"text": "24px", "parent": frame, "name": "Label"})).unwrap());
-    let component = id(s.execute("component.create", &json!({"ids": [frame]})).unwrap());
+    let frame = id(s.execute("frame.add", &json!({"width": 100, "height": 40, "name": "Chip"})).unwrap());
+    let label = id(s.execute("text.add", &json!({"text": "24px", "parent": frame, "name": "Label"})).unwrap());
+    let component = id(s.execute("component.add", &json!({"ids": [frame]})).unwrap());
     s.execute("component.addProperty", &json!({"id": component, "name": "Label", "type": "text", "default": "24px", "layer": label})).unwrap();
     for unit in ["px", "rem"] {
         let code = web_code(&mut s, component, "react", unit);

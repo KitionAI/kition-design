@@ -24,7 +24,7 @@ fn rect(s: &mut Session, x: f64, w: f64, parent: Option<NodeId>) -> NodeId {
 /// A frame with two rectangles 30 apart: (frame, a, b).
 fn setup() -> (Session, NodeId, NodeId, NodeId) {
     let mut s = Session::new();
-    let f = id_of(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 100}))["id"]).unwrap();
+    let f = id_of(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 100}))["id"]).unwrap();
     let a = rect(&mut s, 20.0, 50.0, Some(f));
     let b = rect(&mut s, 100.0, 60.0, Some(f));
     (s, f, a, b)
@@ -87,7 +87,7 @@ fn bad_measurements_are_refused() {
     let far = rect(&mut s, 0.0, 10.0, Some(other));
     ok(&mut s, "page.select", json!({"id": page}));
     let top = rect(&mut s, 400.0, 10.0, None);
-    ok(&mut s, "select.none", json!({}));
+    ok(&mut s, "edit.deselectAll", json!({}));
     for p in [
         json!({"from": a, "to": a}),
         json!({"from": a, "to": page}),
@@ -185,11 +185,11 @@ fn dev_mode_places_measurements() {
 #[test]
 fn instances_keep_their_own_measurements_across_main_edits() {
     let mut s = Session::new();
-    let f = id_of(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40}))["id"]).unwrap();
+    let f = id_of(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40}))["id"]).unwrap();
     let r = rect(&mut s, 5.0, 10.0, Some(f));
     ok(&mut s, "devMode.addMeasurement", json!({"from": r, "side": "top"}));
-    let main = id_of(&ok(&mut s, "component.create", json!({"ids": [f]}))["id"]).unwrap();
-    let inst = id_of(&ok(&mut s, "instance.create", json!({"component": main, "x": 200, "y": 0}))["id"]).unwrap();
+    let main = id_of(&ok(&mut s, "component.add", json!({"ids": [f]}))["id"]).unwrap();
+    let inst = id_of(&ok(&mut s, "instance.add", json!({"component": main, "x": 200, "y": 0}))["id"]).unwrap();
     let inner = s.doc().unwrap().node(inst).unwrap().children[0];
     // The main's measurements aren't copied onto its instances.
     assert!(s.doc().unwrap().node(inner).unwrap().measurements.is_empty());

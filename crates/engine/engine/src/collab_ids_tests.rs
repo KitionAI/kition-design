@@ -13,10 +13,10 @@ use crate::collab_tests::base;
 fn creations(who: usize, round: usize) -> Vec<(&'static str, Value)> {
     let name = format!("p{who} r{round}");
     vec![
-        ("style.create", json!({"type": "paint", "name": name, "value": "#3366FF"})),
-        ("variable.create", json!({"collection": "Tokens", "name": name, "type": "number", "value": who})),
+        ("style.add", json!({"type": "paint", "name": name, "value": "#3366FF"})),
+        ("variable.add", json!({"collection": "Tokens", "name": name, "type": "number", "value": who})),
         ("variable.duplicate", json!({"variable": "v0"})),
-        ("variable.createCollection", json!({"name": name})),
+        ("variable.addCollection", json!({"name": name})),
         ("variable.addMode", json!({"collection": name, "name": "Dark"})),
         ("comment.add", json!({"x": 10 * who, "y": 10 * round, "text": name})),
     ]
@@ -68,10 +68,10 @@ fn concurrent_creations_with_real_commands_all_survive() {
 fn outside_a_session_the_ids_are_unchanged() {
     let mut s = Session::with_document(base());
     let id = |v: Value| v["id"].clone();
-    assert_eq!(id(s.execute("style.create", &json!({"type": "paint", "name": "A", "value": "#000000"})).unwrap()), "S:1");
-    assert_eq!(id(s.execute("variable.createCollection", &json!({"name": "More"})).unwrap()), "VariableCollectionId:2");
+    assert_eq!(id(s.execute("style.add", &json!({"type": "paint", "name": "A", "value": "#000000"})).unwrap()), "S:1");
+    assert_eq!(id(s.execute("variable.addCollection", &json!({"name": "More"})).unwrap()), "VariableCollectionId:2");
     assert_eq!(id(s.execute("variable.addMode", &json!({"collection": "More", "name": "Dark"})).unwrap()), "VariableCollectionId:2/mode2");
-    assert_eq!(id(s.execute("variable.create", &json!({"collection": "More", "name": "x", "type": "number", "value": 1})).unwrap()), "VariableID:5");
+    assert_eq!(id(s.execute("variable.add", &json!({"collection": "More", "name": "x", "type": "number", "value": 1})).unwrap()), "VariableID:5");
     assert_eq!(id(s.execute("comment.add", &json!({"x": 0, "y": 0, "text": "hi"})).unwrap()), 1);
 }
 
@@ -80,7 +80,7 @@ fn a_style_made_in_a_session_syncs_as_an_entry_of_the_creators_space() {
     let mut sim = Sim::new(base(), 2, 7, 3).unwrap();
     let mut s = Session::with_document(sim.document(1).unwrap().clone());
     let me = sim.clients()[1].id();
-    let r = s.execute("style.create", &json!({"type": "paint", "name": "Mine", "value": "#FF0000"})).unwrap();
+    let r = s.execute("style.add", &json!({"type": "paint", "name": "Mine", "value": "#FF0000"})).unwrap();
     let sid = r["id"].as_str().unwrap().to_string();
     let doc = s.doc().unwrap().clone();
     let batch = kition_design_collab::diff(sim.clients()[1].view(), &doc).unwrap();

@@ -32,7 +32,7 @@ fn fill(s: &Session, n: NodeId) -> String {
 }
 
 fn frame(s: &mut Session, parent: Option<NodeId>) -> NodeId {
-    id(run(s, "frame.create", json!({"parent": parent, "x": 0, "y": 0, "width": 100, "height": 100})))
+    id(run(s, "frame.add", json!({"parent": parent, "x": 0, "y": 0, "width": 100, "height": 100})))
 }
 
 fn rect(s: &mut Session, parent: Option<NodeId>) -> NodeId {
@@ -41,8 +41,8 @@ fn rect(s: &mut Session, parent: Option<NodeId>) -> NodeId {
 
 /// A "Theme" collection with Light and Dark modes and a colour variable `bg` (white / black).
 fn theme(s: &mut Session) {
-    run(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    run(s, "variable.create", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#000000"}}));
+    run(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    run(s, "variable.add", json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#FFFFFF", "Dark": "#000000"}}));
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn types_and_their_starting_values() {
     // Documented: four types (colour, number, string, boolean). Docs silent on a new variable's
     // value; pinned: black, 0, empty, true. Every mode of the collection gets a value.
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C", "modes": ["A", "B"]}));
+    run(&mut s, "variable.addCollection", json!({"name": "C", "modes": ["A", "B"]}));
     let cases: [(&str, VariableType, VariableValue); 4] = [
         ("color", VariableType::Color, VariableValue::Color(kition_design_color::Color::BLACK)),
         ("number", VariableType::Number, VariableValue::Number(0.0)),
@@ -58,14 +58,14 @@ fn types_and_their_starting_values() {
         ("boolean", VariableType::Boolean, VariableValue::Boolean(true)),
     ];
     for (ty, kind, want) in cases {
-        let v = vid(run(&mut s, "variable.create", json!({"collection": "C", "name": ty, "type": ty})));
+        let v = vid(run(&mut s, "variable.add", json!({"collection": "C", "name": ty, "type": ty})));
         let var = s.doc().unwrap().variables.get(&v).unwrap().clone();
         assert_eq!(var.kind, kind, "{ty}");
         assert_eq!(var.values.len(), 2, "{ty}: a value per mode");
         assert!(var.values.values().all(|x| *x == want), "{ty}: {:?}", var.values);
     }
-    assert!(s.execute("variable.create", &json!({"collection": "C", "name": "x", "type": "date"})).is_err());
-    assert!(s.execute("variable.create", &json!({"collection": "C", "name": "y", "type": "number", "value": "wide"})).is_err());
+    assert!(s.execute("variable.add", &json!({"collection": "C", "name": "x", "type": "date"})).is_err());
+    assert!(s.execute("variable.add", &json!({"collection": "C", "name": "y", "type": "number", "value": "wide"})).is_err());
 }
 
 #[test]
@@ -119,11 +119,11 @@ fn aliases_same_type_chains_and_no_cycles() {
     // refused (a value must resolve), also when creating with an alias.
     let mut s = Session::new();
     theme(&mut s);
-    run(&mut s, "variable.createCollection", json!({"name": "Brand", "modes": ["Base"]}));
-    run(&mut s, "variable.create", json!({"collection": "Brand", "name": "blue", "type": "color", "value": "#0000FF"}));
-    run(&mut s, "variable.create", json!({"collection": "Brand", "name": "n", "type": "number", "value": 4}));
-    run(&mut s, "variable.create", json!({"collection": "Theme", "name": "accent", "type": "color", "value": {"alias": "blue"}}));
-    run(&mut s, "variable.create", json!({"collection": "Theme", "name": "link", "type": "color", "value": {"alias": "accent"}}));
+    run(&mut s, "variable.addCollection", json!({"name": "Brand", "modes": ["Base"]}));
+    run(&mut s, "variable.add", json!({"collection": "Brand", "name": "blue", "type": "color", "value": "#0000FF"}));
+    run(&mut s, "variable.add", json!({"collection": "Brand", "name": "n", "type": "number", "value": 4}));
+    run(&mut s, "variable.add", json!({"collection": "Theme", "name": "accent", "type": "color", "value": {"alias": "blue"}}));
+    run(&mut s, "variable.add", json!({"collection": "Theme", "name": "link", "type": "color", "value": {"alias": "accent"}}));
     let r = rect(&mut s, None);
     run(&mut s, "variable.bind", json!({"ids": [r], "field": "fill", "variable": "link"}));
     assert_eq!(fill(&s, r), "0000FF", "a chain link → accent → blue resolves");
@@ -133,8 +133,8 @@ fn aliases_same_type_chains_and_no_cycles() {
         ("variable.set", json!({"variable": "blue", "value": {"alias": "link"}}), "a loop through the chain"),
         ("variable.set", json!({"variable": "accent", "value": {"alias": "accent"}}), "itself"),
         ("variable.set", json!({"variable": "accent", "value": {"alias": "n"}}), "another type"),
-        ("variable.create", json!({"collection": "Theme", "name": "x", "type": "color", "value": {"alias": "n"}}), "create: another type"),
-        ("variable.create", json!({"collection": "Theme", "name": "y", "type": "color", "value": {"alias": "missing"}}), "create: no such variable"),
+        ("variable.add", json!({"collection": "Theme", "name": "x", "type": "color", "value": {"alias": "n"}}), "create: another type"),
+        ("variable.add", json!({"collection": "Theme", "name": "y", "type": "color", "value": {"alias": "missing"}}), "create: no such variable"),
     ];
     for (cmd, p, what) in refused {
         assert!(s.execute(cmd, &p).is_err(), "{what}");
@@ -149,8 +149,8 @@ fn scopes_limit_pickers_only() {
     // paragraph spacing and indent, opacity, effects, stroke, text content, width and height;
     // colour: frame/shape/text fill, stroke, effects; string: font family, style, text content).
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    run(&mut s, "variable.create", json!({"collection": "C", "name": "radius", "type": "number", "value": 8}));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    run(&mut s, "variable.add", json!({"collection": "C", "name": "radius", "type": "number", "value": 8}));
     run(&mut s, "variable.update", json!({"variable": "radius", "scopes": ["CORNER_RADIUS"]}));
     let r = rect(&mut s, None);
     let doc = s.doc().unwrap();
@@ -234,17 +234,17 @@ fn bindings_by_field_and_type() {
     // (as the field shows); other numbers are pixels. A variable of a type the field doesn't take
     // is refused (docs: a variable applies only to properties of its type).
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
     for (name, ty, value) in
         [("n", "number", json!(12)), ("c", "color", json!("#336699")), ("t", "string", json!("Hi")), ("b", "boolean", json!(false))]
     {
-        run(&mut s, "variable.create", json!({"collection": "C", "name": name, "type": ty, "value": value}));
+        run(&mut s, "variable.add", json!({"collection": "C", "name": name, "type": ty, "value": value}));
     }
     let f = frame(&mut s, None);
     run(&mut s, "layout.add", json!({"ids": [f]}));
     let r = rect(&mut s, None);
     run(&mut s, "node.set", json!({"id": r, "props": {"strokes": ["#000000"], "strokeWeight": 1}}));
-    let t = id(run(&mut s, "text.create", json!({"text": "Hello", "x": 0, "y": 200})));
+    let t = id(run(&mut s, "text.add", json!({"text": "Hello", "x": 0, "y": 200})));
     type Check = fn(&Node) -> bool;
     let ok: [(NodeId, &str, &str, Check); 14] = [
         (r, "width", "n", |n| n.width == 12.0),
@@ -267,7 +267,7 @@ fn bindings_by_field_and_type() {
         assert!(check(&node(&s, layer)), "{field} ← {var}");
     }
     // Number variables in text content show as text (documented: number → text content).
-    let t2 = id(run(&mut s, "text.create", json!({"text": "x", "x": 0, "y": 300})));
+    let t2 = id(run(&mut s, "text.add", json!({"text": "x", "x": 0, "y": 300})));
     run(&mut s, "variable.bind", json!({"ids": [t2], "field": "characters", "variable": "n"}));
     assert_eq!(node(&s, t2).kind.text().map(|x| x.characters.clone()).as_deref(), Some("12"));
     let refused: [(NodeId, &str, &str); 6] =
@@ -284,8 +284,8 @@ fn auto_layout_bindings_go_with_the_auto_layout() {
     // Docs silent; pinned (#810): removing a frame's auto layout drops its gap and padding bindings,
     // and a binding never brings an auto layout back. One made without auto layout waits for it.
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    run(&mut s, "variable.create", json!({"collection": "C", "name": "g", "type": "number", "value": 12}));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    run(&mut s, "variable.add", json!({"collection": "C", "name": "g", "type": "number", "value": 12}));
     let removals =
         [("layout.remove", json!({})), ("node.set", json!({"props": {"layout": null}})), ("node.set", json!({"props": {"layout": "none"}}))];
     for (cmd, mut p) in removals {
@@ -313,7 +313,7 @@ fn deleting_a_bound_variable_keeps_the_last_value() {
     // Docs silent on variables aliasing it; pinned: they take its values too.
     let mut s = Session::new();
     theme(&mut s);
-    run(&mut s, "variable.create", json!({"collection": "Theme", "name": "surface", "type": "color", "value": {"alias": "bg"}}));
+    run(&mut s, "variable.add", json!({"collection": "Theme", "name": "surface", "type": "color", "value": {"alias": "bg"}}));
     let f = frame(&mut s, None);
     let r = rect(&mut s, Some(f));
     let r2 = rect(&mut s, Some(f));
@@ -333,8 +333,8 @@ fn deleting_a_bound_variable_keeps_the_last_value() {
     s.undo().unwrap();
     assert!(node(&s, r).bound.contains_key("fill"));
     // Deleting the collection: the same for layers, and aliases from other collections into it.
-    run(&mut s, "variable.createCollection", json!({"name": "Other"}));
-    run(&mut s, "variable.create", json!({"collection": "Other", "name": "o", "type": "color", "value": {"alias": "bg"}}));
+    run(&mut s, "variable.addCollection", json!({"name": "Other"}));
+    run(&mut s, "variable.add", json!({"collection": "Other", "name": "o", "type": "color", "value": {"alias": "bg"}}));
     run(&mut s, "variable.deleteCollection", json!({"collection": "Theme"}));
     assert_eq!(fill(&s, r), "000000");
     assert!(node(&s, r).bound.is_empty());
@@ -347,8 +347,8 @@ fn code_syntax_per_platform() {
     // Documented: a variable can have a code name per platform (Web, iOS, Android) for handoff
     // code; a Web one can be written as a CSS `var()` reference.
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "Spacing"}));
-    run(&mut s, "variable.create", json!({"collection": "Spacing", "name": "space/xs", "type": "number", "value": 4}));
+    run(&mut s, "variable.addCollection", json!({"name": "Spacing"}));
+    run(&mut s, "variable.add", json!({"collection": "Spacing", "name": "space/xs", "type": "number", "value": 4}));
     run(
         &mut s,
         "variable.update",
@@ -382,9 +382,9 @@ fn number_variables_are_pixels_and_edits_are_one_undo_step() {
     // Documented: number variables hold plain numbers; sizes, gaps and type sizes take them as
     // pixels. Each edit in the editor is one undo step.
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    run(&mut s, "variable.create", json!({"collection": "C", "name": "lh", "type": "number", "value": 20}));
-    let t = id(run(&mut s, "text.create", json!({"text": "Hello", "x": 0, "y": 0})));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    run(&mut s, "variable.add", json!({"collection": "C", "name": "lh", "type": "number", "value": 20}));
+    let t = id(run(&mut s, "text.add", json!({"text": "Hello", "x": 0, "y": 0})));
     run(&mut s, "variable.bind", json!({"ids": [t], "field": "lineHeight", "variable": "lh"}));
     let lh = |s: &Session| node(s, t).kind.text().unwrap().style.line_height;
     assert_eq!(lh(&s), LineHeight::Pixels(20.0));
@@ -407,10 +407,10 @@ fn create_collection_keeps_at_least_one_named_mode() {
         json!({"name": "  "}),
         json!({"name": ""}),
     ] {
-        assert!(s.execute("variable.createCollection", &p).is_err(), "{p} should be refused");
+        assert!(s.execute("variable.addCollection", &p).is_err(), "{p} should be refused");
     }
     assert!(s.doc().unwrap().variables.collections.is_empty(), "a refused call creates nothing");
-    run(&mut s, "variable.createCollection", json!({"name": "C", "modes": [" Light ", "Dark"]}));
+    run(&mut s, "variable.addCollection", json!({"name": "C", "modes": [" Light ", "Dark"]}));
     let names: Vec<String> = s.doc().unwrap().variables.collections[0].modes.iter().map(|m| m.name.clone()).collect();
     assert_eq!(names, ["Light", "Dark"]);
 }
@@ -420,9 +420,9 @@ fn explicit_edits_of_bound_fields_stick_and_detach_that_binding() {
     // #809: an edit of a bound field detaches its binding (as a paint edit does) instead of
     // the variable's value coming back; bindings whose value the edit kept stay.
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    let w = vid(run(&mut s, "variable.create", json!({"collection": "C", "name": "w", "type": "number", "value": 48})));
-    let o = vid(run(&mut s, "variable.create", json!({"collection": "C", "name": "o", "type": "number", "value": 40})));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    let w = vid(run(&mut s, "variable.add", json!({"collection": "C", "name": "w", "type": "number", "value": 48})));
+    let o = vid(run(&mut s, "variable.add", json!({"collection": "C", "name": "o", "type": "number", "value": 40})));
     let r = rect(&mut s, None);
     for (field, v) in [("width", &w), ("height", &w), ("opacity", &o)] {
         run(&mut s, "variable.bind", json!({"ids": [r], "field": field, "variable": v}));
@@ -451,8 +451,8 @@ fn explicit_edits_of_bound_fields_stick_and_detach_that_binding() {
 #[test]
 fn a_gesture_or_a_text_style_on_a_bound_field_detaches_it() {
     let mut s = Session::new();
-    run(&mut s, "variable.createCollection", json!({"name": "C"}));
-    let v = vid(run(&mut s, "variable.create", json!({"collection": "C", "name": "r", "type": "number", "value": 8})));
+    run(&mut s, "variable.addCollection", json!({"name": "C"}));
+    let v = vid(run(&mut s, "variable.add", json!({"collection": "C", "name": "r", "type": "number", "value": 8})));
     let r = rect(&mut s, None);
     run(&mut s, "variable.bind", json!({"ids": [r], "field": "cornerRadius", "variable": v}));
     s.begin_interaction("Edit").unwrap();
@@ -462,7 +462,7 @@ fn a_gesture_or_a_text_style_on_a_bound_field_detaches_it() {
     assert_eq!(node(&s, r).corners.radii, [2.0; 4]);
     assert!(node(&s, r).bound.is_empty());
 
-    let t = id(run(&mut s, "text.create", json!({"x": 0, "y": 0, "text": "Hi"})));
+    let t = id(run(&mut s, "text.add", json!({"x": 0, "y": 0, "text": "Hi"})));
     run(&mut s, "variable.bind", json!({"ids": [t], "field": "fontSize", "variable": v}));
     run(&mut s, "text.style", json!({"id": t, "fontSize": 20}));
     assert!(node(&s, t).bound.is_empty());
@@ -471,10 +471,10 @@ fn a_gesture_or_a_text_style_on_a_bound_field_detaches_it() {
     // The font size/weight/tracking shortcuts and text content edits detach too.
     run(&mut s, "variable.bind", json!({"ids": [t], "field": "fontSize", "variable": v}));
     assert_eq!(node(&s, t).kind.text().unwrap().style.font_size, 8.0);
-    run(&mut s, "text.sizeUp", json!({"ids": [t]}));
+    run(&mut s, "format.increaseFontSize", json!({"ids": [t]}));
     assert_eq!(node(&s, t).kind.text().unwrap().style.font_size, 9.0);
     assert!(node(&s, t).bound.is_empty());
-    let c = vid(run(&mut s, "variable.create", json!({"collection": "C", "name": "c", "type": "string", "value": "Hello"})));
+    let c = vid(run(&mut s, "variable.add", json!({"collection": "C", "name": "c", "type": "string", "value": "Hello"})));
     run(&mut s, "variable.bind", json!({"ids": [t], "field": "characters", "variable": c}));
     run(&mut s, "text.set", json!({"id": t, "characters": "Bye"}));
     assert_eq!(node(&s, t).kind.text().unwrap().characters, "Bye");

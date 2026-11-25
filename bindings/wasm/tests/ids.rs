@@ -17,7 +17,7 @@ fn two_pages() -> DesignDocument {
     doc.execute("shape.rectangle", json!({ "x": 40, "y": 40, "width": 120, "height": 80, "parent": frame })).unwrap();
     doc.execute("page.add", json!({ "name": "Second" })).unwrap();
     let second = doc.inspect().unwrap()["pages"][1]["id"].as_u64().unwrap();
-    doc.execute("node.create", json!({ "type": "frame", "parent": second, "x": 0, "y": 0, "width": 100, "height": 100, "name": "Frame 2" })).unwrap();
+    doc.execute("node.add", json!({ "type": "frame", "parent": second, "x": 0, "y": 0, "width": 100, "height": 100, "name": "Frame 2" })).unwrap();
     doc
 }
 

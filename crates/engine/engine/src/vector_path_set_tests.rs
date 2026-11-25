@@ -1,6 +1,6 @@
 //! `node.set {path}` replaces a vector's geometry and keeps the layer (#1001): its id, name, place in
 //! the layer list, paints, effects, styles, bindings and constraints. The path is read as
-//! `node.create` reads it (`width`/`height` scale it), its own box goes at the layer's origin (or at
+//! `node.add` reads it (`width`/`height` scale it), its own box goes at the layer's origin (or at
 //! `x`/`y` plus the box's offset, as create places it), undo brings the old path back, and data that
 //! can't draw, layers that aren't vectors and layers inside an instance are refused.
 
@@ -20,7 +20,7 @@ fn id(v: &Value) -> NodeId {
 fn vector(s: &mut Session, p: Value) -> NodeId {
     let mut p = p;
     p["type"] = json!("vector");
-    id(&ex(s, "node.create", p))
+    id(&ex(s, "node.add", p))
 }
 
 fn net(s: &Session, v: NodeId) -> VectorNetwork {
@@ -44,8 +44,8 @@ fn bad_msg(r: crate::Result<Value>) -> String {
 #[test]
 fn a_new_path_keeps_the_layer() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "T"}));
-    ex(&mut s, "variable.create", json!({"collection": "T", "name": "brand", "type": "color", "value": "#FF0000"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "T"}));
+    ex(&mut s, "variable.add", json!({"collection": "T", "name": "brand", "type": "color", "value": "#FF0000"}));
     let below = vector(&mut s, json!({"path": "M0 0 L5 5"}));
     let v = vector(&mut s, json!({"name": "Chart line", "path": "M0 0 L10 10", "x": 40, "y": 30}));
     let above = vector(&mut s, json!({"path": "M0 0 L5 5"}));
@@ -164,8 +164,8 @@ fn data_that_cant_draw_is_refused_and_nothing_changes() {
 #[test]
 fn layers_that_arent_vectors_are_refused_alone_and_skipped_among_vectors() {
     let mut s = Session::new();
-    let r = id(&ex(&mut s, "node.create", json!({"type": "rectangle", "name": "Box"})));
-    let star = id(&ex(&mut s, "node.create", json!({"type": "star"})));
+    let r = id(&ex(&mut s, "node.add", json!({"type": "rectangle", "name": "Box"})));
+    let star = id(&ex(&mut s, "node.add", json!({"type": "star"})));
     let msg = bad_msg(s.execute("node.set", &json!({"ids": [r], "props": {"path": "M0 0 L5 5"}})));
     assert!(msg.contains("vector") && msg.contains("Box"), "{msg}");
     assert!(s.execute("node.set", &json!({"ids": [r, star], "props": {"path": "M0 0 L5 5"}})).is_err(), "no vector among them");
@@ -183,10 +183,10 @@ fn layers_that_arent_vectors_are_refused_alone_and_skipped_among_vectors() {
 #[test]
 fn a_vector_inside_an_instance_is_refused_and_its_main_reaches_it() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "node.create", json!({"type": "frame", "width": 50, "height": 50})));
+    let f = id(&ex(&mut s, "node.add", json!({"type": "frame", "width": 50, "height": 50})));
     let v = vector(&mut s, json!({"path": "M0 0 L10 10", "parent": f}));
-    let comp = id(&ex(&mut s, "component.create", json!({"ids": [f]})));
-    let inst = id(&ex(&mut s, "instance.create", json!({"component": comp, "x": 200, "y": 0})));
+    let comp = id(&ex(&mut s, "component.add", json!({"ids": [f]})));
+    let inst = id(&ex(&mut s, "instance.add", json!({"component": comp, "x": 200, "y": 0})));
     let copy = s.doc().unwrap().node(inst).unwrap().children[0];
     assert!(matches!(s.doc().unwrap().node(copy).unwrap().kind, NodeKind::Vector { .. }));
     let msg = bad_msg(s.execute("node.set", &json!({"ids": [copy], "props": {"path": "M0 0 L30 0"}})));

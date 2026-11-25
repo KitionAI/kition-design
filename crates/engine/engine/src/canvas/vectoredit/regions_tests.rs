@@ -46,7 +46,7 @@ fn overlapping() -> VectorNetwork {
 
 /// A filled vector at the page origin with network `n`, in edit mode.
 fn editing_vector(s: &mut Session, n: VectorNetwork) -> NodeId {
-    let r = ex(s, "vector.create", json!({"points": [[0, 0], [10, 0], [10, 10]], "closed": true}));
+    let r = ex(s, "vector.add", json!({"points": [[0, 0], [10, 0], [10, 10]], "closed": true}));
     let id = crate::params::id_of(&r["id"]).unwrap();
     let doc = s.doc_mut().unwrap();
     let node = doc.get_mut(id).unwrap();

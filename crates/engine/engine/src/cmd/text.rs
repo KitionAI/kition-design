@@ -210,13 +210,13 @@ pub fn specs() -> Vec<CommandSpec> {
                 }
             })
         }),
-        spec!("text.bold", "Bold", "{ids?}", true, toggle_bold),
-        spec!("text.italic", "Italic", "{ids?}", true, toggle_italic),
-        spec!("text.underline", "Underline", "{ids?}", true, |s, p| {
+        spec!("format.bold", "Bold", "{ids?}", true, toggle_bold),
+        spec!("format.italic", "Italic", "{ids?}", true, toggle_italic),
+        spec!("format.underline", "Underline", "{ids?}", true, |s, p| {
             let on = all_have(s, p, |st| st.decoration == TextDecoration::Underline);
             style(s, p, |st| st.decoration = if on { TextDecoration::None } else { TextDecoration::Underline })
         }),
-        spec!("text.strikethrough", "Strikethrough", "{ids?}", true, |s, p| {
+        spec!("format.strikethrough", "Strikethrough", "{ids?}", true, |s, p| {
             let on = all_have(s, p, |st| st.decoration == TextDecoration::Strikethrough);
             style(s, p, |st| st.decoration = if on { TextDecoration::None } else { TextDecoration::Strikethrough })
         }),
@@ -236,12 +236,13 @@ pub fn specs() -> Vec<CommandSpec> {
             ListStyle::Numbered,
             true
         )),
-        spec!("text.alignLeft", "Align left", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Left)),
-        spec!("text.alignCenter", "Align center", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Center)),
-        spec!("text.alignRight", "Align right", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Right)),
-        spec!("text.alignJustify", "Justify", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Justified)),
-        spec!("text.sizeUp", "Increase font size", "{ids?}", true, |s, p| style(s, p, |st| st.font_size = (st.font_size + 1.0).min(5000.0))),
-        spec!("text.sizeDown", "Decrease font size", "{ids?}", true, |s, p| style(s, p, |st| st.font_size = (st.font_size - 1.0).max(1.0))),
+        spec!("format.alignLeft", "Align left", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Left)),
+        spec!("format.alignCenter", "Align center", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Center)),
+        spec!("format.alignRight", "Align right", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Right)),
+        spec!("format.justify", "Justify", "{ids?}", true, |s, p| para(s, p, |t| t.align_h = TextAlignH::Justified)),
+        spec!("format.increaseFontSize", "Increase font size", "{ids?}", true, |s, p| style(s, p, |st| st.font_size =
+            (st.font_size + 1.0).min(5000.0))),
+        spec!("format.decreaseFontSize", "Decrease font size", "{ids?}", true, |s, p| style(s, p, |st| st.font_size = (st.font_size - 1.0).max(1.0))),
         spec!("text.weightUp", "Increase font weight", "{ids?}", true, |s, p| step_weight(s, p, true)),
         spec!("text.weightDown", "Decrease font weight", "{ids?}", true, |s, p| step_weight(s, p, false)),
         spec!("text.lineHeightUp", "Increase line height", "{ids?}", true, |s, p| {

@@ -20,12 +20,12 @@ fn drag(s: &mut Session, from: (f64, f64), to: (f64, f64)) {
 
 /// A frame with six 50×30 children in auto layout of `mode`.
 fn frame_with_kids(s: &mut Session, props: serde_json::Value) -> (NodeId, Vec<NodeId>) {
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 200})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 200})).unwrap());
     let kids: Vec<NodeId> =
         (0..6).map(|i| id(s.execute("shape.rectangle", &json!({"x": i * 60, "y": 0, "width": 50, "height": 30, "parent": f})).unwrap())).collect();
     s.execute("layout.add", &json!({"ids": [f]})).unwrap();
     s.execute("node.set", &json!({"id": f, "props": props})).unwrap();
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     (f, kids)
 }
 

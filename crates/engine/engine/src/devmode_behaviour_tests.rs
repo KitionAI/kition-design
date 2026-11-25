@@ -23,7 +23,7 @@ fn drag(s: &mut Session, from: (f64, f64), to: (f64, f64)) {
 }
 
 fn frame(s: &mut Session, x: f64, name: &str) -> NodeId {
-    idv(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 200, "height": 200, "name": name})))
+    idv(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 200, "height": 200, "name": name})))
 }
 
 fn rect(s: &mut Session, parent: NodeId, x: f64) -> NodeId {
@@ -43,7 +43,7 @@ fn the_dev_mode_canvas_selects_and_pans_but_never_edits() {
     let mut s = Session::new();
     let f = frame(&mut s, 0.0, "Screen");
     let r = rect(&mut s, f, 20.0);
-    let t = idv(&ex(&mut s, "text.create", json!({"text": "Hello", "x": 100, "y": 120, "parent": f})));
+    let t = idv(&ex(&mut s, "text.add", json!({"text": "Hello", "x": 100, "y": 120, "parent": f})));
     s.tool.dev_mode = true;
     let before = s.doc().unwrap().clone();
     let steps = s.undo_labels(100).len();
@@ -100,7 +100,7 @@ fn dev_mode_runs_its_own_edits_and_refuses_design_edits_from_menus_and_shortcuts
         "edit.redo",
         "edit.copy",
         "edit.copyAsCss",
-        "select.all",
+        "edit.selectAll",
         "view.zoomIn",
         "view.devMode",
         "file.export",
@@ -118,7 +118,7 @@ fn dev_mode_runs_its_own_edits_and_refuses_design_edits_from_menus_and_shortcuts
         "edit.cut",
         "edit.duplicate",
         "transform.nudge",
-        "object.group",
+        "arrange.group",
         "tool.rectangle",
         "tool.text",
         "tool.place",
@@ -135,7 +135,7 @@ fn the_ready_list_shows_frames_and_sections_with_a_status_across_pages() {
     let mut s = Session::new();
     let a = frame(&mut s, 0.0, "Login");
     let b = frame(&mut s, 300.0, "Signup");
-    let nested = idv(&ex(&mut s, "frame.create", json!({"x": 10, "y": 10, "width": 50, "height": 50, "parent": a, "name": "Card"})));
+    let nested = idv(&ex(&mut s, "frame.add", json!({"x": 10, "y": 10, "width": 50, "height": 50, "parent": a, "name": "Card"})));
     status(&mut s, &[a], "readyForDev");
     status(&mut s, &[b], "completed");
     // A layer inside a frame takes no status of its own (its frame's covers it).

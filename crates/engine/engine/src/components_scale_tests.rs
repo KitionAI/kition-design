@@ -173,7 +173,7 @@ fn main_edits(doc: &Document, ds: &DesignSystem) -> Vec<(&'static str, Value)> {
         ("node.set", json!({"ids": [label], "props": {"fontSize": 17}})),
         ("node.set", json!({"ids": [label], "props": {"visible": false}})),
         ("node.set", json!({"ids": [title], "props": {"name": "Heading"}})),
-        ("arrange.back", json!({"ids": [body]})),
+        ("arrange.sendToBack", json!({"ids": [body]})),
         ("edit.delete", json!({"ids": [body]})),
         ("node.set", json!({"ids": [card], "props": {"strokeWeight": 3}})),
         ("node.set", json!({"ids": [nav], "props": {"effects": [{"type": "dropShadow"}]}})),
@@ -544,7 +544,7 @@ fn pasting_instances_into_other_files_follows_their_mains() {
     healthy(s.doc().unwrap());
     // From the library file itself (its published components) into a new file: used from the
     // library, which gets enabled.
-    let b = crate::params::id_of(&ex(&mut lib_s, "instance.create", json!({"component": ds.button, "x": 0, "y": -400}))["id"]).unwrap();
+    let b = crate::params::id_of(&ex(&mut lib_s, "instance.add", json!({"component": ds.button, "x": 0, "y": -400}))["id"]).unwrap();
     ex(&mut lib_s, "edit.copy", json!({"ids": [b]}));
     ex(&mut lib_s, "file.new", json!({"name": "Third"}));
     let r = ex(&mut lib_s, "edit.paste", json!({}));
@@ -559,10 +559,10 @@ fn pasting_instances_into_other_files_follows_their_mains() {
 #[test]
 fn pasting_an_instance_of_an_unpublished_component_into_another_file_leaves_its_main_behind() {
     let mut s = Session::new();
-    let f = crate::params::id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 50, "name": "Tile"}))["id"]).unwrap();
+    let f = crate::params::id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 50, "name": "Tile"}))["id"]).unwrap();
     ex(&mut s, "shape.rectangle", json!({"x": 5, "y": 5, "width": 10, "height": 10, "parent": f, "props": {"name": "Dot"}}));
-    let c = crate::params::id_of(&ex(&mut s, "component.create", json!({"ids": [f]}))["id"]).unwrap();
-    let i = crate::params::id_of(&ex(&mut s, "instance.create", json!({"component": c, "x": 100, "y": 0}))["id"]).unwrap();
+    let c = crate::params::id_of(&ex(&mut s, "component.add", json!({"ids": [f]}))["id"]).unwrap();
+    let i = crate::params::id_of(&ex(&mut s, "instance.add", json!({"component": c, "x": 100, "y": 0}))["id"]).unwrap();
     ex(&mut s, "edit.copy", json!({"ids": [i]}));
     ex(&mut s, "file.new", json!({}));
     // Layers whose ids collide with the copied mains' ids in the other file.
@@ -590,22 +590,22 @@ fn pasting_an_instance_of_an_unpublished_component_into_another_file_leaves_its_
 /// (chip, icon instance in the main, the colour variable's light and dark hex).
 fn bound_chip(s: &mut Session) -> (NodeId, NodeId) {
     let id = |v: Value| crate::params::id_of(&v["id"]).unwrap();
-    ex(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "Chip", "type": "color", "value": "#112233"}));
+    ex(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "Chip", "type": "color", "value": "#112233"}));
     ex(s, "variable.set", json!({"variable": "Chip", "mode": "Dark", "value": "#aabbcc"}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "Round", "type": "number", "value": 4}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "Round", "type": "number", "value": 4}));
     ex(s, "variable.set", json!({"variable": "Round", "mode": "Dark", "value": 9}));
-    let dot = id(ex(s, "frame.create", json!({"x": 0, "y": 300, "width": 10, "height": 10, "name": "Dot"})));
-    let dot = id(ex(s, "component.create", json!({"ids": [dot]})));
-    let ring = id(ex(s, "frame.create", json!({"x": 40, "y": 300, "width": 10, "height": 10, "name": "Ring"})));
-    ex(s, "component.create", json!({"ids": [ring]}));
-    let f = id(ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 80, "height": 30, "name": "Chip"})));
+    let dot = id(ex(s, "frame.add", json!({"x": 0, "y": 300, "width": 10, "height": 10, "name": "Dot"})));
+    let dot = id(ex(s, "component.add", json!({"ids": [dot]})));
+    let ring = id(ex(s, "frame.add", json!({"x": 40, "y": 300, "width": 10, "height": 10, "name": "Ring"})));
+    ex(s, "component.add", json!({"ids": [ring]}));
+    let f = id(ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 80, "height": 30, "name": "Chip"})));
     let bg = id(ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 80, "height": 30, "parent": f, "props": {"name": "Bg"}})));
     ex(s, "variable.bind", json!({"ids": [bg], "field": "fill", "variable": "Chip"}));
     ex(s, "variable.bind", json!({"ids": [bg], "field": "cornerRadius", "variable": "Round"}));
-    let icon = id(ex(s, "instance.create", json!({"component": dot, "x": 5, "y": 5, "parent": f})));
+    let icon = id(ex(s, "instance.add", json!({"component": dot, "x": 5, "y": 5, "parent": f})));
     ex(s, "node.set", json!({"ids": [icon], "props": {"name": "Icon"}}));
-    let chip = id(ex(s, "component.create", json!({"ids": [f]})));
+    let chip = id(ex(s, "component.add", json!({"ids": [f]})));
     ex(s, "component.exposeInstance", json!({"id": icon}));
     (chip, icon)
 }
@@ -614,7 +614,7 @@ fn bound_chip(s: &mut Session) -> (NodeId, NodeId) {
 fn variables_on_instance_layers_are_no_overrides_and_detached_ones_stay_overridden() {
     let mut s = Session::new();
     let (chip, _) = bound_chip(&mut s);
-    let i = crate::params::id_of(&ex(&mut s, "instance.create", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
+    let i = crate::params::id_of(&ex(&mut s, "instance.add", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
     let doc = s.doc().unwrap();
     let bg = find_path(doc, i, &["Bg"]).unwrap();
     ex(&mut s, "variable.setMode", json!({"ids": [i], "collection": "Theme", "mode": "Dark"}));
@@ -655,7 +655,7 @@ fn nested_instances_keep_exposure_and_names_through_main_edits_and_swaps() {
     let doc = s.doc().unwrap();
     assert!(doc.node(icon).unwrap().exposed, "still exposed");
     assert_eq!(doc.node(icon).unwrap().name, "Icon");
-    let i = crate::params::id_of(&ex(&mut s, "instance.create", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
+    let i = crate::params::id_of(&ex(&mut s, "instance.add", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
     let nested = find_path(s.doc().unwrap(), i, &["Icon"]).unwrap();
     assert_eq!(ex(&mut s, "instance.exposed", json!({"id": i}))["instances"][0]["id"], json!(nested.0));
     // Swapped, the nested instance keeps the name its layer has in the main.
@@ -754,7 +754,7 @@ fn a_fill_set_on_a_bound_instance_layer_detaches_it_as_an_override() {
     // and stays through main edits until the override is reset.
     let mut s = Session::new();
     let (chip, _) = bound_chip(&mut s);
-    let i = crate::params::id_of(&ex(&mut s, "instance.create", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
+    let i = crate::params::id_of(&ex(&mut s, "instance.add", json!({"component": chip, "x": 200, "y": 0}))["id"]).unwrap();
     let bg = find_path(s.doc().unwrap(), i, &["Bg"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [bg], "props": {"fill": "#ff00ff"}}));
     let n = s.doc().unwrap().node(bg).unwrap().clone();

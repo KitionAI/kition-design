@@ -9,7 +9,7 @@ use kition_design_doc::proto::{Action, Interaction, OverlayPosition, Trigger};
 use kition_design_doc::{Document, NodeId};
 
 fn frame(s: &mut Session, x: f64) -> NodeId {
-    id_of(&s.execute("frame.create", &json!({"x": x, "y": 0, "width": 100, "height": 200})).unwrap()["id"]).unwrap()
+    id_of(&s.execute("frame.add", &json!({"x": x, "y": 0, "width": 100, "height": 200})).unwrap()["id"]).unwrap()
 }
 
 fn first(s: &Session, id: NodeId) -> Interaction {

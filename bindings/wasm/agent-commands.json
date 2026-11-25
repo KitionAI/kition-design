@@ -99,16 +99,16 @@
  "annotation.removeCategory": {
   "description": "Deletes an annotation category; its annotations stay uncategorised."
  },
- "arrange.back": {
+ "arrange.sendToBack": {
   "description": "Sends the selected or given layers to the back of their parent."
  },
- "arrange.backward": {
+ "arrange.sendBackward": {
   "description": "Sends the selected or given layers one step backward."
  },
- "arrange.forward": {
+ "arrange.bringForward": {
   "description": "Brings the selected or given layers one step forward."
  },
- "arrange.front": {
+ "arrange.bringToFront": {
   "description": "Brings the selected or given layers to the front of their parent."
  },
  "arrange.packH": {
@@ -822,10 +822,10 @@
  "component.combineVariants": {
   "description": "Combines main components into a component set of variants."
  },
- "component.create": {
+ "component.add": {
   "description": "Makes the selected frame or group a component, or wraps several layers in one."
  },
- "component.createMultiple": {
+ "component.addMultiple": {
   "description": "Makes each selected layer its own component."
  },
  "component.deleteProperty": {
@@ -1364,7 +1364,7 @@
  "export.remove": {
   "description": "Removes the export setting at index from the selected or given layers."
  },
- "export.update": {
+ "export.set": {
   "description": "Edits the export setting at index on the selected or given layers: size, suffix, format and PDF options.",
   "params": {
    "bleed": {
@@ -1802,7 +1802,7 @@
    }
   }
  },
- "frame.create": {
+ "frame.add": {
   "description": "Creates a frame from a device preset or a size, in a parent, with a name and properties; answers its id.",
   "params": {
    "parent": {
@@ -1823,7 +1823,7 @@
   }
  },
  "frame.presets": {
-  "description": "Answers the device and paper frame presets with their sizes, for frame.create.",
+  "description": "Answers the device and paper frame presets with their sizes, for frame.add.",
   "output": {
    "items": {
     "additionalProperties": true,
@@ -2120,7 +2120,7 @@
    }
   }
  },
- "instance.create": {
+ "instance.add": {
   "description": "Creates an instance of a component (or a set's default variant) at x, y in a parent; answers its id.",
   "params": {
    "component": {
@@ -2240,7 +2240,7 @@
    }
   }
  },
- "layers.collapseAll": {
+ "layer.collapseAll": {
   "description": "Collapses every row in the layers panel; the design is unchanged.",
   "output": {
    "additionalProperties": true,
@@ -2414,7 +2414,7 @@
   }
  },
  "library.import": {
-  "description": "Copies a library component into the file as a read-only main to instantiate with instance.create.",
+  "description": "Copies a library component into the file as a read-only main to instantiate with instance.add.",
   "params": {
    "component": {
     "description": "an id (a number, or its digits as text)",
@@ -2675,7 +2675,7 @@
    "type": "object"
   }
  },
- "node.create": {
+ "node.add": {
   "description": "Creates a layer of a type (rectangle, ellipse, polygon, star, line, arrow, vector, text, frame, section, component, slice) at x, y in a parent with properties; answers its id.",
   "params": {
    "characters": {
@@ -2774,7 +2774,7 @@
  "object.frameSelection": {
   "description": "Wraps the selected or given layers in a new frame, optionally named."
  },
- "object.group": {
+ "arrange.group": {
   "description": "Groups the selected or given layers, optionally naming the group."
  },
  "object.hideOthers": {
@@ -2836,7 +2836,7 @@
  "object.toggleVisible": {
   "description": "Shows, hides or toggles the visibility of the selected or given layers."
  },
- "object.ungroup": {
+ "arrange.ungroup": {
   "description": "Ungroups the selected or given groups, keeping their children in place."
  },
  "object.wrapInSection": {
@@ -2922,7 +2922,7 @@
    }
   }
  },
- "pref.highlightHover": {
+ "prefs.highlightHover": {
   "description": "Sets whether layers highlight on hover.",
   "output": {
    "additionalProperties": true,
@@ -2939,7 +2939,7 @@
    }
   }
  },
- "pref.keepTool": {
+ "prefs.keepTool": {
   "description": "Sets whether a drawing tool stays selected after use.",
   "output": {
    "additionalProperties": true,
@@ -2956,7 +2956,7 @@
    }
   }
  },
- "pref.nudge": {
+ "prefs.nudge": {
   "description": "Sets the small and big nudge amounts used by transform.nudge.",
   "output": {
    "additionalProperties": true,
@@ -2979,7 +2979,7 @@
    }
   }
  },
- "pref.numberKeysOpacity": {
+ "prefs.numberKeysOpacity": {
   "description": "Sets whether number keys set the selection's opacity.",
   "output": {
    "additionalProperties": true,
@@ -2996,7 +2996,7 @@
    }
   }
  },
- "pref.renameDuplicates": {
+ "prefs.renameDuplicates": {
   "description": "Sets whether duplicated layers get numbered names.",
   "output": {
    "additionalProperties": true,
@@ -3013,7 +3013,7 @@
    }
   }
  },
- "pref.showDimensions": {
+ "prefs.showDimensions": {
   "description": "Sets whether the canvas shows dimensions on selected objects.",
   "output": {
    "additionalProperties": true,
@@ -3282,7 +3282,7 @@
    "type": "object"
   }
  },
- "select.all": {
+ "edit.selectAll": {
   "description": "Selects every layer on the current page (or in the current frame).",
   "output": {
    "additionalProperties": true,
@@ -3416,7 +3416,7 @@
    "type": "object"
   }
  },
- "select.none": {
+ "edit.deselectAll": {
   "description": "Clears the selection, deselecting every layer.",
   "output": {
    "additionalProperties": true,
@@ -3575,8 +3575,8 @@
    "type": "object"
   }
  },
- "selection.applyColorStyle": {
-  "description": "Applies a colour style to the given fill or stroke slots (from selection.colors).",
+ "select.applyColorStyle": {
+  "description": "Applies a colour style to the given fill or stroke slots (from select.colors).",
   "params": {
    "targets": {
     "items": {
@@ -3587,8 +3587,8 @@
    }
   }
  },
- "selection.bindColorVariable": {
-  "description": "Binds a colour variable to the given solid fill or stroke slots (from selection.colors).",
+ "select.bindColorVariable": {
+  "description": "Binds a colour variable to the given solid fill or stroke slots (from select.colors).",
   "params": {
    "targets": {
     "items": {
@@ -3610,7 +3610,7 @@
    }
   }
  },
- "selection.colors": {
+ "select.colors": {
   "description": "Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.",
   "output": {
    "additionalProperties": true,
@@ -3641,7 +3641,7 @@
    "type": "object"
   }
  },
- "selection.detachColor": {
+ "select.detachColor": {
   "description": "Unlinks the colour style or variable of the given paint slots, keeping their colour values.",
   "params": {
    "targets": {
@@ -3653,7 +3653,7 @@
    }
   }
  },
- "selection.selectColor": {
+ "select.selectColor": {
   "description": "Selects the layers that own the given paint slots; answers their ids.",
   "output": {
    "additionalProperties": true,
@@ -3674,8 +3674,8 @@
    }
   }
  },
- "selection.setPaint": {
-  "description": "Replaces the paint in given fill or stroke slots (from selection.colors) with a new paint.",
+ "select.setPaint": {
+  "description": "Replaces the paint in given fill or stroke slots (from select.colors) with a new paint.",
   "params": {
    "paint": {
     "oneOf": [
@@ -3936,7 +3936,7 @@
    }
   }
  },
- "style.create": {
+ "style.add": {
   "description": "Creates a paint, text, effect or grid style from a layer (default the first selected) or a value; answers its id.",
   "params": {
    "description": {
@@ -4032,7 +4032,7 @@
    }
   }
  },
- "style.update": {
+ "style.set": {
   "description": "Edits a style's name, description or value, or redefines it from a layer.",
   "params": {
    "description": {
@@ -4054,19 +4054,19 @@
    }
   }
  },
- "text.alignCenter": {
+ "format.alignCenter": {
   "description": "Centres the text of the selected or given text layers."
  },
- "text.alignJustify": {
+ "format.justify": {
   "description": "Justifies the text of the selected or given text layers."
  },
- "text.alignLeft": {
+ "format.alignLeft": {
   "description": "Aligns the text of the selected or given text layers to the left."
  },
- "text.alignRight": {
+ "format.alignRight": {
   "description": "Aligns the text of the selected or given text layers to the right."
  },
- "text.bold": {
+ "format.bold": {
   "description": "Toggles bold on the selected or given text layers (or the selected text range)."
  },
  "text.bulletList": {
@@ -4090,7 +4090,7 @@
  "text.caseUpper": {
   "description": "Displays the selected or given text in uppercase."
  },
- "text.create": {
+ "text.add": {
   "description": "Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.",
   "params": {
    "parent": {
@@ -4236,7 +4236,7 @@
    }
   }
  },
- "text.italic": {
+ "format.italic": {
   "description": "Toggles italic on the selected or given text layers (or the selected text range)."
  },
  "text.lineHeightDown": {
@@ -4374,13 +4374,13 @@
    }
   }
  },
- "text.sizeDown": {
+ "format.decreaseFontSize": {
   "description": "Decreases the font size of the selected or given text layers by one step."
  },
- "text.sizeUp": {
+ "format.increaseFontSize": {
   "description": "Increases the font size of the selected or given text layers by one step."
  },
- "text.strikethrough": {
+ "format.strikethrough": {
   "description": "Toggles strikethrough on the selected or given text layers (or the selected text range)."
  },
  "text.style": {
@@ -4467,7 +4467,7 @@
  "text.trackingUp": {
   "description": "Increases the letter spacing of the selected or given text layers by one step."
  },
- "text.underline": {
+ "format.underline": {
   "description": "Toggles underline on the selected or given text layers (or the selected text range)."
  },
  "text.weightDown": {
@@ -4525,7 +4525,7 @@
   }
  },
  "tool.frame": {
-  "description": "Chooses the Frame tool in the editor; use frame.create to make a frame directly.",
+  "description": "Chooses the Frame tool in the editor; use frame.add to make a frame directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4585,7 +4585,7 @@
   }
  },
  "tool.pen": {
-  "description": "Chooses the Pen tool in the editor; use vector.create to make a path directly.",
+  "description": "Chooses the Pen tool in the editor; use vector.add to make a path directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4597,7 +4597,7 @@
   }
  },
  "tool.pencil": {
-  "description": "Chooses the Pencil tool in the editor; use vector.create to make a path directly.",
+  "description": "Chooses the Pencil tool in the editor; use vector.add to make a path directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4694,7 +4694,7 @@
   }
  },
  "tool.section": {
-  "description": "Chooses the Section tool in the editor; use node.create to make a section directly.",
+  "description": "Chooses the Section tool in the editor; use node.add to make a section directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4740,7 +4740,7 @@
   }
  },
  "tool.slice": {
-  "description": "Chooses the Slice tool in the editor; use node.create to make a slice directly.",
+  "description": "Chooses the Slice tool in the editor; use node.add to make a slice directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4781,7 +4781,7 @@
   }
  },
  "tool.text": {
-  "description": "Chooses the Text tool in the editor; use text.create to add text directly.",
+  "description": "Chooses the Text tool in the editor; use text.add to add text directly.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4934,7 +4934,7 @@
    }
   }
  },
- "variable.create": {
+ "variable.add": {
   "description": "Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.",
   "params": {
    "collection": {
@@ -4965,7 +4965,7 @@
    }
   }
  },
- "variable.createCollection": {
+ "variable.addCollection": {
   "description": "Creates a variable collection with mode names; answers its id."
  },
  "variable.delete": {
@@ -5286,7 +5286,7 @@
    }
   }
  },
- "vector.create": {
+ "vector.add": {
   "description": "Creates a vector layer from SVG path data or points, open or closed, scaled to a box, in a parent; answers its id.",
   "params": {
    "parent": {

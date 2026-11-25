@@ -9,9 +9,9 @@ use serde_json::json;
 
 /// A 24×24 icon component at (`x`, 300) with one 20×20 rectangle named `layer`.
 fn icon(s: &mut Session, x: f64, name: &str, layer: &str) -> NodeId {
-    let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 300, "width": 24, "height": 24, "name": name})));
+    let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 300, "width": 24, "height": 24, "name": name})));
     ex(s, "shape.rectangle", json!({"x": 2, "y": 2, "width": 20, "height": 20, "parent": f, "props": {"name": layer, "fill": "#111111"}}));
-    idv(&ex(s, "component.create", json!({"ids": [f]})))
+    idv(&ex(s, "component.add", json!({"ids": [f]})))
 }
 
 fn main_of(s: &Session, id: NodeId) -> NodeId {
@@ -27,7 +27,7 @@ fn swapping_a_nested_instance_keeps_overrides_on_matching_layers() {
     let (_icon, shape, button, nested) = button(&mut s);
     let other = icon(&mut s, 200.0, "Other", "Shape");
     let unrelated = icon(&mut s, 300.0, "Unrelated", "Glyph");
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let inested = copy_of(&s, i, nested);
     let ishape = kids(&s, inested)[0];
     ex(&mut s, "node.set", json!({"id": ishape, "props": {"fill": "#ff00ff", "opacity": 0.5}}));
@@ -64,18 +64,17 @@ fn variant_switch_keeps_nested_overrides_and_swaps() {
     let star = icon(&mut s, 100.0, "Star", "Shape");
     let mut variants = Vec::new();
     for (k, state) in ["Default", "Hover"].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 200.0, "y": 0, "width": 120, "height": 40, "name": format!("State={state}")})));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 200.0, "y": 0, "width": 120, "height": 40, "name": format!("State={state}")})));
         ex(
             &mut s,
             "shape.rectangle",
             json!({"x": 0, "y": 0, "width": 120, "height": 40, "parent": f, "props": {"name": "Bg", "fill": if k == 0 { "#ffffff" } else { "#eeeeee" }}}),
         );
-        ex(&mut s, "instance.create", json!({"component": ic, "x": 8, "y": 8, "parent": f}));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        ex(&mut s, "instance.add", json!({"component": ic, "x": 8, "y": 8, "parent": f}));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 200})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 200})));
     let inested = kids(&s, i)[1];
     let ishape = kids(&s, inested)[0];
     ex(&mut s, "node.set", json!({"id": ishape, "props": {"fill": "#ff8800"}}));
@@ -100,7 +99,7 @@ fn nested_overrides_survive_main_restructuring() {
     let mut s = Session::new();
     let (_icon, shape, button, nested) = button(&mut s);
     let other = icon(&mut s, 200.0, "Other", "Shape");
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let ishape = copy_of(&s, i, copy_of(&s, nested, shape));
     ex(&mut s, "node.set", json!({"id": ishape, "props": {"fill": "#ff00ff"}}));
     // The main wraps its nested instance in a frame, then reorders it.
@@ -124,7 +123,7 @@ fn detach_keeps_swapped_nested_instances_and_their_overrides() {
     let mut s = Session::new();
     let (_icon, _shape, button, nested) = button(&mut s);
     let other = icon(&mut s, 200.0, "Other", "Glyph");
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let inested = copy_of(&s, i, nested);
     ex(&mut s, "instance.swap", json!({"ids": [inested], "component": other}));
     let iglyph = kids(&s, inested)[0];
@@ -149,7 +148,7 @@ fn copied_instances_keep_their_overrides() {
     let (icon, shape, button, nested) = button(&mut s);
     ex(&mut s, "component.addProperty", json!({"id": icon, "name": "Filled", "type": "boolean", "default": true, "layer": shape}));
     ex(&mut s, "component.exposeInstance", json!({"id": nested}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let inested = copy_of(&s, i, nested);
     let ishape = kids(&s, inested)[0];
     let ilabel = kids(&s, i)[1];
@@ -228,7 +227,7 @@ fn a_main_override_carries_onto_a_swapped_nested_instance() {
     let other = icon(&mut s, 200.0, "Other", "Shape");
     let unmatched = icon(&mut s, 300.0, "Unmatched", "Glyph");
     for (by_property, to, want) in [(true, other, "FF0000"), (false, other, "FF0000"), (true, unmatched, "111111"), (false, unmatched, "111111")] {
-        let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+        let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
         if by_property {
             swap_icon(&mut s, i, to);
         } else {
@@ -240,7 +239,7 @@ fn a_main_override_carries_onto_a_swapped_nested_instance() {
         assert_eq!(fill(&s, glyph), want, "by property {by_property}, to {to}");
         assert_eq!(node(&s, glyph).width, 20.0, "the main's size override stays out");
     }
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 600})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 600})));
     let glyph = kids(&s, copy_of(&s, i, nested))[0];
     ex(&mut s, "node.set", json!({"id": glyph, "props": {"fill": "#0000ff"}}));
     swap_icon(&mut s, i, other);
@@ -253,10 +252,10 @@ fn a_main_override_carries_onto_a_swap_one_level_deeper() {
     let mut s = Session::new();
     let (_icon, _shape, button, nested) = button_with_icon_override(&mut s);
     let other = icon(&mut s, 200.0, "Other", "Shape");
-    let bar = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 600, "width": 300, "height": 60, "name": "Toolbar"})));
-    let inner = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 10, "y": 10, "parent": bar})));
-    let toolbar = idv(&ex(&mut s, "component.create", json!({"ids": [bar]})));
-    let t = idv(&ex(&mut s, "instance.create", json!({"component": toolbar, "x": 0, "y": 800})));
+    let bar = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 600, "width": 300, "height": 60, "name": "Toolbar"})));
+    let inner = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 10, "y": 10, "parent": bar})));
+    let toolbar = idv(&ex(&mut s, "component.add", json!({"ids": [bar]})));
+    let t = idv(&ex(&mut s, "instance.add", json!({"component": toolbar, "x": 0, "y": 800})));
     let icon_in_t = copy_of(&s, t, copy_of(&s, inner, nested));
     ex(&mut s, "instance.swap", json!({"ids": [icon_in_t], "component": other}));
     healthy(&s);
@@ -271,8 +270,8 @@ fn a_swapped_nested_instance_keeps_the_main_override_it_took() {
     let mut s = Session::new();
     let (_icon, shape, button, nested) = button_with_icon_override(&mut s);
     let other = icon(&mut s, 200.0, "Other", "Shape");
-    let swapped = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
-    let kept = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 500})));
+    let swapped = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
+    let kept = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 500})));
     swap_icon(&mut s, swapped, other);
     let glyph = |s: &Session, i: NodeId| fill(s, kids(s, copy_of(s, i, nested))[0]);
     let main_shape = copy_of(&s, nested, shape);
@@ -297,17 +296,17 @@ fn a_swapped_in_icon_keeps_its_own_overrides_to_itself() {
     let (_icon, _shape, button, nested) = button_with_icon_override(&mut s);
     let dot = icon(&mut s, 200.0, "Dot", "Shape");
     let with_dot = |s: &mut Session, x: f64, name: &str, fill: Option<&str>| {
-        let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 300, "width": 24, "height": 24, "name": name})));
-        let d = idv(&ex(s, "instance.create", json!({"component": dot, "x": 0, "y": 0, "parent": f})));
+        let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 300, "width": 24, "height": 24, "name": name})));
+        let d = idv(&ex(s, "instance.add", json!({"component": dot, "x": 0, "y": 0, "parent": f})));
         if let Some(c) = fill {
             let shape = kids(s, d)[0];
             ex(s, "node.set", json!({"id": shape, "props": {"fill": c}}));
         }
-        (idv(&ex(s, "component.create", json!({"ids": [f]}))), d)
+        (idv(&ex(s, "component.add", json!({"ids": [f]}))), d)
     };
     let (other2, dot2) = with_dot(&mut s, 300.0, "Other2", Some("#0000ff"));
     let (other3, _) = with_dot(&mut s, 400.0, "Other3", None);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     swap_icon(&mut s, i, other2);
     let shape_in = |s: &Session| kids(s, kids(s, copy_of(s, i, nested))[0])[0];
     assert_eq!(fill(&s, shape_in(&s)), "0000FF");
@@ -327,19 +326,19 @@ fn a_swapped_out_icons_own_overrides_stay_with_it() {
     let mut s = Session::new();
     let base = icon(&mut s, 0.0, "Base", "Shape");
     let on_base = |s: &mut Session, x: f64, name: &str| {
-        let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 500, "width": 24, "height": 24, "name": name})));
-        let b = idv(&ex(s, "instance.create", json!({"component": base, "x": 0, "y": 0, "parent": f})));
-        (idv(&ex(s, "component.create", json!({"ids": [f]}))), b)
+        let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 500, "width": 24, "height": 24, "name": name})));
+        let b = idv(&ex(s, "instance.add", json!({"component": base, "x": 0, "y": 0, "parent": f})));
+        (idv(&ex(s, "component.add", json!({"ids": [f]}))), b)
     };
     let (a, a_base) = on_base(&mut s, 100.0, "A");
     let (b, _) = on_base(&mut s, 200.0, "B");
     let a_shape = kids(&s, a_base)[0];
     ex(&mut s, "node.set", json!({"id": a_shape, "props": {"fill": "#00ff00"}}));
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 700, "width": 40, "height": 40, "name": "Button"})));
-    let nested = idv(&ex(&mut s, "instance.create", json!({"component": a, "x": 4, "y": 4, "parent": f})));
-    let button = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 700, "width": 40, "height": 40, "name": "Button"})));
+    let nested = idv(&ex(&mut s, "instance.add", json!({"component": a, "x": 4, "y": 4, "parent": f})));
+    let button = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "component.addProperty", json!({"id": button, "name": "Icon", "type": "instanceSwap", "default": a, "layer": nested}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 0, "y": 800})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 0, "y": 800})));
     swap_icon(&mut s, i, b);
     let shape = kids(&s, kids(&s, copy_of(&s, i, nested))[0])[0];
     assert_eq!(fill(&s, shape), "111111");
@@ -352,21 +351,21 @@ fn a_slot_the_main_filled_shows_the_swapped_in_mains_content() {
     // slot doesn't carry onto the swapped-in card, which shows its own default content.
     let mut s = Session::new();
     let card = |s: &mut Session, x: f64, name: &str| {
-        let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 100, "height": 60, "name": name})));
-        let content = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 60, "parent": f, "name": "Content"})));
+        let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 100, "height": 60, "name": name})));
+        let content = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 60, "parent": f, "name": "Content"})));
         ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 20, "parent": content, "props": {"name": format!("{name} default")}}));
-        let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
+        let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
         ex(s, "component.makeSlot", json!({"id": content}));
         c
     };
     let (a, b) = (card(&mut s, 0.0, "A"), card(&mut s, 200.0, "B"));
     let chip = icon(&mut s, 400.0, "Chip", "Dot");
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 400, "width": 200, "height": 100, "name": "Panel"})));
-    let nested = idv(&ex(&mut s, "instance.create", json!({"component": a, "x": 0, "y": 0, "parent": f})));
-    let panel = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 400, "width": 200, "height": 100, "name": "Panel"})));
+    let nested = idv(&ex(&mut s, "instance.add", json!({"component": a, "x": 0, "y": 0, "parent": f})));
+    let panel = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "instance.slotInsert", json!({"id": nested, "slot": "Content", "component": chip, "replace": true}));
     ex(&mut s, "component.addProperty", json!({"id": panel, "name": "Card", "type": "instanceSwap", "default": a, "layer": nested}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": panel, "x": 0, "y": 700})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": panel, "x": 0, "y": 700})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Card": b}}));
     healthy(&s);
     let content = kids(&s, copy_of(&s, i, nested))[0];

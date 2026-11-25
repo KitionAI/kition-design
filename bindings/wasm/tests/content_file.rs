@@ -71,7 +71,7 @@ fn design_with_history() -> (DesignDocument, u64) {
 fn design_with_changes() -> (DesignDocument, u64, Vec<u8>) {
     let mut doc = DesignDocument::create(FILE, 800, 600).unwrap();
     let created = doc.version().unwrap();
-    let made = doc.execute("text.create", json!({ "text": "Kept", "x": 20, "y": 20 })).unwrap();
+    let made = doc.execute("text.add", json!({ "text": "Kept", "x": 20, "y": 20 })).unwrap();
     let text = id_of(&made, &doc);
     doc.execute("object.rename", json!({ "ids": [text], "name": "Title" })).unwrap();
     doc.execute("text.set", json!({ "id": text, "characters": format!("Kept {TYPED_THEN_DELETED}") })).unwrap();

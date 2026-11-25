@@ -28,7 +28,7 @@ listStyle (none|bulleted|numbered; with start/end: the paragraphs those chars to
 listSpacing (px between list items, in place of paragraphSpacing), hangingPunctuation, hangingList (markers outside the box), leadingTrim (vertical trim: none|capHeight), maxLines, features ({tag: bool}, e.g. {\"liga\": false, \"tnum\": true}), \
 fontVariations / variationSettings ({axis: number}, e.g. {\"wght\": 550, \"wdth\": 85}; null = none), \
 path (a vector's SVG path data: replaces its geometry, keeping the layer, its paints, styles and bindings; width/height in the same call scale it as \
-node.create does; its own box goes at the layer's x/y, or with x/y given, at x + its left edge and y + its top as node.create places it), pointCount, innerRadius, arcStart, arcSweep, \
+node.add does; its own box goes at the layer's x/y, or with x/y given, at x + its left edge and y + its top as node.add places it), pointCount, innerRadius, arcStart, arcSweep, \
 arcInner, booleanOperation (a boolean group's operation, or an operand's own; null: the group's), operandOperation (a layer in a boolean \
 group: how it combines with the operands below it; null: the group's), constrainProportions, description, interactions, overflow, pluginData {k: v}";
 
@@ -414,7 +414,7 @@ pub fn apply(cmd: &str, doc: &mut Document, id: NodeId, props: &Map<String, Valu
     let mut unknown = Vec::new();
     let mut keys: Vec<(&String, &Value)> = props.iter().collect();
     keys.sort_by_key(|(k, _)| apply_order(k));
-    // Where a new `path` had its own box, for `x`/`y` in the same call (as `node.create` places it).
+    // Where a new `path` had its own box, for `x`/`y` in the same call (as `node.add` places it).
     let mut path_offset = (0.0, 0.0);
     for (k, v) in keys {
         let k = k.as_str();
@@ -954,10 +954,10 @@ pub fn apply(cmd: &str, doc: &mut Document, id: NodeId, props: &Map<String, Valu
     Ok(())
 }
 
-/// Replace vector `id`'s geometry with SVG path data `v`, as `node.create` reads it: `width`/`height`
+/// Replace vector `id`'s geometry with SVG path data `v`, as `node.add` reads it: `width`/`height`
 /// in the same call scale it, and the path's own box goes at the layer's origin, which keeps its
 /// place, rotation and everything else. Returns where the path's own box was, which `x`/`y` in the
-/// same call add (so `{path, x: 0, y: 0}` places it as `node.create` does). Layers inside an
+/// same call add (so `{path, x: 0, y: 0}` places it as `node.add` does). Layers inside an
 /// instance are refused: their geometry comes from the main component, and a sync would undo it.
 fn set_path(cmd: &str, doc: &mut Document, id: NodeId, v: &Value, props: &Map<String, Value>) -> Result<(f64, f64)> {
     let d = v.as_str().ok_or_else(|| bad(cmd, "`path` must be SVG path data (a string)"))?;

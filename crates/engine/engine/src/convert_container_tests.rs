@@ -34,7 +34,7 @@ fn a_frame_becomes_a_group_around_its_layers() {
     let mut s = Session::new();
     let f = id(ex(
         &mut s,
-        "frame.create",
+        "frame.add",
         json!({"x": 100, "y": 50, "width": 300, "height": 200, "name": "Card", "props": {"fill": "#FF0000", "cornerRadius": 8}}),
     ));
     let (a, b) = (rect(&mut s, f, 20.0, 30.0), rect(&mut s, f, 120.0, 90.0));
@@ -59,7 +59,7 @@ fn a_frame_becomes_a_group_around_its_layers() {
 fn auto_layout_is_dropped_and_positions_kept() {
     let mut s = Session::new();
     let props = json!({"layout": "horizontal", "padding": 10, "gap": 10});
-    let f = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "props": props})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "props": props})));
     let (a, b) = (rect(&mut s, f, 0.0, 0.0), rect(&mut s, f, 0.0, 0.0));
     ex(&mut s, "node.set", json!({"id": b, "props": {"sizingH": "fill", "sizingV": "fill"}}));
     // Laid out: a at (10, 10) 40 × 20, b fills (60, 10) to (190, 90).
@@ -83,7 +83,7 @@ fn a_rotated_group_becomes_a_frame_in_place() {
     let mut s = Session::new();
     let page = s.page().unwrap();
     let (a, b) = (rect(&mut s, page, 10.0, 10.0), rect(&mut s, page, 80.0, 60.0));
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "node.set", json!({"id": g, "props": {"rotation": 30}}));
     let before = [page_box(&s, a), page_box(&s, b), page_box(&s, g)];
     ex(&mut s, "object.convertToFrame", json!({"ids": [g]}));
@@ -98,15 +98,15 @@ fn a_rotated_group_becomes_a_frame_in_place() {
 fn what_cannot_convert_is_refused_and_nothing_changes() {
     let mut s = Session::new();
     let page = s.page().unwrap();
-    let f = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
-    let inner = id(ex(&mut s, "frame.create", json!({"x": 10, "y": 10, "width": 50, "height": 50, "parent": f})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let inner = id(ex(&mut s, "frame.add", json!({"x": 10, "y": 10, "width": 50, "height": 50, "parent": f})));
     rect(&mut s, inner, 0.0, 0.0);
-    let comp = id(ex(&mut s, "component.create", json!({"ids": [f]})));
-    let inst = id(ex(&mut s, "instance.create", json!({"component": comp, "x": 300, "y": 0})));
+    let comp = id(ex(&mut s, "component.add", json!({"ids": [f]})));
+    let inst = id(ex(&mut s, "instance.add", json!({"component": comp, "x": 300, "y": 0})));
     let inst_inner = s.doc().unwrap().node(inst).unwrap().children[0];
-    let empty = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
+    let empty = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 50, "height": 50})));
     let loose = rect(&mut s, page, 500.0, 0.0);
-    let ok_frame = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 50, "height": 50})));
+    let ok_frame = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 50, "height": 50})));
     rect(&mut s, ok_frame, 5.0, 5.0);
     // (layer, what the message says)
     for (layer, says) in [
@@ -139,7 +139,7 @@ fn junk_parameters_are_refused_not_fatal() {
     for cmd in ["object.convertToGroup", "object.convertToFrame", "object.convertToSection"] {
         for j in &junk {
             let mut s = Session::new();
-            let f = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 50})));
+            let f = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 50})));
             rect(&mut s, f, 0.0, 0.0);
             for p in [json!({"ids": j}), json!({"id": j}), j.clone()] {
                 let r = s.execute(cmd, &p);
@@ -152,7 +152,7 @@ fn junk_parameters_are_refused_not_fatal() {
 #[test]
 fn a_frame_on_the_page_becomes_a_section_and_back() {
     let mut s = Session::new();
-    let f = id(ex(&mut s, "frame.create", json!({"x": 100, "y": 50, "width": 300, "height": 200, "name": "Flow", "props": {"fill": "#FFEEDD"}})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 100, "y": 50, "width": 300, "height": 200, "name": "Flow", "props": {"fill": "#FFEEDD"}})));
     let (a, b) = (rect(&mut s, f, 20.0, 30.0), rect(&mut s, f, 400.0, 90.0));
     ex(&mut s, "layout.add", json!({"ids": [f], "direction": "horizontal"}));
     ex(&mut s, "node.set", json!({"id": f, "props": {"width": 300, "height": 200}}));
@@ -179,15 +179,15 @@ fn a_frame_on_the_page_becomes_a_section_and_back() {
 #[test]
 fn only_frames_on_the_page_or_in_a_section_become_sections() {
     let mut s = Session::new();
-    let outer = id(ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 300})));
-    let inner = id(ex(&mut s, "frame.create", json!({"parent": outer, "x": 10, "y": 10, "width": 100, "height": 100})));
+    let outer = id(ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 300})));
+    let inner = id(ex(&mut s, "frame.add", json!({"parent": outer, "x": 10, "y": 10, "width": 100, "height": 100})));
     let err = s.execute("object.convertToSection", &json!({"ids": [inner]})).unwrap_err().to_string();
     assert!(err.contains("inside a frame"), "{err}");
     let r = rect(&mut s, outer, 150.0, 150.0);
     assert!(s.execute("object.convertToSection", &json!({"ids": [r]})).is_err(), "a rectangle isn't a frame");
     // A frame inside a section converts; a section holding a section can't become a frame.
-    let sec = id(ex(&mut s, "node.create", json!({"type": "section", "x": 500, "y": 0, "width": 400, "height": 400})));
-    let in_sec = id(ex(&mut s, "frame.create", json!({"parent": sec, "x": 20, "y": 20, "width": 100, "height": 100})));
+    let sec = id(ex(&mut s, "node.add", json!({"type": "section", "x": 500, "y": 0, "width": 400, "height": 400})));
+    let in_sec = id(ex(&mut s, "frame.add", json!({"parent": sec, "x": 20, "y": 20, "width": 100, "height": 100})));
     ex(&mut s, "object.convertToSection", json!({"ids": [in_sec]}));
     assert!(matches!(kind(&s, in_sec), NodeKind::Section { .. }));
     let err = s.execute("object.convertToFrame", &json!({"ids": [sec]})).unwrap_err().to_string();
@@ -198,21 +198,21 @@ fn only_frames_on_the_page_or_in_a_section_become_sections() {
 #[test]
 fn wrapping_errors_name_the_command_that_was_run() {
     // Grouping, framing, auto layout, masks and booleans share one wrapping step; a refusal names
-    // the command that asked, not `object.group`.
+    // the command that asked, not `arrange.group`.
     let mut s = Session::new();
     let page = s.page().unwrap();
-    for cmd in ["object.group", "object.frameSelection", "layout.add", "bool.union"] {
+    for cmd in ["arrange.group", "object.frameSelection", "layout.add", "bool.union"] {
         let err = s.execute(cmd, &json!({"ids": [page]})).unwrap_err().to_string();
         assert!(err.contains(&format!("`{cmd}`")), "{cmd}: {err}");
     }
     let r = rect(&mut s, page, 0.0, 0.0);
     let err = s.execute("object.mask", &json!({"ids": [page, r]})).unwrap_err().to_string();
     assert!(err.contains("`object.mask`"), "{err}");
-    let section = id(ex(&mut s, "node.create", json!({"type": "section", "x": 300, "y": 0, "width": 100, "height": 100})));
+    let section = id(ex(&mut s, "node.add", json!({"type": "section", "x": 300, "y": 0, "width": 100, "height": 100})));
     ex(&mut s, "node.set", json!({"ids": [section], "props": {"fills": ["#FFFFFF"], "strokes": ["#000000"], "strokeWeight": 1}}));
     let err = s.execute("vector.outlineStroke", &json!({"ids": [section]})).unwrap_err().to_string();
     assert!(err.contains("`vector.outlineStroke`"), "{err}");
-    let f = id(ex(&mut s, "frame.create", json!({"x": 100, "y": 0, "width": 100, "height": 100})));
+    let f = id(ex(&mut s, "frame.add", json!({"x": 100, "y": 0, "width": 100, "height": 100})));
     let inner = rect(&mut s, f, 10.0, 10.0);
     let err = s.execute("object.wrapInSection", &json!({"ids": [inner, r]})).unwrap_err().to_string();
     assert!(err.contains("`object.wrapInSection`"), "{err}");

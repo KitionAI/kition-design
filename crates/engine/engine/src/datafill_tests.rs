@@ -8,9 +8,9 @@ use serde_json::json;
 
 /// A 1080×1350 "Post" with "Title" and "Price" texts and a "Badge" rectangle. Returns the frame.
 fn post(s: &mut Session) -> NodeId {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
-    ex(s, "text.create", json!({"text": "Title", "x": 80, "y": 80, "parent": f, "props": {"name": "Title"}}));
-    ex(s, "text.create", json!({"text": "R$ 0", "x": 80, "y": 1200, "parent": f, "props": {"name": "Price"}}));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
+    ex(s, "text.add", json!({"text": "Title", "x": 80, "y": 80, "parent": f, "props": {"name": "Title"}}));
+    ex(s, "text.add", json!({"text": "R$ 0", "x": 80, "y": 1200, "parent": f, "props": {"name": "Price"}}));
     ex(s, "shape.rectangle", json!({"x": 80, "y": 40, "width": 200, "height": 32, "parent": f, "props": {"name": "Badge", "fill": "#3DDC97"}}));
     f
 }
@@ -87,10 +87,10 @@ fn copies_export_to_a_folder_and_bad_input_is_refused() {
 #[test]
 fn each_row_comes_in_every_format() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
     ex(&mut s, "layout.add", json!({"ids": [f], "direction": "vertical"}));
     ex(&mut s, "node.set", json!({"id": f, "props": {"sizingV": "fixed", "padding": 80}}));
-    let t = idv(&ex(&mut s, "text.create", json!({"text": "Título", "x": 0, "y": 0, "parent": f, "props": {"name": "Title", "fontSize": 96}})));
+    let t = idv(&ex(&mut s, "text.add", json!({"text": "Título", "x": 0, "y": 0, "parent": f, "props": {"name": "Title", "fontSize": 96}})));
     ex(&mut s, "node.set", json!({"id": t, "props": {"sizingH": "fill", "textAutoResize": "height"}}));
     let r = ex(
         &mut s,

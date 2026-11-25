@@ -26,7 +26,7 @@ fn a_colour_style_on_strokes_links_follows_edits_and_detaches() {
     let mut s = Session::new();
     let r = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
     let fill = node(&s, r).fills;
-    let st = ex(&mut s, "style.create", json!({"type": "paint", "name": "Brand/Line", "value": ["#ff0000"]}));
+    let st = ex(&mut s, "style.add", json!({"type": "paint", "name": "Brand/Line", "value": ["#ff0000"]}));
     let st = st["id"].as_str().unwrap().to_string();
     ex(&mut s, "style.apply", json!({"ids": [r], "style": "Brand/Line", "target": "stroke"}));
     assert_eq!(node(&s, r).styles.stroke.as_deref(), Some(st.as_str()));
@@ -38,7 +38,7 @@ fn a_colour_style_on_strokes_links_follows_edits_and_detaches() {
     ex(&mut s, "edit.undo", json!({}));
     assert!(node(&s, r).styles.stroke.is_none());
     ex(&mut s, "edit.redo", json!({}));
-    ex(&mut s, "style.update", json!({"style": st, "value": ["#0000ff"]}));
+    ex(&mut s, "style.set", json!({"style": st, "value": ["#0000ff"]}));
     let blue = stroke_hex(&s, r);
     assert!(blue.as_deref().is_some_and(|h| h.eq_ignore_ascii_case("0000FF")), "linked strokes follow the style: {blue:?}");
     ex(&mut s, "style.detach", json!({"ids": [r], "which": "stroke"}));
@@ -49,13 +49,13 @@ fn a_colour_style_on_strokes_links_follows_edits_and_detaches() {
 #[test]
 fn stroke_weights_and_each_side_bind_to_number_variables() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 200}))["id"]).unwrap();
-    let r = id_of(&ex(&mut s, "node.create", json!({"type": "rectangle", "parent": f, "x": 10, "y": 10, "width": 50, "height": 50}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 200}))["id"]).unwrap();
+    let r = id_of(&ex(&mut s, "node.add", json!({"type": "rectangle", "parent": f, "x": 10, "y": 10, "width": 50, "height": 50}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [r], "props": {"strokes": ["#000000"], "strokeWeight": 2}}));
-    let c = ex(&mut s, "variable.createCollection", json!({"name": "Borders", "modes": ["Thin", "Thick"]}));
+    let c = ex(&mut s, "variable.addCollection", json!({"name": "Borders", "modes": ["Thin", "Thick"]}));
     let c = c["id"].as_str().unwrap().to_string();
-    ex(&mut s, "variable.create", json!({"collection": c, "name": "border/top", "type": "number", "values": {"Thin": 1, "Thick": 6}}));
-    ex(&mut s, "variable.create", json!({"collection": c, "name": "border/all", "type": "number", "values": {"Thin": 3, "Thick": 5}}));
+    ex(&mut s, "variable.add", json!({"collection": c, "name": "border/top", "type": "number", "values": {"Thin": 1, "Thick": 6}}));
+    ex(&mut s, "variable.add", json!({"collection": c, "name": "border/all", "type": "number", "values": {"Thin": 3, "Thick": 5}}));
     // One side: individual strokes turn on, the other sides keep the weight.
     ex(&mut s, "variable.bind", json!({"ids": [r], "field": "strokeTopWeight", "variable": "border/top"}));
     assert_eq!(node(&s, r).stroke.sides, Some([1.0, 2.0, 2.0, 2.0]));

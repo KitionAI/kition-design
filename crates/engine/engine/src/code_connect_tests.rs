@@ -13,10 +13,10 @@ fn code(s: &mut Session, id: NodeId, lang: &str) -> String {
 
 /// A "Card" component with a "Title" text property and a "Show dot" boolean property.
 fn card(s: &mut Session) -> NodeId {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
-    let title = idv(&ex(s, "text.create", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let title = idv(&ex(s, "text.add", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
     let dot = idv(&ex(s, "shape.ellipse", json!({"x": 170, "y": 10, "width": 20, "height": 20, "parent": f, "props": {"name": "Dot"}})));
-    let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
+    let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
     ex(s, "component.addProperty", json!({"id": dot, "name": "Show dot", "type": "boolean", "default": true}));
     ex(s, "component.addProperty", json!({"id": c, "name": "Title", "type": "text", "layer": title}));
     c
@@ -28,9 +28,8 @@ fn button(s: &mut Session) -> (NodeId, NodeId) {
         .iter()
         .enumerate()
         .map(|(k, state)| {
-            let f =
-                idv(&ex(s, "frame.create", json!({"x": k as f64 * 150.0, "y": 300, "width": 100, "height": 40, "name": format!("State={state}")})));
-            idv(&ex(s, "component.create", json!({"ids": [f]})))
+            let f = idv(&ex(s, "frame.add", json!({"x": k as f64 * 150.0, "y": 300, "width": 100, "height": 40, "name": format!("State={state}")})));
+            idv(&ex(s, "component.add", json!({"ids": [f]})))
         })
         .collect();
     let set = idv(&ex(s, "component.combineVariants", json!({"ids": variants.clone()})));
@@ -42,7 +41,7 @@ fn button(s: &mut Session) -> (NodeId, NodeId) {
 fn connected_instances_show_the_real_snippet() {
     let mut s = Session::new();
     let c = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Show dot": false, "Title": "Buy"}}));
     let template = "<Card title={title} dot={Show dot} onClick={onClick}>{Show dot ? \"•\" : \"\"}</Card>";
     let v = ex(&mut s, "codeConnect.set", json!({"id": i, "importPath": "@acme/ui", "template": template}));
@@ -90,8 +89,8 @@ fn connected_instances_show_the_real_snippet() {
     assert_eq!(v["connected"]["import"], "import AcmeUI");
     assert_eq!(ex(&mut s, "inspect.componentCode", json!({"id": i, "language": "compose"}))["connected"], Value::Null);
     // Inside a generated layer tree, connected instances are their snippet.
-    let screen = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Screen"})));
-    ex(&mut s, "instance.create", json!({"component": c, "x": 20, "y": 30, "parent": screen}));
+    let screen = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Screen"})));
+    ex(&mut s, "instance.add", json!({"component": c, "x": 20, "y": 30, "parent": screen}));
     assert!(code(&mut s, screen, "react").contains("<Card title=\"Hello\" dot={true} onClick={onClick}>•</Card>\n"));
     // Literal braces stay; fields left out keep their value.
     ex(&mut s, "codeConnect.set", json!({"id": c, "template": "<Card style={{gap: 4}} label={title} />"}));
@@ -126,7 +125,7 @@ fn sets_connect_through_the_set_and_round_trip_as_json() {
     let v = ex(&mut s, "codeConnect.set", json!({"id": hover}));
     assert_eq!(id_of(&v["component"]), Some(set));
     ex(&mut s, "codeConnect.set", json!({"id": set, "language": "swiftui"}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": hover, "x": 0, "y": 500})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": hover, "x": 0, "y": 500})));
     assert_eq!(code(&mut s, i, "react"), "<Button state=\"Hover\" />\n", "the default template passes every property");
     assert_eq!(code(&mut s, i, "swiftui"), "Button(state: .hover)\n");
     // Export, then import into another file with a Button set.
@@ -139,7 +138,7 @@ fn sets_connect_through_the_set_and_round_trip_as_json() {
     );
     let mut t = Session::new();
     let (_, hover2) = button(&mut t);
-    let i2 = idv(&ex(&mut t, "instance.create", json!({"component": hover2, "x": 0, "y": 500})));
+    let i2 = idv(&ex(&mut t, "instance.add", json!({"component": hover2, "x": 0, "y": 500})));
     let mut links = file["links"].as_array().unwrap().clone();
     links.push(json!({"component": "Nope", "language": "react", "name": "X", "template": "<X />"}));
     links.push(json!({"component": "Button", "language": "react", "name": 5, "template": "<X />"}));
@@ -198,7 +197,7 @@ fn code_connect_commands_survive_junk() {
 fn vue_links_are_a_default_import_with_quoted_bindings() {
     let mut s = Session::new();
     let c = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Show dot": false, "Title": "Buy"}}));
     // A single-file component is a default import. A bound attribute takes an expression, so a
     // string keeps its JS quotes inside the attribute (as entities): `Buy` alone would be a
@@ -222,7 +221,7 @@ fn vue_links_are_a_default_import_with_quoted_bindings() {
     ex(&mut s, "codeConnect.set", json!({"id": i, "language": "vue", "template": "<Card title={title} :dotted={Show dot} />"}));
     assert_eq!(code(&mut s, i, "vue"), "import Card from \"./Card.vue\";\n\n<Card title=\"Buy\" :dotted=\"false\" />\n");
     let (set, hover) = button(&mut s);
-    let b = idv(&ex(&mut s, "instance.create", json!({"component": hover, "x": 0, "y": 700})));
+    let b = idv(&ex(&mut s, "instance.add", json!({"component": hover, "x": 0, "y": 700})));
     ex(&mut s, "codeConnect.set", json!({"id": b, "language": "vue", "template": "<Button :state={state} />"}));
     assert_eq!(code(&mut s, b, "vue"), "<Button :state=\"&quot;Hover&quot;\" />\n");
     assert_eq!(id_of(&ex(&mut s, "codeConnect.set", json!({"id": set}))["component"]), Some(set));
@@ -261,8 +260,8 @@ fn vue_layer_trees_import_connected_components_in_script_setup() {
     let mut s = Session::new();
     let c = card(&mut s);
     ex(&mut s, "codeConnect.set", json!({"id": c, "language": "vue", "importPath": "./Card.vue"}));
-    let screen = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Screen"})));
-    ex(&mut s, "instance.create", json!({"component": c, "x": 20, "y": 30, "parent": screen}));
+    let screen = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Screen"})));
+    ex(&mut s, "instance.add", json!({"component": c, "x": 20, "y": 30, "parent": screen}));
     // A single-file component's imports belong in its `<script setup>`, not before the template.
     let code = code(&mut s, screen, "vue");
     let want = "<script setup lang=\"ts\">\n\nimport Card from \"./Card.vue\";\n\n</script>\n\n<template>\n";

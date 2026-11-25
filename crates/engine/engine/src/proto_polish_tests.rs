@@ -17,11 +17,11 @@ use crate::proto_run::{branch, set_mode, set_variable};
 fn setup() -> (Session, NodeId, NodeId) {
     let mut s = Session::new();
     let id = |s: &mut Session, c: &str, p: Value| id_of(&s.execute(c, &p).unwrap()["id"]).unwrap();
-    let a = id(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"}));
-    let b = id(&mut s, "frame.create", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"}));
+    let a = id(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"}));
+    let b = id(&mut s, "frame.add", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"}));
     let btn = id(&mut s, "shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 20, "parent": a}));
-    s.execute("variable.createCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Theme", "name": "label", "type": "string", "value": "Day"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Theme", "name": "label", "type": "string", "value": "Day"})).unwrap();
     s.execute("variable.set", &json!({"variable": "label", "mode": "Dark", "value": "Night"})).unwrap();
     s.execute("proto.interaction.add", &json!({"id": btn, "dest": b})).unwrap();
     (s, a, btn)
@@ -106,7 +106,7 @@ fn json_lookups_by_name_are_stored_by_id_and_checked() {
 #[test]
 fn overlays_from_commands_close_on_a_click_outside_by_default() {
     let (mut s, _, btn) = setup();
-    let menu = id_of(&s.execute("frame.create", &json!({"x": 400, "y": 0, "width": 80, "height": 60, "name": "Menu"})).unwrap()["id"]).unwrap();
+    let menu = id_of(&s.execute("frame.add", &json!({"x": 400, "y": 0, "width": 80, "height": 60, "name": "Menu"})).unwrap()["id"]).unwrap();
     for (extra, closes) in [(json!({}), true), (json!({"closeOnOutside": false}), false), (json!({"close_on_outside": false}), false)] {
         let mut action = json!({"type": "openOverlay", "dest": menu});
         if let (Some(o), Value::Object(x)) = (action.as_object_mut(), extra) {

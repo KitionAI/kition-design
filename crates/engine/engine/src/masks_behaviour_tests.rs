@@ -29,7 +29,7 @@ fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64, fill: &str, parent: Opt
 
 /// A white frame to draw a case in.
 fn board(s: &mut Session, w: f64, h: f64) -> NodeId {
-    id(ex(s, "frame.create", json!({"x": 0, "y": 0, "width": w, "height": h})))
+    id(ex(s, "frame.add", json!({"x": 0, "y": 0, "width": w, "height": h})))
 }
 
 /// The RGB of `node` rendered at 1x, at (`x`, `y`) of its export box.
@@ -157,7 +157,7 @@ fn a_group_can_be_the_mask() {
     let f = board(&mut s, 100.0, 20.0);
     let a = rect(&mut s, 0.0, 0.0, 20.0, 20.0, "#000000", Some(f));
     let b = rect(&mut s, 60.0, 0.0, 20.0, 20.0, "#000000", Some(f));
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let red = rect(&mut s, 0.0, 0.0, 100.0, 20.0, "#FF0000", Some(f));
     ex(&mut s, "object.mask", json!({"ids": [g, red]}));
     assert!(s.doc().unwrap().node(g).unwrap().is_mask);

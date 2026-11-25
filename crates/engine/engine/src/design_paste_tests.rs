@@ -15,9 +15,9 @@ fn id(v: &Value) -> NodeId {
 
 fn copied_file() -> Vec<u8> {
     let mut s = Session::new();
-    let frame = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})).unwrap());
-    s.execute("node.create", &json!({"type": "rectangle", "x": 10, "y": 10, "width": 40, "height": 20, "parent": frame, "name": "Badge"})).unwrap();
-    s.execute("node.create", &json!({"type": "ellipse", "x": 300, "y": 0, "width": 50, "height": 50, "name": "Dot"})).unwrap();
+    let frame = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})).unwrap());
+    s.execute("node.add", &json!({"type": "rectangle", "x": 10, "y": 10, "width": 40, "height": 20, "parent": frame, "name": "Badge"})).unwrap();
+    s.execute("node.add", &json!({"type": "ellipse", "x": 300, "y": 0, "width": 50, "height": 50, "name": "Dot"})).unwrap();
     let r = s.execute("file.export", &json!({"format": "fig"})).unwrap();
     B64.decode(r["data"].as_str().unwrap()).unwrap()
 }
@@ -88,7 +88,7 @@ fn a_second_paste_repeats_the_copied_layers() {
 #[test]
 fn pastes_into_the_selected_frame() {
     let mut s = Session::new();
-    let host = id(&s.execute("frame.create", &json!({"x": 1000, "y": 0, "width": 800, "height": 600})).unwrap());
+    let host = id(&s.execute("frame.add", &json!({"x": 1000, "y": 0, "width": 800, "height": 600})).unwrap());
     s.execute("select.set", &json!({"ids": [host]})).unwrap();
     let r = s.execute("edit.pasteDesignLayers", &json!({"html": clipboard_html(&copied_file())})).unwrap();
     let first = params::id_of(&r["ids"][0]).unwrap();

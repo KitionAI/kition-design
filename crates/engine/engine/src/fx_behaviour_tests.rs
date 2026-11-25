@@ -88,7 +88,7 @@ fn blend_modes_and_effects_through_commands() {
     let fills = s.execute("node.get", &json!({"id": r})).unwrap()["fills"].clone();
     assert_eq!((fills[0].get("blend"), fills[1]["blend"].as_str()), (None, Some("plusDarker")));
     // A new group passes through; Normal is a choice.
-    let g = id(s.execute("object.group", &json!({"ids": [r]})).unwrap());
+    let g = id(s.execute("arrange.group", &json!({"ids": [r]})).unwrap());
     assert_eq!(s.doc().unwrap().node(g).unwrap().blend, BlendMode::PassThrough);
     set(&mut s, g, json!({"blend": "normal"}));
     assert!(s.doc().unwrap().node(g).unwrap().isolates_children());
@@ -106,7 +106,7 @@ fn blend_modes_and_effects_through_commands() {
 #[test]
 fn exports_isolate_normal_groups_and_hide_shadows_behind_their_layer() {
     let mut s = Session::new();
-    let g = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let g = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     let k = rect(&mut s, Some(g), (10.0, 10.0, 50.0, 50.0), "#00FFFF");
     set(&mut s, k, json!({"blend": "multiply"}));
     // Pass-through: no isolation; Normal: an isolated group, in SVG and PDF.
@@ -132,7 +132,7 @@ fn exports_isolate_normal_groups_and_hide_shadows_behind_their_layer() {
     set(&mut s, r, json!({"effects": [{"type": "dropShadow", "offset": [10, 0], "radius": 4, "spread": 3}]}));
     assert!(svg(&s, &[r]).contains("in2=\"cover\" operator=\"out\""));
     // A group (no one outline) cuts its shadow out by its pixels.
-    let grp = id(s.execute("object.group", &json!({"ids": [r]})).unwrap());
+    let grp = id(s.execute("arrange.group", &json!({"ids": [r]})).unwrap());
     set(&mut s, r, json!({"effects": []}));
     set(&mut s, grp, json!({"effects": [{"type": "dropShadow", "offset": [10, 0], "radius": 0, "spread": 0}]}));
     assert!(svg(&s, &[grp]).contains("in2=\"SourceAlpha\" operator=\"out\""));

@@ -187,7 +187,7 @@ fn own_flow(rest: &mut Rest<'_>, node: NodeId) {
 
 pub(super) fn rest(rest: &mut Rest<'_>) {
     match rest.command {
-        "arrange.front" | "arrange.forward" | "arrange.backward" | "arrange.back" => zorder(rest),
+        "arrange.bringToFront" | "arrange.bringForward" | "arrange.sendBackward" | "arrange.sendToBack" => zorder(rest),
         "align.left"
         | "align.right"
         | "align.top"
@@ -208,7 +208,7 @@ pub(super) fn rest(rest: &mut Rest<'_>) {
         "transform.resize" | "transform.nudgeSize" | "frame.swapOrientation" => resized(rest),
         "arrange.roundToPixels" => rounded(rest),
         "transform.nudge" => nudged(rest),
-        "node.create" | "frame.create" => created(rest),
+        "node.add" | "frame.add" => created(rest),
         command if command.starts_with("shape.") => created(rest),
         "node.set" => set(rest),
         "node.reparent" => reparented(rest),
@@ -236,12 +236,12 @@ fn zorder(rest: &mut Rest<'_>) {
         let Some(p) = doc.node(parent) else { continue };
         let at = p.children.iter().position(|c| *c == i);
         let next = match rest.command {
-            "arrange.front" => {
+            "arrange.bringToFront" => {
                 rest.need(parent.0, &["~hierarchy"], false);
                 None
             }
-            "arrange.forward" => at.and_then(|k| p.children.get(k + 1)),
-            "arrange.backward" => at.and_then(|k| k.checked_sub(1)).and_then(|k| p.children.get(k)),
+            "arrange.bringForward" => at.and_then(|k| p.children.get(k + 1)),
+            "arrange.sendBackward" => at.and_then(|k| k.checked_sub(1)).and_then(|k| p.children.get(k)),
             _ => None,
         };
         if let Some(&sibling) = next.filter(|s| !ids.contains(s)) {
@@ -376,7 +376,7 @@ fn nudged(rest: &mut Rest<'_>) {
     }
 }
 
-/// `node.create` (cmd/create.rs:237; `frame.create` :342, `shape.*` :157): a new layer in
+/// `node.add` (cmd/create.rs:237; `frame.add` :342, `shape.*` :157): a new layer in
 /// `parent` (else the current page), in a group's frame space (`frame_relative`, doc/src/lib.rs:568),
 /// at `index` (what is there), then the parent re-flows or refits around it. A preset frame
 /// without a place goes beside the right-most top-level layer (`free_spot`, cmd/create.rs:371).
@@ -417,7 +417,7 @@ pub(super) fn created(rest: &mut Rest<'_>) {
     if follows(p) {
         settle(rest, parent);
     }
-    let preset = rest.command == "frame.create" && rest.params.get("preset").is_some_and(|v| !v.is_null());
+    let preset = rest.command == "frame.add" && rest.params.get("preset").is_some_and(|v| !v.is_null());
     let placed = ["x", "y"].iter().any(|k| rest.params.get(k).is_some_and(Value::is_number));
     if preset && !placed && named.is_none() {
         rest.need(parent.0, &["~hierarchy"], false);

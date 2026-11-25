@@ -9,7 +9,7 @@ use serde_json::json;
 fn a_property_write_holds_only_its_property_and_a_move_holds_its_parent() {
     let mut doc = DesignDocument::create("Premises.kdesign", 320, 240).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    let a = doc.execute("node.create", json!({"type":"rectangle","parent":frame,"width":20,"height":20})).unwrap()["id"].clone();
+    let a = doc.execute("node.add", json!({"type":"rectangle","parent":frame,"width":20,"height":20})).unwrap()["id"].clone();
     let under = doc.under("node.set", &json!({"id":a,"props":{"name":"New"}})).unwrap().unwrap();
     let need = under.premises.iter().find(|p| p.id == a).unwrap();
     assert_eq!(need.fields.as_ref().unwrap(), &["name"]);
@@ -48,9 +48,9 @@ fn point_or_id_connector_endpoints_hold_only_object_alternatives() {
 fn a_point_swap_names_the_same_instance_as_the_engine() {
     let mut doc = DesignDocument::create("Point.kdesign", 320, 240).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    doc.execute("component.create", json!({"ids":[frame]})).unwrap();
+    doc.execute("component.add", json!({"ids":[frame]})).unwrap();
     let page = doc.inspect().unwrap()["page"].clone();
-    let made = doc.execute("instance.create", json!({"component":frame,"parent":page,"x":400,"y":0})).unwrap()["id"].clone();
+    let made = doc.execute("instance.add", json!({"component":frame,"parent":page,"x":400,"y":0})).unwrap()["id"].clone();
     let params = json!({"component":frame,"x":410,"y":10});
     let under = doc.under("instance.swapAt", &params).unwrap().unwrap();
     assert!(under.objects.contains(&made), "{under:?}");
@@ -62,7 +62,7 @@ fn a_point_swap_names_the_same_instance_as_the_engine() {
 fn carries_distinguish_a_transform_from_a_rename_or_sibling_reorder() {
     let mut doc = DesignDocument::create("Carries.kdesign", 320, 240).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    doc.execute("node.create", json!({"type":"rectangle","parent":frame,"width":10,"height":10})).unwrap();
+    doc.execute("node.add", json!({"type":"rectangle","parent":frame,"width":10,"height":10})).unwrap();
     for change in [json!({"id":frame,"fields":["name"]}), json!({"id":frame,"from":{"parent":"page","index":0},"to":{"parent":"page","index":1}})] {
         assert!(doc.carried(std::slice::from_ref(&frame), &[change]).unwrap().is_empty());
     }
@@ -74,7 +74,7 @@ fn carries_distinguish_a_transform_from_a_rename_or_sibling_reorder() {
 fn local_derived_bounds_do_not_change_when_an_ancestor_moves() {
     let mut doc = DesignDocument::create("Bounds.kdesign", 320, 240).unwrap();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
-    let child = doc.execute("node.create", json!({"type":"rectangle","parent":frame,"width":10,"height":10})).unwrap()["id"].clone();
+    let child = doc.execute("node.add", json!({"type":"rectangle","parent":frame,"width":10,"height":10})).unwrap()["id"].clone();
     let before = doc.derived(std::slice::from_ref(&child), &["bounds".into()]).unwrap();
     doc.execute("transform.move", json!({"ids":[frame],"dx":20,"dy":30})).unwrap();
     assert_eq!(doc.derived(&[child], &["bounds".into()]).unwrap(), before);
@@ -83,8 +83,8 @@ fn local_derived_bounds_do_not_change_when_an_ancestor_moves() {
 #[test]
 fn prototype_expression_values_hold_the_variables_the_parser_resolves() {
     let mut doc = DesignDocument::create("Expressions.kdesign", 320, 240).unwrap();
-    let collection = doc.execute("variable.createCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
-    let variable = doc.execute("variable.create", json!({"collection":collection,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
+    let collection = doc.execute("variable.addCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
+    let variable = doc.execute("variable.add", json!({"collection":collection,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
     let frame = doc.inspect().unwrap()["tree"][0]["id"].clone();
     let under = doc
         .under("proto.interaction.add", &json!({"id":frame,"action":{"type":"setVariable","variable":"count","expression":"count + 1"}}))

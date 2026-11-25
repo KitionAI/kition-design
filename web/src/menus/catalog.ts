@@ -30,10 +30,10 @@ export const DEFAULT_MENU = 'Edit'
  */
 export const PRIMARY_ROWS: Readonly<Record<string, readonly string[]>> = {
   File: ['file.import', 'file.placeImage', 'file.export', 'file.exportSvg', 'file.versionHistory'],
-  Edit: ['edit.cut', 'edit.copy', 'edit.paste', 'edit.duplicate', 'edit.delete', 'edit.findReplace', 'select.all'],
+  Edit: ['edit.cut', 'edit.copy', 'edit.paste', 'edit.duplicate', 'edit.delete', 'edit.findReplace', 'edit.selectAll'],
   View: ['view.rulers', 'view.pixelGrid', 'view.layoutGrids', 'kit:view.zoomIn', 'kit:view.zoomOut', 'kit:view.zoomFit', 'kit:view.zoomSelection'],
-  Object: ['object.frameSelection', 'object.group', 'object.ungroup', 'layout.add', 'component.create', 'object.mask', 'arrange.front', 'arrange.back', 'object.flipH', 'object.flipV'],
-  Text: ['text.bold', 'text.italic', 'text.underline', 'text.strikethrough', 'text.link', 'text.bulletList', 'text.numberList'],
+  Object: ['object.frameSelection', 'arrange.group', 'arrange.ungroup', 'layout.add', 'component.add', 'object.mask', 'arrange.bringToFront', 'arrange.sendToBack', 'object.flipH', 'object.flipV'],
+  Text: ['format.bold', 'format.italic', 'format.underline', 'format.strikethrough', 'text.link', 'text.bulletList', 'text.numberList'],
   Arrange: ['align.left', 'align.hcenter', 'align.right', 'align.top', 'align.vcenter', 'align.bottom', 'distribute.horizontal', 'distribute.vertical', 'arrange.tidy'],
   Vector: ['vector.join', 'vector.smoothJoin', 'vector.deleteHeal', 'vector.simplify', 'vector.reverse', 'vector.offset'],
   Preferences: ['view.snapGeometry', 'view.snapObjects', 'view.snapPixel', 'kit:app.preferences'],
@@ -144,11 +144,11 @@ export function menuRows(engine: readonly EngineRow[]): MenuRow[] {
 export function checkedIds(checked: readonly string[] | undefined, prefs: Record<string, unknown> | null): Set<string> {
   const out = new Set(checked ?? [])
   const pref: Record<string, string> = {
-    'pref.keepTool': 'keepTool',
-    'pref.highlightHover': 'highlightOnHover',
-    'pref.renameDuplicates': 'renameDuplicates',
-    'pref.showDimensions': 'showDimensions',
-    'pref.numberKeysOpacity': 'numberKeysOpacity',
+    'prefs.keepTool': 'keepTool',
+    'prefs.highlightHover': 'highlightOnHover',
+    'prefs.renameDuplicates': 'renameDuplicates',
+    'prefs.showDimensions': 'showDimensions',
+    'prefs.numberKeysOpacity': 'numberKeysOpacity',
   }
   for (const [id, key] of Object.entries(pref)) if (prefs?.[key] === true) out.add(id)
   return out
@@ -172,9 +172,9 @@ export const TOGGLES: ReadonlySet<string> = new Set([
   'view.snapGeometry',
   'view.snapObjects',
   'view.snapPixel',
-  'pref.keepTool',
-  'pref.highlightHover',
-  'pref.renameDuplicates',
-  'pref.showDimensions',
-  'pref.numberKeysOpacity',
+  'prefs.keepTool',
+  'prefs.highlightHover',
+  'prefs.renameDuplicates',
+  'prefs.showDimensions',
+  'prefs.numberKeysOpacity',
 ])

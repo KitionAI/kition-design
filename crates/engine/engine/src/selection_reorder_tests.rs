@@ -128,8 +128,7 @@ fn invalid_selections_and_targets_do_not_edit_the_document() {
     }
     let d = rect(&mut s, 0., 70., 50., 40., None);
     assert!(ReorderLayout::new(s.doc().unwrap(), &[a, b, d]).is_none(), "an incomplete grid has no slots");
-    let frame =
-        NodeId(s.execute("frame.create", &json!({"width":300,"height":100,"props":{"layout":"horizontal"}})).unwrap()["id"].as_u64().unwrap());
+    let frame = NodeId(s.execute("frame.add", &json!({"width":300,"height":100,"props":{"layout":"horizontal"}})).unwrap()["id"].as_u64().unwrap());
     let x = rect(&mut s, 0., 0., 50., 40., Some(frame));
     let y = rect(&mut s, 70., 0., 50., 40., Some(frame));
     assert!(ReorderLayout::new(s.doc().unwrap(), &[x, y]).is_none());
@@ -139,9 +138,8 @@ fn invalid_selections_and_targets_do_not_edit_the_document() {
 #[test]
 fn reordering_children_of_a_rotated_parent_uses_page_coordinates() {
     let mut s = Session::new();
-    let frame = NodeId(
-        s.execute("frame.create", &json!({"x":200,"y":200,"width":300,"height":100,"props":{"rotation":90}})).unwrap()["id"].as_u64().unwrap(),
-    );
+    let frame =
+        NodeId(s.execute("frame.add", &json!({"x":200,"y":200,"width":300,"height":100,"props":{"rotation":90}})).unwrap()["id"].as_u64().unwrap());
     let a = rect(&mut s, 0., 0., 50., 40., Some(frame));
     let b = rect(&mut s, 70., 0., 50., 40., Some(frame));
     let (pa, pb) = (xy(&s, a), xy(&s, b));

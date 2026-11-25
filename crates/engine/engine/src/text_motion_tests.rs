@@ -19,7 +19,7 @@ fn key(s: &mut Session, platform: Platform, key: &str, m: Mods) -> String {
 
 fn editing(text: &str) -> Session {
     let mut s = Session::new();
-    let t = params::id_of(&s.execute("text.create", &json!({"text": text, "x": 0, "y": 0})).unwrap()["id"]).unwrap();
+    let t = params::id_of(&s.execute("text.add", &json!({"text": text, "x": 0, "y": 0})).unwrap()["id"]).unwrap();
     textedit::begin(&mut s, t, Some(text.chars().count()), false).unwrap();
     s
 }

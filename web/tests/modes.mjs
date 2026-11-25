@@ -6,6 +6,6 @@ import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
 import { runModeSmoke } from '@kition/sdk/dev-host/mode-smoke'
 
-const EDIT_ROW = ['edit.cut', 'edit.copy', 'edit.paste', 'edit.duplicate', 'edit.delete', 'edit.findReplace', 'select.all']
+const EDIT_ROW = ['edit.cut', 'edit.copy', 'edit.paste', 'edit.duplicate', 'edit.delete', 'edit.findReplace', 'edit.selectAll']
 const line = { tab: 'Edit', primary: EDIT_ROW.map((command) => `design-cmd-${command}`), min: 5 }
 await runModeSmoke({ kit: 'kit.design', line, config: new URL('../vite.config.ts', import.meta.url).pathname, browser: process.argv[2] === 'webkit' ? webkit : chromium, createServer })

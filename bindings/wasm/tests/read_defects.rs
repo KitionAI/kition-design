@@ -27,7 +27,7 @@ fn names(doc: &DesignDocument) -> Vec<String> {
 fn an_agents_cut_by_id_can_be_pasted() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     let page = doc.inspect().unwrap()["page"].clone();
-    let card = id(&doc.execute("frame.create", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50, "name": "Cut me" })).unwrap());
+    let card = id(&doc.execute("frame.add", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50, "name": "Cut me" })).unwrap());
     doc.execute_as("edit.cut", json!({ "ids": [card] }), &agent()).unwrap();
     assert!(!names(&doc).contains(&"Cut me".to_owned()), "the cut layer is gone from the page");
     doc.execute_as("edit.paste", json!({}), &agent()).unwrap_or_else(|e| panic!("the cut layer is on the clipboard: {e}"));
@@ -40,9 +40,9 @@ fn an_agents_cut_by_id_can_be_pasted() {
 fn text_on_a_frame_path_is_refused_and_the_frame_kept() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     let page = doc.inspect().unwrap()["page"].clone();
-    let text = id(&doc.execute("text.create", json!({ "text": "Along", "x": 0, "y": 400, "parent": page })).unwrap());
-    let frame = id(&doc.execute("frame.create", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50, "name": "Screen" })).unwrap());
-    doc.execute("node.create", json!({ "type": "rectangle", "parent": frame, "width": 10, "height": 10, "name": "Inside" })).unwrap();
+    let text = id(&doc.execute("text.add", json!({ "text": "Along", "x": 0, "y": 400, "parent": page })).unwrap());
+    let frame = id(&doc.execute("frame.add", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50, "name": "Screen" })).unwrap());
+    doc.execute("node.add", json!({ "type": "rectangle", "parent": frame, "width": 10, "height": 10, "name": "Inside" })).unwrap();
     assert!(doc.execute("text.onPath", json!({ "text": text, "path": frame })).is_err(), "a frame is no path");
     assert!(names(&doc).contains(&"Screen".to_owned()) && names(&doc).contains(&"Inside".to_owned()), "the frame and its layers stay");
     let ellipse = id(&doc.execute("shape.ellipse", json!({ "x": 0, "y": 500, "width": 40, "height": 40, "parent": page })).unwrap());
@@ -70,7 +70,7 @@ fn an_interaction_can_be_set_by_its_parameters() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     let page = doc.inspect().unwrap()["page"].clone();
     let button = id(&doc.execute("shape.rectangle", json!({ "x": 0, "y": 0, "width": 10, "height": 10, "parent": page })).unwrap());
-    let screen = id(&doc.execute("frame.create", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50 })).unwrap());
+    let screen = id(&doc.execute("frame.add", json!({ "parent": page, "x": 500, "y": 0, "width": 50, "height": 50 })).unwrap());
     doc.execute("proto.interaction.add", json!({ "id": button, "dest": screen })).unwrap();
     let whole = json!({ "trigger": { "type": "onHover" }, "actions": [{ "type": "navigate", "dest": screen }], "durationMs": 200 });
     doc.execute("proto.interaction.set", json!({ "id": button, "index": 0, "interaction": whole })).unwrap();

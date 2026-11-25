@@ -10,7 +10,7 @@ fn tool_switches_declare_vector_cleanup_writes_and_inputs() {
     for (command, params) in [("tool.rectangle", json!({})), ("tool.set", json!({"tool":"ellipse"})), ("edit.pickColor", json!({}))] {
         let mut doc = DesignDocument::create("Vectors.kdesign", 320, 240).unwrap();
         assert!(!doc.commands().iter().find(|c| c.id == command).unwrap().mutates, "{command} has no cleanup in an inactive session");
-        let vector = doc.execute("node.create", json!({"type":"vector"})).unwrap()["id"].clone();
+        let vector = doc.execute("node.add", json!({"type":"vector"})).unwrap()["id"].clone();
         doc.execute("vector.edit.begin", json!({"ids":[vector]})).unwrap();
         let under = doc.under(command, &params).unwrap().unwrap_or_default();
         let cleanup = under.premises.iter().find(|p| p.id == vector).unwrap();
@@ -42,7 +42,7 @@ fn vector_begin_holds_boolean_operands_and_end_holds_all_edited_layers() {
     for id in [&a, &b] {
         assert!(under.premises.iter().any(|p| &p.id == id && p.fields.is_none()), "conversion consumes operand {id}: {under:?}");
     }
-    let other = doc.execute("node.create", json!({"type":"vector"})).unwrap()["id"].clone();
+    let other = doc.execute("node.add", json!({"type":"vector"})).unwrap()["id"].clone();
     doc.execute("vector.edit.begin", json!({"ids":[boolean,other]})).unwrap();
     let under = doc.under("vector.edit.end", &json!({})).unwrap().unwrap();
     let kept = under.premises.iter().find(|p| p.id == boolean).unwrap();

@@ -14,7 +14,7 @@ fn id(v: Value) -> NodeId {
 /// A 100 × 100 wrapping frame of three 40 × 20 rectangles (gap 10, row gap 5): two rows.
 fn wrapping(s: &mut Session) -> (NodeId, Vec<NodeId>) {
     let props = json!({"layout": "horizontal", "wrap": true, "padding": 0, "gap": 10, "crossGap": 5});
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "props": props})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100, "props": props})).unwrap());
     let kids = (0..3).map(|_| id(s.execute("shape.rectangle", &json!({"parent": f, "x": 0, "y": 0, "width": 40, "height": 20})).unwrap())).collect();
     (f, kids)
 }
@@ -64,8 +64,8 @@ fn css_and_inspect_name_the_lines() {
 fn an_instance_keeps_its_own_line_alignment() {
     let mut s = Session::new();
     let (f, _) = wrapping(&mut s);
-    let comp = id(s.execute("component.create", &json!({"ids": [f]})).unwrap());
-    let inst = id(s.execute("instance.create", &json!({"component": comp, "x": 200, "y": 0})).unwrap());
+    let comp = id(s.execute("component.add", &json!({"ids": [f]})).unwrap());
+    let inst = id(s.execute("instance.add", &json!({"component": comp, "x": 200, "y": 0})).unwrap());
     s.execute("node.set", &json!({"id": inst, "props": {"contentAlign": "spaceBetween"}})).unwrap();
     // A change to the main reaches the instance; its own alignment stays.
     s.execute("node.set", &json!({"id": comp, "props": {"padding": 2}})).unwrap();

@@ -29,7 +29,7 @@ pub fn build(doc: &Document, target: NodeId, values: &Map<String, Value>) -> Res
     let comp = component_of(doc, target).ok_or_else(|| bad(cmd, "select an instance, a component or a component set"))?;
     let mut s = Session::with_document(doc.clone());
     // Off to the side of everything (the copy is never shown as a page).
-    let made = s.execute("instance.create", &json!({"component": comp, "x": 1e6, "y": 1e6}))?;
+    let made = s.execute("instance.add", &json!({"component": comp, "x": 1e6, "y": 1e6}))?;
     let inst = id_of(&made["id"]).ok_or_else(|| EngineError::Other("the playground instance wasn't made".into()))?;
     let mut all = match &doc.node(target).map(|n| &n.kind) {
         Some(NodeKind::Instance { props, .. }) => props.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),

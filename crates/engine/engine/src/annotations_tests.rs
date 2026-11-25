@@ -68,8 +68,8 @@ fn annotations_are_added_edited_and_removed_with_undo() {
 fn pinned_properties_show_their_current_values() {
     let mut s = Session::new();
     let r = rect(&mut s);
-    ex(&mut s, "variable.createCollection", json!({"name": "Tokens"}));
-    ex(&mut s, "variable.create", json!({"collection": "Tokens", "name": "Brand/Primary", "type": "color", "value": "#3366FF"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Tokens"}));
+    ex(&mut s, "variable.add", json!({"collection": "Tokens", "name": "Brand/Primary", "type": "color", "value": "#3366FF"}));
     ex(&mut s, "variable.bind", json!({"ids": [r], "field": "fill", "variable": "Brand/Primary"}));
     ex(&mut s, "annotation.add", json!({"id": r, "label": "Primary action", "properties": ["width", "fill", "gap", "fontSize"]}));
     let list = ex(&mut s, "annotation.list", json!({}))["annotations"].clone();
@@ -90,7 +90,7 @@ fn pinned_properties_show_their_current_values() {
     let list = ex(&mut s, "annotation.list", json!({"id": r}))["annotations"].clone();
     assert_eq!(list[0]["properties"][0]["value"], "200");
     // Text layers: typography.
-    let t = idv(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 100})));
+    let t = idv(&ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 100})));
     ex(&mut s, "node.set", json!({"id": t, "props": {"fontSize": 24}}));
     ex(&mut s, "annotation.add", json!({"id": t, "properties": ["fontSize", "textAlign"]}));
     let list = ex(&mut s, "annotation.list", json!({"id": t}))["annotations"].clone();
@@ -133,12 +133,12 @@ fn annotations_are_saved_and_old_files_open() {
 #[test]
 fn instances_keep_their_own_annotations() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Card"})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Card"})));
     let inner = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50, "parent": f})));
-    let c = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let c = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "annotation.add", json!({"id": c, "label": "On the main"}));
     ex(&mut s, "annotation.add", json!({"id": inner, "label": "Inner on the main"}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 200, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 200, "y": 0})));
     assert!(node(&s, i).annotations.is_empty(), "the main's annotations stay on the main");
     let copy = crate::components::tests::copy_of(&s, i, inner);
     assert!(node(&s, copy).annotations.is_empty());
@@ -155,16 +155,16 @@ fn instances_keep_their_own_annotations() {
 #[test]
 fn ready_for_dev_lists_frames_by_status() {
     let mut s = Session::new();
-    let a = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Login"})));
-    let b = idv(&ex(&mut s, "frame.create", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "Signup"})));
-    let sec = idv(&ex(&mut s, "node.create", json!({"type": "section", "x": 1000, "y": 0, "width": 400, "height": 300})));
+    let a = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Login"})));
+    let b = idv(&ex(&mut s, "frame.add", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "Signup"})));
+    let sec = idv(&ex(&mut s, "node.add", json!({"type": "section", "x": 1000, "y": 0, "width": 400, "height": 300})));
     ex(&mut s, "node.set", json!({"id": sec, "props": {"name": "Onboarding"}}));
     ex(&mut s, "node.set", json!({"ids": [a, sec], "props": {"devStatus": "readyForDev"}}));
     ex(&mut s, "node.set", json!({"id": b, "props": {"devStatus": "completed"}}));
     let page = s.page().unwrap();
     let pg2 = idv(&ex(&mut s, "page.add", json!({"name": "Settings"})));
     ex(&mut s, "page.select", json!({"id": pg2}));
-    let c = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Profile"})));
+    let c = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Profile"})));
     ex(&mut s, "node.set", json!({"id": c, "props": {"devStatus": "readyForDev"}}));
     let names = |v: &serde_json::Value| -> Vec<String> {
         v["items"].as_array().map(|a| a.iter().filter_map(|i| i["name"].as_str().map(String::from)).collect()).unwrap_or_default()

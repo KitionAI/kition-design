@@ -12,7 +12,7 @@ use crate::params::id_of;
 /// A session with a 48 × 24 frame holding two overlapping rectangles at 50% opacity.
 fn session() -> (Session, NodeId) {
     let mut s = Session::new();
-    let r = s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 48, "height": 24, "name": "Badge"})).unwrap();
+    let r = s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 48, "height": 24, "name": "Badge"})).unwrap();
     let f = id_of(&r["id"]).unwrap();
     for x in [0, 12] {
         s.execute("shape.rectangle", &json!({"x": x, "y": 0, "width": 24, "height": 24, "parent": f})).unwrap();
@@ -78,7 +78,7 @@ fn export_settings_keep_their_compatibility_mode() {
     let (back, _) = kition_design_format::load_bytes(&bytes).unwrap();
     assert_eq!(back.node(f).unwrap().exports[0], e);
     // Edited and undone.
-    s.execute("export.update", &json!({"ids": [f], "index": 0, "vdCompat": "ignore"})).unwrap();
+    s.execute("export.set", &json!({"ids": [f], "index": 0, "vdCompat": "ignore"})).unwrap();
     assert_eq!(s.doc().unwrap().node(f).unwrap().exports[0].vd_compat, VdCompat::Ignore);
     s.execute("edit.undo", &json!({})).unwrap();
     assert_eq!(s.doc().unwrap().node(f).unwrap().exports[0].vd_compat, VdCompat::Exact);
@@ -97,7 +97,7 @@ fn bad_values_are_refused_and_change_nothing() {
     s.execute("export.add", &json!({"ids": [f], "setting": {"format": "xml"}})).unwrap();
     for junk in [json!("loose"), json!(3), json!(true), json!("BESTEFFORT"), json!({})] {
         assert!(s.execute("file.export", &json!({"ids": [f], "format": "xml", "vdCompat": junk})).is_err(), "{junk}");
-        assert!(s.execute("export.update", &json!({"ids": [f], "index": 0, "vdCompat": junk})).is_err(), "{junk}");
+        assert!(s.execute("export.set", &json!({"ids": [f], "index": 0, "vdCompat": junk})).is_err(), "{junk}");
         assert!(s.execute("export.add", &json!({"ids": [f], "setting": {"vdCompat": junk}})).is_err(), "{junk}");
         assert!(s.execute("file.exportLayers", &json!({"ids": [f], "vdCompat": junk})).is_err(), "{junk}");
     }

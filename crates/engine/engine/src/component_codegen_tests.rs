@@ -19,11 +19,11 @@ fn component_code(s: &mut Session, id: NodeId, lang: &str) -> Value {
 /// A "Card" component with a "Title" text (text property), a "Dot" ellipse (boolean property
 /// "Show dot") and a "Bg" rectangle. Returns (card, title, dot).
 fn card(s: &mut Session) -> (NodeId, NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
     ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 200, "height": 100, "parent": f, "props": {"name": "Bg", "fill": "#eeeeee"}}));
-    let title = idv(&ex(s, "text.create", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
+    let title = idv(&ex(s, "text.add", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
     let dot = idv(&ex(s, "shape.ellipse", json!({"x": 170, "y": 10, "width": 20, "height": 20, "parent": f, "props": {"name": "Dot"}})));
-    let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
+    let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
     ex(s, "component.addProperty", json!({"id": dot, "name": "Show dot", "type": "boolean", "default": true}));
     ex(s, "component.addProperty", json!({"id": c, "name": "Title", "type": "text", "layer": title}));
     (c, title, dot)
@@ -34,9 +34,9 @@ fn card(s: &mut Session) -> (NodeId, NodeId, NodeId) {
 fn button_set(s: &mut Session) -> (NodeId, NodeId, NodeId) {
     let mut variants = Vec::new();
     for (k, (state, color)) in [("Default", "#ff0000"), ("Hover", "#0000ff")].iter().enumerate() {
-        let f = idv(&ex(s, "frame.create", json!({"x": k as f64 * 150.0, "y": 300, "width": 100, "height": 40, "name": format!("State={state}")})));
+        let f = idv(&ex(s, "frame.add", json!({"x": k as f64 * 150.0, "y": 300, "width": 100, "height": 40, "name": format!("State={state}")})));
         ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": f, "props": {"name": "Bg", "fill": color}}));
-        variants.push(idv(&ex(s, "component.create", json!({"ids": [f]}))));
+        variants.push(idv(&ex(s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(s, "component.combineVariants", json!({"ids": variants.clone()})));
     ex(s, "node.set", json!({"id": set, "props": {"name": "Button"}}));
@@ -126,7 +126,7 @@ fn components_take_their_properties_as_parameters() {
 fn instances_are_calls_passing_the_values_they_set() {
     let mut s = Session::new();
     let (c, _, _) = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let v = component_code(&mut s, i, "react");
     assert_eq!(v["usage"], "<Card />\n", "defaults aren't passed");
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Show dot": false, "Title": "Buy"}}));
@@ -166,8 +166,8 @@ fn instances_are_calls_passing_the_values_they_set() {
 fn nested_instances_in_a_layer_tree_are_calls() {
     let mut s = Session::new();
     let (c, _, _) = card(&mut s);
-    let screen = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Home screen"})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 20, "y": 30, "parent": screen})));
+    let screen = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 400, "height": 300, "name": "Home screen"})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 20, "y": 30, "parent": screen})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Title": "Inbox"}}));
     let react = code(&mut s, screen, "react");
     assert!(react.contains("export function HomeScreen() {"), "{react}");
@@ -223,7 +223,7 @@ fn variant_sets_share_one_definition() {
         assert!(leptos.contains(want), "Leptos has {want:?}:\n{leptos}");
     }
     // An instance showing the hover variant passes it.
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 600})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 600})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"State": "Hover"}}));
     assert_eq!(component_code(&mut s, i, "react")["usage"], "<Button state=\"Hover\" />\n");
     assert_eq!(component_code(&mut s, i, "swiftui")["usage"], "Button(state: .hover)\n");
@@ -236,14 +236,14 @@ fn variant_sets_share_one_definition() {
 fn instance_swap_properties_take_views() {
     let mut s = Session::new();
     let icon = |s: &mut Session, name: &str, x: f64| {
-        let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 400, "width": 24, "height": 24, "name": name})));
+        let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 400, "width": 24, "height": 24, "name": name})));
         ex(s, "shape.star", json!({"x": 0, "y": 0, "width": 24, "height": 24, "parent": f}));
-        idv(&ex(s, "component.create", json!({"ids": [f]})))
+        idv(&ex(s, "component.add", json!({"ids": [f]})))
     };
     let (heart, star) = (icon(&mut s, "Heart icon", 0.0), icon(&mut s, "Star icon", 50.0));
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 120, "height": 40, "name": "Chip"})));
-    let nested = idv(&ex(&mut s, "instance.create", json!({"component": heart, "x": 8, "y": 8, "parent": f})));
-    let chip = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 120, "height": 40, "name": "Chip"})));
+    let nested = idv(&ex(&mut s, "instance.add", json!({"component": heart, "x": 8, "y": 8, "parent": f})));
+    let chip = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "component.addProperty", json!({"id": chip, "name": "Icon", "type": "instanceSwap", "default": heart, "layer": nested}));
     let react = code(&mut s, chip, "react");
     assert!(react.contains("  icon?: React.ReactNode;") && react.contains("  icon = <HeartIcon />,"), "{react}");
@@ -267,7 +267,7 @@ fn instance_swap_properties_take_views() {
     assert!(vue.contains("    icon?: unknown;"), "{vue}");
     assert!(vue.contains("    icon: HeartIcon,"), "the swap defaults to its component: {vue}");
     assert!(vue.contains("<component :is=\"icon\" />"), "a swap is a component, not an element: {vue}");
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": chip, "x": 0, "y": 100})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": chip, "x": 0, "y": 100})));
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Icon": star}}));
     assert_eq!(component_code(&mut s, i, "react")["usage"], "<Chip icon={<StarIcon />} />\n");
     assert_eq!(component_code(&mut s, i, "swiftui")["usage"], "Chip(icon: AnyView(StarIcon()))\n");
@@ -280,10 +280,10 @@ fn instance_swap_properties_take_views() {
 #[test]
 fn slots_take_optional_content() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 200, "name": "Panel"})));
-    let content = idv(&ex(&mut s, "frame.create", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 200, "name": "Panel"})));
+    let content = idv(&ex(&mut s, "frame.add", json!({"x": 10, "y": 50, "width": 280, "height": 140, "parent": f, "name": "Content"})));
     ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": content, "props": {"name": "Placeholder"}}));
-    let panel = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let panel = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "component.makeSlot", json!({"id": content}));
     let react = code(&mut s, panel, "react");
     assert!(react.contains("  content?: React.ReactNode;") && react.contains("{content ?? ("), "{react}");
@@ -301,9 +301,9 @@ fn slots_take_optional_content() {
     assert!(leptos.contains("    #[prop(optional, into)] content: Option<ViewFn>,"), "{leptos}");
     assert!(leptos.contains("{match &content { Some(c) => c.run(), None => view! {\n") && leptos.contains("}.into_any() }}\n"), "{leptos}");
     // An instance filling the slot passes its content.
-    let g = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 400, "width": 40, "height": 20, "name": "Badge"})));
-    let badge = idv(&ex(&mut s, "component.create", json!({"ids": [g]})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": panel, "x": 400, "y": 0})));
+    let g = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 400, "width": 40, "height": 20, "name": "Badge"})));
+    let badge = idv(&ex(&mut s, "component.add", json!({"ids": [g]})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": panel, "x": 400, "y": 0})));
     assert_eq!(component_code(&mut s, i, "react")["usage"], "<Panel />\n", "the main's content isn't passed");
     ex(&mut s, "instance.slotInsert", json!({"id": i, "slot": "Content", "component": badge, "replace": true}));
     let usage = component_code(&mut s, i, "react")["usage"].as_str().unwrap_or_default().to_string();
@@ -317,8 +317,8 @@ fn slots_take_optional_content() {
 #[test]
 fn identifiers_are_escaped_and_unique() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Text"})));
-    let c = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "Text"})));
+    let c = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     for (name, ty, default) in [
         ("default", "boolean", json!(false)),
         ("Show icon?", "boolean", json!(true)),
@@ -370,8 +370,8 @@ fn identifiers_are_escaped_and_unique() {
 fn bound_variables_become_custom_properties() {
     let mut s = Session::new();
     let (c, _, _) = card(&mut s);
-    ex(&mut s, "variable.createCollection", json!({"name": "Tokens"}));
-    ex(&mut s, "variable.create", json!({"collection": "Tokens", "name": "Colors/Brand 500", "type": "color", "value": "#3366FF"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Tokens"}));
+    ex(&mut s, "variable.add", json!({"collection": "Tokens", "name": "Colors/Brand 500", "type": "color", "value": "#3366FF"}));
     ex(&mut s, "variable.bind", json!({"ids": [c], "field": "fill", "variable": "Colors/Brand 500"}));
     let css = code(&mut s, c, "css");
     assert!(css.contains("background: var(--colors-brand-500, #3366FF);"), "{css}");
@@ -385,12 +385,9 @@ fn case_colliding_variant_properties_get_distinct_data_attributes() {
     let mut variants = Vec::new();
     for (k, (first, second, fill)) in [("Small", "Big", "#0000FF"), ("Large", "Small", "#FF0000")].iter().enumerate() {
         let name = format!("Size={first}, size={second}");
-        let f = idv(&ex(
-            &mut s,
-            "frame.create",
-            json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": name, "props": {"fill": fill}}),
-        ));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        let f =
+            idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": name, "props": {"fill": fill}})));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants})));
     ex(&mut s, "node.set", json!({"id": set, "props": {"name": "Chip"}}));

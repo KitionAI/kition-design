@@ -69,7 +69,7 @@ fn pasting_into_another_board_detaches_what_was_left_behind() {
 #[test]
 fn duplicating_and_alt_dragging_keep_connections_inside_copied_sections() {
     let mut s = board();
-    let sec = id(&s.execute("node.create", &json!({"type": "section", "x": -50, "y": -50, "width": 400, "height": 400})).unwrap(), "id");
+    let sec = id(&s.execute("node.add", &json!({"type": "section", "x": -50, "y": -50, "width": 400, "height": 400})).unwrap(), "id");
     let a = id(&s.execute("board.sticky", &json!({"x": 50, "y": 50, "parent": sec})).unwrap(), "id");
     let b = id(&s.execute("board.sticky", &json!({"x": 600, "y": 0})).unwrap(), "id");
     let c = id(&s.execute("board.connector", &json!({"from": a, "to": b})).unwrap(), "id");
@@ -124,7 +124,7 @@ fn routes_take_named_sides_and_free_points() {
 #[test]
 fn a_connector_follows_a_layer_whose_section_moves_and_ignores_unrelated_edits() {
     let mut s = board();
-    let sec = id(&s.execute("node.create", &json!({"type": "section", "x": 0, "y": 0, "width": 300, "height": 300})).unwrap(), "id");
+    let sec = id(&s.execute("node.add", &json!({"type": "section", "x": 0, "y": 0, "width": 300, "height": 300})).unwrap(), "id");
     let a = id(&s.execute("board.sticky", &json!({"x": 50, "y": 50, "parent": sec})).unwrap(), "id");
     let b = id(&s.execute("board.stamp", &json!({"x": 800, "y": 150})).unwrap(), "id");
     let c = id(&s.execute("board.connector", &json!({"from": a, "to": b, "style": "straight"})).unwrap(), "id");
@@ -218,7 +218,7 @@ fn the_shape_stamp_highlighter_and_connector_tools_and_double_clicks() {
     assert!(matches!(connector(&s, c).to, End::Point { .. }));
     // Double-clicks: on the shape its text, on the connector a new label, both typed into.
     s.execute("tool.move", &json!({})).unwrap();
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::DoubleClick, 80.0, 140.0, 1.0)).unwrap();
     let te = s.ds().unwrap().text_edit.clone().expect("typing in the shape");
     assert_eq!(crate::board::owner_of_text(s.doc().unwrap(), te.id), Some(sh));
@@ -270,7 +270,7 @@ fn a_board_tool_left_on_presses_as_move_in_a_design_file() {
     s.execute("tool.sticky", &json!({})).unwrap();
     s.execute("file.new", &json!({})).unwrap();
     let r = id(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap(), "id");
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::Down, 50.0, 50.0, 1.0)).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::Up, 50.0, 50.0, 1.0)).unwrap();
     assert_eq!(s.tool.tool, ToolId::Move);

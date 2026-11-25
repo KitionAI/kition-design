@@ -53,7 +53,7 @@ pub(super) fn pt(x: f64, y: f64) -> Point {
 #[test]
 fn pen_extends_branches_and_closes_paths() {
     let mut s = Session::new();
-    let r = ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]], "closed": false}));
+    let r = ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]], "closed": false}));
     let id = crate::params::id_of(&r["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     ex(&mut s, "vector.edit.tool", json!({"tool": "pen"}));
@@ -284,7 +284,7 @@ fn mirroring_position_and_join_commands() {
 fn a_point_dropped_on_another_merges_into_it() {
     // #401: an open path's end dragged onto its start closes the path at that point.
     let mut s = Session::new();
-    let r = ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0], [100, 100], [0, 100]]}));
+    let r = ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0], [100, 100], [0, 100]]}));
     let id = crate::params::id_of(&r["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     drag(&mut s, (0.0, 100.0), (2.0, 3.0));
@@ -302,7 +302,7 @@ fn a_point_dropped_on_another_merges_into_it() {
     assert_eq!(net(&s, id).vertices.len(), 4);
     // A 2-point line's end dropped on its other end only moves: no segment would be left.
     let mut s = Session::new();
-    let r = ex(&mut s, "vector.create", json!({"points": [[0, 0], [100, 0]]}));
+    let r = ex(&mut s, "vector.add", json!({"points": [[0, 0], [100, 0]]}));
     let id = crate::params::id_of(&r["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     drag(&mut s, (100.0, 0.0), (2.0, 0.0));

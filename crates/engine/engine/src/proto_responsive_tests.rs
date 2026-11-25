@@ -141,7 +141,7 @@ fn settings_are_saved_and_old_files_read_as_before() {
 #[test]
 fn responding_frames_follow_constraints_and_auto_layout() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 50, "y": 20, "width": 400, "height": 300})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 50, "y": 20, "width": 400, "height": 300})));
     let right = idv(&ex(&mut s, "shape.rectangle", json!({"x": 340, "y": 10, "width": 50, "height": 20, "parent": f})));
     set(&mut s, right, json!({"constraints": {"horizontal": "right", "vertical": "top"}}));
     let stretch = idv(&ex(&mut s, "shape.rectangle", json!({"x": 10, "y": 250, "width": 380, "height": 40, "parent": f})));
@@ -149,7 +149,7 @@ fn responding_frames_follow_constraints_and_auto_layout() {
     let centred = idv(&ex(&mut s, "shape.rectangle", json!({"x": 175, "y": 125, "width": 50, "height": 50, "parent": f})));
     set(&mut s, centred, json!({"constraints": {"horizontal": "center", "vertical": "center"}}));
     // An auto layout row inside, stretching with the frame, whose fill child takes the free width.
-    let row = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 60, "width": 400, "height": 40, "parent": f})));
+    let row = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 60, "width": 400, "height": 40, "parent": f})));
     ex(&mut s, "layout.add", json!({"ids": [row], "direction": "horizontal"}));
     set(&mut s, row, json!({"sizingH": "fixed", "width": 400, "sizingV": "fixed", "height": 40, "gap": 0, "padding": 0}));
     set(&mut s, row, json!({"constraints": {"horizontal": "leftRight", "vertical": "top"}}));
@@ -195,7 +195,7 @@ fn responding_frames_follow_constraints_and_auto_layout() {
 #[test]
 fn a_frame_that_hugs_keeps_hugging_its_content() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
     ex(&mut s, "layout.add", json!({"ids": [f], "direction": "vertical"}));
     set(&mut s, f, json!({"sizingH": "fixed", "width": 400, "sizingV": "hug", "gap": 0, "padding": 0}));
     let item = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 400, "height": 900, "parent": f})));

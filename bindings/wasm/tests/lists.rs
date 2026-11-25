@@ -15,7 +15,7 @@ fn design() -> (DesignDocument, Value, Value) {
     let frame = doc.query("layers", &json!({})).unwrap()["rows"][0]["id"].clone();
     let rect = doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80, "parent": frame })).unwrap()["id"].clone();
     doc.execute("fill.set", json!({ "ids": [rect], "color": "#ff0000" })).unwrap();
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     doc.mark_saved();
     (doc, frame, rect)
 }
@@ -65,9 +65,9 @@ fn drop_info_lists_parents_indexes_and_the_zones_a_drag_takes() {
         .collect::<Vec<_>>();
     assert_eq!(kids, vec![other.clone(), rect.clone()], "the answer is what node.reparent takes");
     // Inside an instance the structure is locked.
-    let comp = doc.execute("component.create", json!({ "ids": [frame] })).unwrap();
+    let comp = doc.execute("component.add", json!({ "ids": [frame] })).unwrap();
     let comp = comp.get("id").cloned().unwrap_or(frame.clone());
-    let inst = doc.execute("instance.create", json!({ "component": comp, "x": 600, "y": 0 })).unwrap()["id"].clone();
+    let inst = doc.execute("instance.add", json!({ "component": comp, "x": 600, "y": 0 })).unwrap()["id"].clone();
     let inner = doc.query("node", &json!({ "id": inst, "depth": 1 })).unwrap()["children"][0]["id"].clone();
     let info = doc.query("layers.dropInfo", &json!({ "ids": [inst, inner] })).unwrap();
     assert_eq!(info["rows"][0]["container"], false, "an instance takes no drop into it");
@@ -78,13 +78,12 @@ fn drop_info_lists_parents_indexes_and_the_zones_a_drag_takes() {
 #[test]
 fn assets_list_tiles_folders_and_styles_and_drop_preview_finds_the_frame() {
     let (mut doc, frame, rect) = design();
-    let button =
-        doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 100, "height": 40, "name": "Buttons/Primary" })).unwrap()["id"].clone();
-    doc.execute("component.create", json!({ "ids": [button] })).unwrap();
-    let hidden = doc.execute("frame.create", json!({ "x": 800, "y": 0, "width": 40, "height": 40, "name": "_Private" })).unwrap()["id"].clone();
-    doc.execute("component.create", json!({ "ids": [hidden] })).unwrap();
+    let button = doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 100, "height": 40, "name": "Buttons/Primary" })).unwrap()["id"].clone();
+    doc.execute("component.add", json!({ "ids": [button] })).unwrap();
+    let hidden = doc.execute("frame.add", json!({ "x": 800, "y": 0, "width": 40, "height": 40, "name": "_Private" })).unwrap()["id"].clone();
+    doc.execute("component.add", json!({ "ids": [hidden] })).unwrap();
     select(&mut doc, &[&rect]);
-    doc.execute("style.create", json!({ "type": "paint", "name": "Brand/Red" })).unwrap();
+    doc.execute("style.add", json!({ "type": "paint", "name": "Brand/Red" })).unwrap();
     let list = doc.query("assets.list", &json!({})).unwrap();
     assert_eq!(list["count"], 2);
     let tiles: Vec<Value> = list["folders"].as_array().unwrap().iter().flat_map(|f| f["tiles"].as_array().unwrap().clone()).collect();
@@ -129,11 +128,11 @@ fn libraries_answer_without_reading_files() {
 #[test]
 fn the_variable_picker_filters_by_type_scope_query_and_alias_loops() {
     let (mut doc, _, rect) = design();
-    doc.execute("variable.createCollection", json!({ "name": "Tokens", "modes": ["Light", "Dark"] })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "Tokens", "name": "brand", "type": "color", "value": "#5645d4" })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "Tokens", "name": "frame only", "type": "color", "value": "#000000" })).unwrap();
+    doc.execute("variable.addCollection", json!({ "name": "Tokens", "modes": ["Light", "Dark"] })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "Tokens", "name": "brand", "type": "color", "value": "#5645d4" })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "Tokens", "name": "frame only", "type": "color", "value": "#000000" })).unwrap();
     doc.execute("variable.update", json!({ "variable": "frame only", "scopes": ["FRAME_FILL"] })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "Tokens", "name": "space", "type": "number", "value": 8 })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "Tokens", "name": "space", "type": "number", "value": 8 })).unwrap();
     let names = |v: &Value| -> Vec<String> {
         v["groups"]
             .as_array()
@@ -168,7 +167,7 @@ fn the_context_menu_enables_every_offered_command_as_upstream() {
     assert_eq!(item("edit.copy")["shortcut"], "Cmd+C");
     // Upstream's `available`: a command that has nothing to act on stays enabled.
     assert_eq!(item("edit.paste")["enabled"], true, "nothing copied yet, still enabled");
-    assert_eq!(item("object.ungroup")["enabled"], true, "a rectangle: Ungroup does nothing");
+    assert_eq!(item("arrange.ungroup")["enabled"], true, "a rectangle: Ungroup does nothing");
     assert_eq!(item("component.detach")["enabled"], true, "not an instance: Detach does nothing");
     assert_eq!(item("vector.outlineStroke")["enabled"], true);
     assert_eq!(item("edit.delete")["enabled"], true);
@@ -177,7 +176,7 @@ fn the_context_menu_enables_every_offered_command_as_upstream() {
     assert_eq!(doc.revision(), revision, "building the menu leaves the document alone");
     assert_eq!(doc.query("layers", &json!({})).unwrap()["rows"][0]["id"], frame, "nothing deleted");
     // Nothing selected: the canvas menu with its View toggles.
-    doc.execute("select.none", json!({})).unwrap();
+    doc.execute("edit.deselectAll", json!({})).unwrap();
     let (x, y) = to_doc(&doc, 50.0, 50.0);
     let menu = doc.query("menu.context", &json!({ "ids": [], "at": { "x": x, "y": y } })).unwrap();
     let items = menu["items"].as_array().unwrap();
@@ -191,7 +190,7 @@ fn the_context_menu_enables_every_offered_command_as_upstream() {
 #[test]
 fn hit_test_resolves_a_click_like_the_canvas() {
     let (mut doc, frame, rect) = design();
-    let group = doc.execute("object.group", json!({ "ids": [rect] })).unwrap();
+    let group = doc.execute("arrange.group", json!({ "ids": [rect] })).unwrap();
     let group = group.get("id").cloned().unwrap_or_else(|| doc.query("node", &json!({ "id": rect })).unwrap()["id"].clone());
     let (x, y) = to_doc(&doc, 50.0, 50.0);
     let hit = doc.query("hitTest", &json!({ "x": x, "y": y })).unwrap();
@@ -226,10 +225,10 @@ fn recent_actions_are_newest_first_and_capped() {
     let (mut doc, ..) = design();
     assert_eq!(doc.query("prefs.recentActions", &json!({})).unwrap()["actions"], json!([]));
     doc.record_action("edit.copy").unwrap();
-    doc.record_action("object.group").unwrap();
+    doc.record_action("arrange.group").unwrap();
     doc.record_action("edit.copy").unwrap();
     let r = doc.query("prefs.recentActions", &json!({})).unwrap();
-    assert_eq!(r["actions"], json!(["edit.copy", "object.group"]));
+    assert_eq!(r["actions"], json!(["edit.copy", "arrange.group"]));
     let max = r["max"].as_u64().unwrap() as usize;
     for k in 0..max + 5 {
         doc.record_action(&format!("a{k}")).unwrap();
@@ -243,7 +242,7 @@ fn grid_geometry_and_spacing_info() {
     let mut doc = DesignDocument::create("Grid.kdesign", 400, 300).unwrap();
     let grid = doc
         .execute(
-            "frame.create",
+            "frame.add",
             json!({ "x": 0, "y": 400, "width": 320, "height": 200, "props": { "layout": "grid", "gridColumns": 3, "columnGap": 10, "rowGap": 10 } }),
         )
         .unwrap()["id"]
@@ -303,8 +302,8 @@ fn dev_focus_compare_and_the_playground_picture() {
     // The playground's instance as a picture; the document stays as it was.
     let revision = doc.revision();
     let button =
-        doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 100, "height": 40, "props": { "fill": "#5645d4" } })).unwrap()["id"].clone();
-    doc.execute("component.create", json!({ "ids": [button] })).unwrap();
+        doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 100, "height": 40, "props": { "fill": "#5645d4" } })).unwrap()["id"].clone();
+    doc.execute("component.add", json!({ "ids": [button] })).unwrap();
     let revision_after = doc.revision();
     assert!(revision_after > revision);
     let png = doc.playground_preview(&json!({ "id": button })).unwrap();
@@ -321,7 +320,7 @@ fn dev_focus_compare_and_the_playground_picture() {
 #[test]
 fn code_links_callouts_and_the_version_preview_state() {
     let (mut doc, frame, rect) = design();
-    let comp = doc.execute("component.create", json!({ "ids": [frame] })).unwrap();
+    let comp = doc.execute("component.add", json!({ "ids": [frame] })).unwrap();
     let comp = comp.get("id").cloned().unwrap_or(frame.clone());
     assert_eq!(doc.query("codeLinks", &json!({ "id": comp })).unwrap()["links"], json!([]));
     doc.execute("codeConnect.set", json!({ "id": comp, "language": "react", "importPath": "./Card", "name": "Card" })).unwrap();
@@ -348,26 +347,26 @@ fn code_links_callouts_and_the_version_preview_state() {
 #[test]
 fn prototype_destinations_and_expressions() {
     let (mut doc, frame, rect) = design();
-    let second = doc.execute("frame.create", json!({ "x": 600, "y": 0, "width": 200, "height": 200, "name": "Second" })).unwrap()["id"].clone();
+    let second = doc.execute("frame.add", json!({ "x": 600, "y": 0, "width": 200, "height": 200, "name": "Second" })).unwrap()["id"].clone();
     let nav = doc.query("proto.destinations", &json!({ "id": rect })).unwrap();
     let ids: Vec<Value> = nav["destinations"].as_array().unwrap().iter().map(|d| d["id"].clone()).collect();
     assert!(ids.contains(&frame) && ids.contains(&second), "{nav}");
     let scroll = doc.query("proto.destinations", &json!({ "id": rect, "kind": "scrollTo" })).unwrap();
     assert_eq!(scroll["destinations"], json!([]), "the rectangle is the frame's only layer");
     // Variants for Change to.
-    let a = doc.execute("frame.create", json!({ "x": 0, "y": 600, "width": 50, "height": 50, "name": "State=On" })).unwrap()["id"].clone();
-    let b = doc.execute("frame.create", json!({ "x": 100, "y": 600, "width": 50, "height": 50, "name": "State=Off" })).unwrap()["id"].clone();
-    let ca = doc.execute("component.create", json!({ "ids": [a] })).unwrap();
+    let a = doc.execute("frame.add", json!({ "x": 0, "y": 600, "width": 50, "height": 50, "name": "State=On" })).unwrap()["id"].clone();
+    let b = doc.execute("frame.add", json!({ "x": 100, "y": 600, "width": 50, "height": 50, "name": "State=Off" })).unwrap()["id"].clone();
+    let ca = doc.execute("component.add", json!({ "ids": [a] })).unwrap();
     let ca = ca.get("id").cloned().unwrap_or(a.clone());
-    let cb = doc.execute("component.create", json!({ "ids": [b] })).unwrap();
+    let cb = doc.execute("component.add", json!({ "ids": [b] })).unwrap();
     let cb = cb.get("id").cloned().unwrap_or(b.clone());
     doc.execute("component.combineVariants", json!({ "ids": [ca, cb] })).unwrap();
     let change = doc.query("proto.destinations", &json!({ "id": ca, "kind": "changeTo" })).unwrap();
     assert_eq!(change["destinations"].as_array().unwrap().len(), 2, "{change}");
     assert!(doc.query("proto.destinations", &json!({ "kind": "teleport" })).unwrap_err().starts_with("invalid-params"));
     // Expressions.
-    doc.execute("variable.createCollection", json!({ "name": "State" })).unwrap();
-    doc.execute("variable.create", json!({ "collection": "State", "name": "count", "type": "number", "value": 0 })).unwrap();
+    doc.execute("variable.addCollection", json!({ "name": "State" })).unwrap();
+    doc.execute("variable.add", json!({ "collection": "State", "name": "count", "type": "number", "value": 0 })).unwrap();
     let ok = doc.query("proto.parseExpression", &json!({ "text": "count + 1", "expect": "value", "variable": "count" })).unwrap();
     assert_eq!(ok["ok"], true, "{ok}");
     assert_eq!(ok["type"], "number");

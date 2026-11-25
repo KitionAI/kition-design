@@ -184,7 +184,7 @@ try {
   const homeKids = (await designKit(() => window.designKit.query('node', { id: 68, depth: 1 }))).children.map((c) => c.id)
   const firstKid = homeKids[homeKids.length - 1]
   // Every row closed and the list at its top, so the rows sit away from the auto-scroll edges.
-  await designKit(async () => (await import('/src/kit/requests.ts')).dispatchUiRequests([{ kind: 'layers.collapseAll', data: null }]))
+  await designKit(async () => (await import('/src/kit/requests.ts')).dispatchUiRequests([{ kind: 'layer.collapseAll', data: null }]))
   await until(async () => (await layer(firstKid).count()) === 0)
   await kit.getByTestId('design-layers').evaluate((el) => {
     el.scrollTop = 0
@@ -575,8 +575,8 @@ try {
   }
 
   // The Design panel's local styles (upstream `local_styles`): per type, by folder; a click opens the editor.
-  await designKit(() => window.designKit.run('select.none', {}))
-  await designKit(() => window.designKit.run('style.create', { type: 'paint', name: 'Brand/Primary', value: [{ type: 'solid', color: '#00875F' }] }))
+  await designKit(() => window.designKit.run('edit.deselectAll', {}))
+  await designKit(() => window.designKit.run('style.add', { type: 'paint', name: 'Brand/Primary', value: [{ type: 'solid', color: '#00875F' }] }))
   await until(async () => (await kit.getByTestId('design-local-styles').getByText('Primary', { exact: true }).count()) === 1)
   step('the Design panel lists local styles by folder', (await kit.getByTestId('design-local-styles').getByText('Brand', { exact: true }).count()) === 1 && (await kit.getByTestId('design-local-styles').getByText('Color styles').count()) === 1)
   await kit.getByTestId('design-local-styles').getByText('Primary', { exact: true }).click()
@@ -587,7 +587,7 @@ try {
     await page.waitForTimeout(150)
   }
   // A row dragged by its grip moves into the folder it lands in (`style.move`): Brand/Primary to the top.
-  await designKit(() => window.designKit.run('style.create', { type: 'paint', name: 'Accent', value: [{ type: 'solid', color: '#5645D4' }] }))
+  await designKit(() => window.designKit.run('style.add', { type: 'paint', name: 'Accent', value: [{ type: 'solid', color: '#5645D4' }] }))
   const styleList = async () => designKit(() => window.designKit.query('styles'))
   await until(async () => (await styleList()).some((st) => st.name === 'Accent'))
   const primary = (await styleList()).find((st) => st.name === 'Brand/Primary')

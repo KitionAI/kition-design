@@ -25,18 +25,18 @@ fn set_mode(s: &mut Session, n: NodeId, mode: Value) {
 
 /// A "Tone" collection whose variable `c` is red in mode A and blue in mode B.
 fn tone(s: &mut Session) {
-    run(s, "variable.createCollection", json!({"name": "Tone", "modes": ["A", "B"]}));
-    run(s, "variable.create", json!({"collection": "Tone", "name": "c", "type": "color", "values": {"A": "#FF0000", "B": "#0000FF"}}));
+    run(s, "variable.addCollection", json!({"name": "Tone", "modes": ["A", "B"]}));
+    run(s, "variable.add", json!({"collection": "Tone", "name": "c", "type": "color", "values": {"A": "#FF0000", "B": "#0000FF"}}));
 }
 
 /// A component filled from `c`, on `mode` when one is given.
 fn swatch(s: &mut Session, name: &str, mode: Option<&str>) -> NodeId {
-    let f = id(run(s, "frame.create", json!({"x": 0, "y": 0, "width": 40, "height": 40, "name": name})));
+    let f = id(run(s, "frame.add", json!({"x": 0, "y": 0, "width": 40, "height": 40, "name": name})));
     run(s, "variable.bind", json!({"ids": [f], "field": "fill", "variable": "c"}));
     if let Some(m) = mode {
         set_mode(s, f, json!(m));
     }
-    id(run(s, "component.create", json!({"ids": [f]})))
+    id(run(s, "component.add", json!({"ids": [f]})))
 }
 
 /// A set "Kind" whose variants A and B each set their own Tone mode.
@@ -49,7 +49,7 @@ fn kinds(s: &mut Session) -> (NodeId, NodeId) {
 }
 
 fn instance(s: &mut Session, component: NodeId) -> NodeId {
-    id(run(s, "instance.create", json!({"component": component, "x": 200, "y": 0})))
+    id(run(s, "instance.add", json!({"component": component, "x": 200, "y": 0})))
 }
 
 fn switch(s: &mut Session, i: NodeId, kind: &str) {
@@ -101,15 +101,15 @@ fn a_mode_set_on_the_instance_wins_and_stays_through_variant_switches() {
 fn a_main_mode_is_closer_than_the_frame_around_the_instance() {
     let mut s = Session::new();
     let (_, b) = kinds(&mut s);
-    let frame = id(run(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 200, "height": 100})));
+    let frame = id(run(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 200, "height": 100})));
     set_mode(&mut s, frame, json!("A"));
-    let i = id(run(&mut s, "instance.create", json!({"component": b, "x": 10, "y": 10, "parent": frame})));
+    let i = id(run(&mut s, "instance.add", json!({"component": b, "x": 10, "y": 10, "parent": frame})));
     assert_eq!(fill(&s, i), "0000FF", "the main's mode B, not the frame's A");
     // Nested: an outer component on mode A holding an instance of B.
-    let outer_frame = id(run(&mut s, "frame.create", json!({"x": 0, "y": 500, "width": 100, "height": 100, "name": "Outer"})));
-    run(&mut s, "instance.create", json!({"component": b, "x": 0, "y": 0, "parent": outer_frame}));
+    let outer_frame = id(run(&mut s, "frame.add", json!({"x": 0, "y": 500, "width": 100, "height": 100, "name": "Outer"})));
+    run(&mut s, "instance.add", json!({"component": b, "x": 0, "y": 0, "parent": outer_frame}));
     set_mode(&mut s, outer_frame, json!("A"));
-    let outer = id(run(&mut s, "component.create", json!({"ids": [outer_frame]})));
+    let outer = id(run(&mut s, "component.add", json!({"ids": [outer_frame]})));
     let copy = instance(&mut s, outer);
     let nested = s.doc().unwrap().node(copy).unwrap().children[0];
     assert_eq!(fill(&s, nested), "0000FF");
@@ -132,15 +132,15 @@ fn detaching_keeps_the_mode_it_took_from_its_main() {
 fn modal(s: &mut Session) -> (NodeId, NodeId, NodeId) {
     tone(s);
     let icon = swatch(s, "Icon", None);
-    let frame = id(run(s, "frame.create", json!({"x": 100, "y": 0, "width": 60, "height": 40, "name": "Button"})));
-    let button_icon = id(run(s, "instance.create", json!({"component": icon, "x": 10, "y": 10, "parent": frame})));
+    let frame = id(run(s, "frame.add", json!({"x": 100, "y": 0, "width": 60, "height": 40, "name": "Button"})));
+    let button_icon = id(run(s, "instance.add", json!({"component": icon, "x": 10, "y": 10, "parent": frame})));
     set_mode(s, button_icon, json!("A"));
-    let button = id(run(s, "component.create", json!({"ids": [frame]})));
-    let outer = id(run(s, "frame.create", json!({"x": 300, "y": 0, "width": 200, "height": 100, "name": "Modal"})));
-    let close = id(run(s, "instance.create", json!({"component": button, "x": 10, "y": 10, "parent": outer})));
+    let button = id(run(s, "component.add", json!({"ids": [frame]})));
+    let outer = id(run(s, "frame.add", json!({"x": 300, "y": 0, "width": 200, "height": 100, "name": "Modal"})));
+    let close = id(run(s, "instance.add", json!({"component": button, "x": 10, "y": 10, "parent": outer})));
     let nested = s.doc().unwrap().node(close).unwrap().children[0];
     set_mode(s, nested, json!("B"));
-    run(s, "component.create", json!({"ids": [outer]}));
+    run(s, "component.add", json!({"ids": [outer]}));
     (button, button_icon, nested)
 }
 

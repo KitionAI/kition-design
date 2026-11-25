@@ -79,11 +79,11 @@ fn survives_save_and_reopen(s: &mut Session, case: &str) {
 #[test]
 fn frames_shapes_and_text_survive_save_and_reopen() {
     let mut s = Session::new();
-    let f = node(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
+    let f = node(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300})));
     ok(&mut s, "node.set", json!({"id": f, "props": {"name": "Card"}}));
     let r = node(&ok(&mut s, "shape.rectangle", json!({"parent": f, "x": 20, "y": 20, "width": 120, "height": 80})));
     let e = node(&ok(&mut s, "shape.ellipse", json!({"parent": f, "x": 200, "y": 20, "width": 80, "height": 80})));
-    let t = node(&ok(&mut s, "text.create", json!({"text": "Hello, design", "x": 20, "y": 140, "parent": f})));
+    let t = node(&ok(&mut s, "text.add", json!({"text": "Hello, design", "x": 20, "y": 140, "parent": f})));
     ok(&mut s, "transform.move", json!({"ids": [e], "dx": 40, "dy": 10}));
     let card = inspect(&s, f);
     assert_eq!(card["name"], "Card");
@@ -96,13 +96,13 @@ fn frames_shapes_and_text_survive_save_and_reopen() {
 #[test]
 fn components_and_instances_survive_save_and_reopen() {
     let mut s = Session::new();
-    let f = node(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 160, "height": 48})));
+    let f = node(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 160, "height": 48})));
     ok(&mut s, "shape.rectangle", json!({"parent": f, "x": 0, "y": 0, "width": 160, "height": 48}));
-    ok(&mut s, "text.create", json!({"text": "Button", "x": 16, "y": 12, "parent": f}));
-    let comp = ok(&mut s, "component.create", json!({"ids": [f]}));
+    ok(&mut s, "text.add", json!({"text": "Button", "x": 16, "y": 12, "parent": f}));
+    let comp = ok(&mut s, "component.add", json!({"ids": [f]}));
     let comp = id_of(&comp["id"]).or_else(|| id_of(&comp["ids"][0])).or_else(|| id_of(&comp[0])).unwrap_or(f);
-    let a = node(&ok(&mut s, "instance.create", json!({"component": comp, "x": 0, "y": 200})));
-    let b = node(&ok(&mut s, "instance.create", json!({"component": comp, "x": 200, "y": 200})));
+    let a = node(&ok(&mut s, "instance.add", json!({"component": comp, "x": 0, "y": 200})));
+    let b = node(&ok(&mut s, "instance.add", json!({"component": comp, "x": 200, "y": 200})));
     ok(&mut s, "node.set", json!({"id": b, "props": {"name": "Secondary"}}));
     assert_eq!(inspect(&s, a)["type"], "INSTANCE", "{}", inspect(&s, a));
     assert_eq!(inspect(&s, b)["name"], "Secondary");
@@ -112,7 +112,7 @@ fn components_and_instances_survive_save_and_reopen() {
 #[test]
 fn auto_layout_survives_save_and_reopen() {
     let mut s = Session::new();
-    let f = node(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 200})));
+    let f = node(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 200})));
     for i in 0..3 {
         ok(&mut s, "shape.rectangle", json!({"parent": f, "x": i * 10, "y": 0, "width": 40, "height": 20}));
     }
@@ -133,7 +133,7 @@ fn fills_strokes_effects_and_styles_survive_save_and_reopen() {
     ok(&mut s, "fill.set", json!({"ids": [r], "color": "#FF0000"}));
     ok(&mut s, "stroke.add", json!({"ids": [r], "color": "#0000FF"}));
     ok(&mut s, "effect.add", json!({"ids": [r], "type": "dropShadow"}));
-    ok(&mut s, "style.create", json!({"type": "paint", "name": "Brand/Blue", "value": "#0D6EFD"}));
+    ok(&mut s, "style.add", json!({"type": "paint", "name": "Brand/Blue", "value": "#0D6EFD"}));
     ok(&mut s, "style.apply", json!({"ids": [v], "style": "Brand/Blue"}));
     let rect = inspect(&s, r).to_string();
     assert!(rect.contains("dropShadow") || rect.contains("DROP_SHADOW"), "{rect}");
@@ -146,8 +146,8 @@ fn fills_strokes_effects_and_styles_survive_save_and_reopen() {
 #[test]
 fn vectors_pages_and_guides_survive_save_and_reopen() {
     let mut s = Session::new();
-    let f = node(&ok(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 400})));
-    ok(&mut s, "vector.create", json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100}));
+    let f = node(&ok(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 400})));
+    ok(&mut s, "vector.add", json!({"path": "M0 0 C50 -50 150 -50 200 0", "x": 40, "y": 100}));
     ok(&mut s, "guide.add", json!({"frame": f, "vertical": true, "offset": 40}));
     ok(&mut s, "page.add", json!({"name": "Two"}));
     ok(&mut s, "shape.ellipse", json!({"x": 10, "y": 10, "width": 20, "height": 20}));
@@ -159,8 +159,8 @@ fn vectors_pages_and_guides_survive_save_and_reopen() {
 fn variables_survive_save_and_reopen() {
     let mut s = Session::new();
     let r = node(&ok(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
-    ok(&mut s, "variable.createCollection", json!({"name": "Tokens"}));
-    ok(&mut s, "variable.create", json!({"collection": "Tokens", "name": "radius/sm", "type": "number", "value": 4}));
+    ok(&mut s, "variable.addCollection", json!({"name": "Tokens"}));
+    ok(&mut s, "variable.add", json!({"collection": "Tokens", "name": "radius/sm", "type": "number", "value": 4}));
     ok(&mut s, "variable.bind", json!({"ids": [r], "field": "cornerRadius", "variable": "radius/sm"}));
     let rect = inspect(&s, r);
     assert_eq!((rect["boundVariables"]["cornerRadius"].is_string(), rect["cornerRadius"].as_f64()), (true, Some(4.0)), "{rect}");

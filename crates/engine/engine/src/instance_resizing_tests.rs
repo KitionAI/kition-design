@@ -14,17 +14,17 @@ use kition_design_doc::*;
 /// "Atom", an auto layout frame hugging its 20×20 "Dot" with a min width of 100; and an instance of
 /// it. Returns (component, atom, dot, instance).
 fn field(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 240, "height": 40, "name": "Field"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 240, "height": 40, "name": "Field"})));
     ex(s, "node.set", json!({"id": f, "props": {"layout": "horizontal", "padding": 0, "gap": 0, "sizingH": "fixed", "sizingV": "fixed"}}));
-    let atom = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 20, "parent": f, "name": "Atom"})));
+    let atom = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 20, "parent": f, "name": "Atom"})));
     ex(
         s,
         "node.set",
         json!({"id": atom, "props": {"layout": "horizontal", "padding": 0, "gap": 0, "sizingH": "hug", "sizingV": "hug", "minWidth": 100}}),
     );
     let dot = idv(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 20, "height": 20, "parent": atom, "props": {"name": "Dot"}})));
-    let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
-    let i = idv(&ex(s, "instance.create", json!({"component": c, "x": 0, "y": 100})));
+    let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
+    let i = idv(&ex(s, "instance.add", json!({"component": c, "x": 0, "y": 100})));
     (c, atom, dot, i)
 }
 
@@ -111,10 +111,10 @@ fn size_and_resizing_overrides_undo_reset_and_detach() {
 #[test]
 fn layers_in_instances_resize_but_keep_their_place() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
-    let title = idv(&ex(&mut s, "text.create", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
-    let c = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let title = idv(&ex(&mut s, "text.add", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
+    let c = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let it = copy_of(&s, i, title);
     ex(&mut s, "node.set", json!({"id": it, "props": {"width": 150}}));
     assert_eq!(node(&s, it).width, 150.0, "a text box resizes");

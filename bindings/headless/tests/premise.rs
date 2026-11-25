@@ -40,23 +40,21 @@ fn design() -> Vec<u8> {
     let card = inspected["tree"][0]["id"].as_u64().unwrap();
     doc.execute("node.set", json!({ "id": card, "props": { "name": "Card" } })).unwrap();
     let rect = |doc: &mut DesignDocument, parent: u64, name: &str, x: f64| {
-        id_of(&doc.execute("node.create", json!({ "type": "rectangle", "parent": parent, "x": x, "y": 100, "width": 40, "height": 40, "name": name, "props": { "fill": "#336699" } })).unwrap())
+        id_of(&doc.execute("node.add", json!({ "type": "rectangle", "parent": parent, "x": x, "y": 100, "width": 40, "height": 40, "name": name, "props": { "fill": "#336699" } })).unwrap())
     };
-    doc.execute("text.create", json!({ "text": "Hello", "x": 20, "y": 20, "parent": card })).unwrap();
+    doc.execute("text.add", json!({ "text": "Hello", "x": 20, "y": 20, "parent": card })).unwrap();
     rect(&mut doc, card, "Box", 20.0);
     rect(&mut doc, card, "Badge", 80.0);
     let button = id_of(
-        &doc.execute("node.create", json!({ "type": "frame", "parent": home, "x": 0, "y": 700, "width": 120, "height": 40, "name": "Button" }))
-            .unwrap(),
+        &doc.execute("node.add", json!({ "type": "frame", "parent": home, "x": 0, "y": 700, "width": 120, "height": 40, "name": "Button" })).unwrap(),
     );
     rect(&mut doc, button, "Bg", 0.0);
-    doc.execute("component.create", json!({ "ids": [button] })).unwrap();
-    doc.execute("instance.create", json!({ "component": button, "parent": home, "x": 300, "y": 700 })).unwrap();
+    doc.execute("component.add", json!({ "ids": [button] })).unwrap();
+    doc.execute("instance.add", json!({ "component": button, "parent": home, "x": 300, "y": 700 })).unwrap();
     doc.execute("page.add", json!({ "name": "Second" })).unwrap();
     let second = doc.inspect().unwrap()["pages"][1]["id"].as_u64().unwrap();
     let panel = id_of(
-        &doc.execute("node.create", json!({ "type": "frame", "parent": second, "x": 0, "y": 0, "width": 300, "height": 200, "name": "Panel" }))
-            .unwrap(),
+        &doc.execute("node.add", json!({ "type": "frame", "parent": second, "x": 0, "y": 0, "width": 300, "height": 200, "name": "Panel" })).unwrap(),
     );
     rect(&mut doc, panel, "Other", 10.0);
     doc.execute("page.select", json!({ "id": home })).unwrap();
@@ -250,12 +248,12 @@ async fn a_run_acts_on_two_pages_and_the_saved_file_keeps_the_persons_page() {
             "run",
             json!({ "target": { "pageId": second }, "steps": [
                 // On the run's page: a layer with no parent goes on `Second`.
-                { "command": "node.create", "params": { "type": "ellipse", "x": 400, "y": 0, "width": 20, "height": 20, "name": "Dot" } },
+                { "command": "node.add", "params": { "type": "ellipse", "x": 400, "y": 0, "width": 20, "height": 20, "name": "Dot" } },
                 // `on` a layer of the other page, with that page as the step's part.
                 { "command": "arrange.roundToPixels", "on": [bx], "at": { "part": { "pageId": home } } },
                 { "command": "node.set", "on": [other], "params": { "props": { "name": "Other 2" } } },
                 // A parent on the run's page, given explicitly.
-                { "command": "node.create", "params": { "type": "rectangle", "parent": panel, "x": 5, "y": 5, "width": 5, "height": 5, "name": "Pip" } },
+                { "command": "node.add", "params": { "type": "rectangle", "parent": panel, "x": 5, "y": 5, "width": 5, "height": 5, "name": "Pip" } },
             ] }),
         )
         .await;
@@ -267,7 +265,7 @@ async fn a_run_acts_on_two_pages_and_the_saved_file_keeps_the_persons_page() {
     );
     assert_eq!(opens_on(&f.file()), home, "the saved file opens on the person's page, not the run's");
     // The next call starts from the person's page: a layer without a parent goes on `Home`.
-    f.ok("run", json!({ "steps": [{ "command": "node.create", "params": { "type": "ellipse", "x": 0, "y": 900, "width": 20, "height": 20, "name": "Home dot" } }] })).await;
+    f.ok("run", json!({ "steps": [{ "command": "node.add", "params": { "type": "ellipse", "x": 0, "y": 900, "width": 20, "height": 20, "name": "Home dot" } }] })).await;
     assert!(find(&f.layers(home).await, "Home dot").is_some());
     assert_eq!(opens_on(&f.file()), home);
     f.shutdown().await;
@@ -314,7 +312,11 @@ async fn inspect_lists_and_previews_any_page_by_id_without_going_there() {
     );
     assert!(seen["details"].get("tree").is_none() && seen["details"].get("page").is_none(), "editor state is not what an agent reads");
     // The inspection did not move the person: a layer without a parent still goes on `Home`.
-    f.ok("run", json!({ "steps": [{ "command": "node.create", "params": { "type": "ellipse", "x": 0, "y": 900, "width": 20, "height": 20, "name": "Here" } }] })).await;
+    f.ok(
+        "run",
+        json!({ "steps": [{ "command": "node.add", "params": { "type": "ellipse", "x": 0, "y": 900, "width": 20, "height": 20, "name": "Here" } }] }),
+    )
+    .await;
     assert!(find(&f.layers(f.page_id("Home").await).await, "Here").is_some());
     // A layer's preview names its page.
     let other = f.id("Second", "Other").await;

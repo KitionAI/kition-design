@@ -33,7 +33,7 @@ fn rect(s: &mut Session, name: &str, x: f64, y: f64, parent: Option<NodeId>) -> 
 }
 
 fn frame(s: &mut Session, name: &str, x: f64, y: f64, w: f64, h: f64) -> NodeId {
-    id(&ex(s, "frame.create", json!({"x": x, "y": y, "width": w, "height": h, "name": name})))
+    id(&ex(s, "frame.add", json!({"x": x, "y": y, "width": w, "height": h, "name": name})))
 }
 
 fn kids(s: &Session, id: NodeId) -> Vec<NodeId> {
@@ -83,17 +83,17 @@ fn scene(s: &mut Session) -> Scene {
     let c = rect(s, "c", 110.0, 10.0, Some(f));
     let d = rect(s, "d", 160.0, 10.0, Some(f));
     let e = rect(s, "e", 0.0, 600.0, None);
-    let g = id(&ex(s, "object.group", json!({"ids": [e]})));
+    let g = id(&ex(s, "arrange.group", json!({"ids": [e]})));
     let al = frame(s, "AL", 500.0, 0.0, 300.0, 100.0);
     let x = rect(s, "x", 0.0, 0.0, Some(al));
     let y = rect(s, "y", 50.0, 0.0, Some(al));
     ex(s, "layout.add", json!({"ids": [al], "direction": "horizontal"}));
     let main = frame(s, "Main", 0.0, 800.0, 100.0, 40.0);
     rect(s, "Bg", 0.0, 0.0, Some(main));
-    let comp = id(&ex(s, "component.create", json!({"ids": [main]})));
-    let inst = id(&ex(s, "instance.create", json!({"component": comp, "x": 0, "y": 400})));
-    let sec = id(&ex(s, "node.create", json!({"type": "section", "x": 900, "y": 0, "width": 300, "height": 300})));
-    ex(s, "select.none", json!({}));
+    let comp = id(&ex(s, "component.add", json!({"ids": [main]})));
+    let inst = id(&ex(s, "instance.add", json!({"component": comp, "x": 0, "y": 400})));
+    let sec = id(&ex(s, "node.add", json!({"type": "section", "x": 900, "y": 0, "width": 300, "height": 300})));
+    ex(s, "edit.deselectAll", json!({}));
     Scene { f, a, b, c, d, g, e, al, x, y, inst, sec }
 }
 
@@ -178,8 +178,8 @@ fn dragging_into_frames_groups_and_auto_layout() {
 fn reparent_index_is_the_final_position_in_auto_layout_and_across_parents() {
     // #992: `index` is the layer's place among the parent's children after the move.
     let mut s = Session::new();
-    let row = id(&ex(&mut s, "node.create", json!({"type": "frame", "name": "Row", "props": {"layout": "horizontal"}})));
-    let text = |s: &mut Session, t: &str, parent: NodeId| id(&ex(s, "node.create", json!({"type": "text", "name": t, "text": t, "parent": parent})));
+    let row = id(&ex(&mut s, "node.add", json!({"type": "frame", "name": "Row", "props": {"layout": "horizontal"}})));
+    let text = |s: &mut Session, t: &str, parent: NodeId| id(&ex(s, "node.add", json!({"type": "text", "name": t, "text": t, "parent": parent})));
     let (first, second, third) = (text(&mut s, "first", row), text(&mut s, "second", row), text(&mut s, "third", row));
     let names = |s: &Session, p: NodeId| kids(s, p).iter().map(|i| name(s, *i)).collect::<Vec<_>>();
     ex(&mut s, "node.reparent", json!({"ids": [first], "parent": row, "index": 1}));
@@ -191,7 +191,7 @@ fn reparent_index_is_the_final_position_in_auto_layout_and_across_parents() {
     let x = |s: &Session, i: NodeId| s.doc().unwrap().node(i).unwrap().transform.as_coeffs()[4];
     assert!(x(&s, first) < x(&s, second) && x(&s, second) < x(&s, third), "the flow follows the new order");
     // Into another parent, `index` means the same thing.
-    let other = id(&ex(&mut s, "node.create", json!({"type": "frame", "name": "Other", "props": {"layout": "horizontal"}})));
+    let other = id(&ex(&mut s, "node.add", json!({"type": "frame", "name": "Other", "props": {"layout": "horizontal"}})));
     let (p, q) = (text(&mut s, "p", other), text(&mut s, "q", other));
     ex(&mut s, "node.reparent", json!({"ids": [second], "parent": other, "index": 1}));
     assert_eq!(kids(&s, other), [p, second, q], "lands at index 1 of the new parent");
@@ -399,10 +399,10 @@ fn assets_panel_lists_files_and_drops_by_the_documented_rules() {
     let page = s.page().unwrap();
     ex(&mut s, "page.rename", json!({"name": "Kit"}));
     let holder = frame(&mut s, "Controls", 0.0, 0.0, 600.0, 200.0);
-    let b = id(&ex(&mut s, "frame.create", json!({"x": 10, "y": 10, "width": 80, "height": 30, "name": "Buttons / Primary", "parent": holder})));
-    let comp = id(&ex(&mut s, "component.create", json!({"ids": [b]})));
+    let b = id(&ex(&mut s, "frame.add", json!({"x": 10, "y": 10, "width": 80, "height": 30, "name": "Buttons / Primary", "parent": holder})));
+    let comp = id(&ex(&mut s, "component.add", json!({"ids": [b]})));
     let loose = frame(&mut s, "Badge", 800.0, 0.0, 40.0, 20.0);
-    let badge = id(&ex(&mut s, "component.create", json!({"ids": [loose]})));
+    let badge = id(&ex(&mut s, "component.add", json!({"ids": [loose]})));
     // (asset, folders, tile name, derivation)
     let rows: [(NodeId, &[&str], &str, &str); 2] = [
         (comp, &["Kit", "Controls", "Buttons"], "Primary", "assets file under their page and frame, then a folder per slash in the name"),
@@ -446,7 +446,7 @@ fn assets_panel_lists_files_and_drops_by_the_documented_rules() {
 #[test]
 fn duplicating_a_layer_named_past_the_counter_does_not_overflow() {
     let mut s = Session::new();
-    ex(&mut s, "pref.renameDuplicates", json!({"on": true}));
+    ex(&mut s, "prefs.renameDuplicates", json!({"on": true}));
     let r = rect(&mut s, "r", 30.0, 40.0, None);
     ex(&mut s, "node.set", json!({"id": r, "props": {"name": "Layer 18446744073709551615"}}));
     let dup = id_of(&ex(&mut s, "edit.duplicate", json!({"ids": [r]}))["ids"][0]).unwrap();

@@ -25,7 +25,7 @@ const ALLOW: &[(&str, &str, &str)] = &[
     ("paint.documentColors", "id", "reads page; this extra schema member is unused"),
     ("style.move", "id", "reads styles and before; this extra schema member is unused"),
     ("style.renameFolder", "id", "reads folder and name; this extra schema member is unused"),
-    ("variable.createCollection", "id", "allocates its own collection id; this extra schema member is unused"),
+    ("variable.addCollection", "id", "allocates its own collection id; this extra schema member is unused"),
     ("variable.delete", "id", "reads variable; this extra schema member is unused"),
     ("image.presets", "id", "lists presets; this extra schema member is unused"),
     ("variable.duplicate", "id", "reads variable; this extra schema member is unused"),
@@ -110,7 +110,7 @@ fn update_library_ids_name_library_links() {
 // Names used to create/rename an object and local property/annotation names are not references.
 fn name_parameters(command: &str) -> Vec<(&'static str, &'static str)> {
     let mut out = Vec::new();
-    if matches!(command, "style.apply" | "style.update" | "style.bind" | "style.duplicate" | "style.delete") {
+    if matches!(command, "style.apply" | "style.set" | "style.bind" | "style.duplicate" | "style.delete") {
         out.push(("style", "Style"));
     }
     if matches!(
@@ -121,7 +121,7 @@ fn name_parameters(command: &str) -> Vec<(&'static str, &'static str)> {
     }
     if matches!(
         command,
-        "variable.create"
+        "variable.add"
             | "variable.addMode"
             | "variable.setMode"
             | "variable.renameMode"
@@ -149,10 +149,10 @@ fn resources_keep_their_command_ids_in_the_model_after_reopen() {
     use kition_kit::session::model::Exchange;
 
     let mut doc = DesignDocument::create("Ids.kdesign", 320, 240).unwrap();
-    let style = doc.execute("style.create", serde_json::json!({"type":"paint", "name":"Accent", "value":[]})).unwrap()["id"].clone();
-    let collection = doc.execute("variable.createCollection", serde_json::json!({"name":"Theme", "modes":["Day"]})).unwrap()["id"].clone();
+    let style = doc.execute("style.add", serde_json::json!({"type":"paint", "name":"Accent", "value":[]})).unwrap()["id"].clone();
+    let collection = doc.execute("variable.addCollection", serde_json::json!({"name":"Theme", "modes":["Day"]})).unwrap()["id"].clone();
     let variable =
-        doc.execute("variable.create", serde_json::json!({"collection":collection, "name":"Spacing", "type":"number", "value":8})).unwrap()["id"]
+        doc.execute("variable.add", serde_json::json!({"collection":collection, "name":"Spacing", "type":"number", "value":8})).unwrap()["id"]
             .clone();
     let thread = doc.execute("comment.add", serde_json::json!({"text":"Review", "x":5, "y":5})).unwrap()["id"].clone();
     let bytes = doc.save_file(None).unwrap();
@@ -180,7 +180,7 @@ fn references_are_typed_and_nested_style_members_are_marked() {
         for path in c.targets.into_iter().chain(c.objects.iter().copied()) {
             assert!(c.object_types.iter().any(|(p, ts)| *p == path && !ts.is_empty()), "{} {path}", c.id);
         }
-        if matches!(c.id.as_str(), "node.set" | "node.create" | "text.create") {
+        if matches!(c.id.as_str(), "node.set" | "node.add" | "text.add") {
             for path in ["props.fillStyle", "props.strokeStyle", "props.effectStyle", "props.textStyle", "props.gridStyle"] {
                 assert!(c.objects.contains(&path), "{} {path}", c.id);
                 assert!(c.object_types.contains(&(path, &["Style"][..])), "{} {path}", c.id);

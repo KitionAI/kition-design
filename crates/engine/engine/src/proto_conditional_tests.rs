@@ -15,12 +15,12 @@ use crate::proto_run::hotspots;
 fn setup() -> (Session, NodeId, NodeId, NodeId) {
     let mut s = Session::new();
     let id = |s: &mut Session, c: &str, p: Value| id_of(&s.execute(c, &p).unwrap()["id"]).unwrap();
-    let a = id(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"}));
-    let b = id(&mut s, "frame.create", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"}));
+    let a = id(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100, "name": "A"}));
+    let b = id(&mut s, "frame.add", json!({"x": 200, "y": 0, "width": 100, "height": 100, "name": "B"}));
     let btn = id(&mut s, "shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 20, "parent": a}));
-    s.execute("variable.createCollection", &json!({"name": "State"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "State"})).unwrap();
     for (name, kind, value) in [("count", "number", json!(0)), ("open", "boolean", json!(false)), ("label", "string", json!("Hi"))] {
-        s.execute("variable.create", &json!({"collection": "State", "name": name, "type": kind, "value": value})).unwrap();
+        s.execute("variable.add", &json!({"collection": "State", "name": name, "type": kind, "value": value})).unwrap();
     }
     s.execute("proto.interaction.add", &json!({"id": btn, "dest": b})).unwrap();
     (s, a, b, btn)

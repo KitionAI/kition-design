@@ -43,7 +43,7 @@
 //!   the selection), 33;
 //! - a place not held (an index among a parent's children, a point's picks), 7;
 //! - a value naming another object, not held (the steps of `command.batch`, the targets of
-//!   `selection.setPaint`), 6;
+//!   `select.setPaint`), 6;
 //! - held more: fields the call does not read, 314; where an object is, for a call that does not
 //!   depend on it, 195; objects the call does not read, 153; editor state declared and not
 //!   read, 109.
@@ -71,11 +71,11 @@ fn library_bytes() -> &'static [u8] {
     BYTES.get_or_init(|| {
         let mut lib = DesignDocument::create("Buttons.kdesign", 320, 240).unwrap();
         let mut ex = |c: &str, p: Value| lib.execute(c, p.clone()).unwrap_or_else(|e| panic!("library {c} {p}: {e}"));
-        let f = ex("frame.create", json!({ "x": 0, "y": 0, "width": 80, "height": 32, "name": "Primary" }))["id"].clone();
-        ex("component.create", json!({ "ids": [f] }));
-        ex("style.create", json!({ "type": "paint", "name": "Lib Blue", "value": [{ "type": "solid", "color": "#0000ff" }] }));
-        let col = ex("variable.createCollection", json!({ "name": "Lib Tokens", "modes": ["Base"] }))["id"].clone();
-        ex("variable.create", json!({ "collection": col, "name": "space", "type": "number", "value": 8 }));
+        let f = ex("frame.add", json!({ "x": 0, "y": 0, "width": 80, "height": 32, "name": "Primary" }))["id"].clone();
+        ex("component.add", json!({ "ids": [f] }));
+        ex("style.add", json!({ "type": "paint", "name": "Lib Blue", "value": [{ "type": "solid", "color": "#0000ff" }] }));
+        let col = ex("variable.addCollection", json!({ "name": "Lib Tokens", "modes": ["Base"] }))["id"].clone();
+        ex("variable.add", json!({ "collection": col, "name": "space", "type": "number", "value": 8 }));
         ex("library.publish", json!({}));
         lib.save_file(None).unwrap()
     })
@@ -94,9 +94,9 @@ fn other_bytes() -> &'static [u8] {
     BYTES.get_or_init(|| {
         let mut lib = DesignDocument::create("Other.kdesign", 320, 240).unwrap();
         let mut ex = |c: &str, p: Value| lib.execute(c, p.clone()).unwrap_or_else(|e| panic!("other library {c} {p}: {e}"));
-        let f = ex("frame.create", json!({ "x": 0, "y": 0, "width": 120, "height": 32, "name": "Primary" }))["id"].clone();
-        ex("component.create", json!({ "ids": [f] }));
-        ex("style.create", json!({ "type": "paint", "name": "Lib Blue", "value": [{ "type": "solid", "color": "#0000aa" }] }));
+        let f = ex("frame.add", json!({ "x": 0, "y": 0, "width": 120, "height": 32, "name": "Primary" }))["id"].clone();
+        ex("component.add", json!({ "ids": [f] }));
+        ex("style.add", json!({ "type": "paint", "name": "Lib Blue", "value": [{ "type": "solid", "color": "#0000aa" }] }));
         ex("library.publish", json!({}));
         lib.save_file(None).unwrap()
     })
@@ -144,32 +144,32 @@ fn build() -> Fixture {
     let mut ex = |c: &str, p: Value| d.execute(c, p.clone()).unwrap_or_else(|e| panic!("{c} {p}: {e}"));
     let r = id(&ex("shape.rectangle", json!({ "x": 0, "y": 0, "width": 100, "height": 60, "props": { "name": "Box" } })));
     let e = id(&ex("shape.ellipse", json!({ "x": 0, "y": 100, "width": 40, "height": 40 })));
-    let f = id(&ex("frame.create", json!({ "x": 200, "y": 0, "width": 200, "height": 300, "name": "Card" })));
+    let f = id(&ex("frame.add", json!({ "x": 200, "y": 0, "width": 200, "height": 300, "name": "Card" })));
     ex("layout.add", json!({ "ids": [f], "direction": "vertical" }));
     let a = id(&ex("shape.rectangle", json!({ "x": 0, "y": 0, "width": 50, "height": 20, "parent": f })));
-    let t = id(&ex("text.create", json!({ "text": "Hello", "x": 0, "y": 0, "parent": f })));
+    let t = id(&ex("text.add", json!({ "text": "Hello", "x": 0, "y": 0, "parent": f })));
     let g1 = id(&ex("shape.rectangle", json!({ "x": 0, "y": 200, "width": 30, "height": 30 })));
     let g2 = id(&ex("shape.ellipse", json!({ "x": 40, "y": 200, "width": 30, "height": 30 })));
-    let g = id(&ex("object.group", json!({ "ids": [g1, g2], "name": "Pair" })));
-    let v = id(&ex("vector.create", json!({ "path": "M0 0 L40 0 L40 40", "x": 0, "y": 300 })));
-    let kf = id(&ex("frame.create", json!({ "x": 500, "y": 0, "width": 120, "height": 40, "name": "Button" })));
-    let kt = id(&ex("text.create", json!({ "text": "OK", "x": 10, "y": 10, "parent": kf })));
-    let k = id(&ex("component.create", json!({ "ids": [kf] })));
+    let g = id(&ex("arrange.group", json!({ "ids": [g1, g2], "name": "Pair" })));
+    let v = id(&ex("vector.add", json!({ "path": "M0 0 L40 0 L40 40", "x": 0, "y": 300 })));
+    let kf = id(&ex("frame.add", json!({ "x": 500, "y": 0, "width": 120, "height": 40, "name": "Button" })));
+    let kt = id(&ex("text.add", json!({ "text": "OK", "x": 10, "y": 10, "parent": kf })));
+    let k = id(&ex("component.add", json!({ "ids": [kf] })));
     ex("component.addProperty", json!({ "id": kt, "name": "Label", "type": "text" }));
-    let i = id(&ex("instance.create", json!({ "component": k, "x": 500, "y": 100 })));
-    let x = id(&ex("frame.create", json!({ "x": 800, "y": 0, "width": 375, "height": 600, "name": "Screen" })));
-    let sf = id(&ex("frame.create", json!({ "x": 0, "y": 700, "width": 300, "height": 200, "name": "Area" })));
+    let i = id(&ex("instance.add", json!({ "component": k, "x": 500, "y": 100 })));
+    let x = id(&ex("frame.add", json!({ "x": 800, "y": 0, "width": 375, "height": 600, "name": "Screen" })));
+    let sf = id(&ex("frame.add", json!({ "x": 0, "y": 700, "width": 300, "height": 200, "name": "Area" })));
     let s = id(&ex("object.convertToSection", json!({ "ids": [sf] })));
-    let vs = id(&ex("frame.create", json!({ "x": 1200, "y": 0, "width": 40, "height": 20, "name": "Size=S" })));
-    let vl = id(&ex("frame.create", json!({ "x": 1260, "y": 0, "width": 80, "height": 20, "name": "Size=L" })));
-    ex("component.create", json!({ "ids": [vs] }));
-    ex("component.create", json!({ "ids": [vl] }));
+    let vs = id(&ex("frame.add", json!({ "x": 1200, "y": 0, "width": 40, "height": 20, "name": "Size=S" })));
+    let vl = id(&ex("frame.add", json!({ "x": 1260, "y": 0, "width": 80, "height": 20, "name": "Size=L" })));
+    ex("component.add", json!({ "ids": [vs] }));
+    ex("component.add", json!({ "ids": [vl] }));
     let set = id(&ex("component.combineVariants", json!({ "ids": [vs, vl] })));
-    let brand = id(&ex("style.create", json!({ "type": "paint", "name": "Brand", "value": [{ "type": "solid", "color": "#ff0000" }] })));
+    let brand = id(&ex("style.add", json!({ "type": "paint", "name": "Brand", "value": [{ "type": "solid", "color": "#ff0000" }] })));
     ex("style.apply", json!({ "ids": [e], "style": brand }));
-    let colors = id(&ex("variable.createCollection", json!({ "name": "Colors", "modes": ["Light", "Dark"] })));
-    let primary = id(&ex("variable.create", json!({ "collection": colors, "name": "primary", "type": "color", "value": "#00ff00" })));
-    let accent = id(&ex("variable.create", json!({ "collection": colors, "name": "accent", "type": "color", "value": "#0000ff" })));
+    let colors = id(&ex("variable.addCollection", json!({ "name": "Colors", "modes": ["Light", "Dark"] })));
+    let primary = id(&ex("variable.add", json!({ "collection": colors, "name": "primary", "type": "color", "value": "#00ff00" })));
+    let accent = id(&ex("variable.add", json!({ "collection": colors, "name": "accent", "type": "color", "value": "#0000ff" })));
     ex("variable.set", json!({ "variable": accent, "value": { "alias": primary } }));
     ex("variable.bind", json!({ "ids": [r], "field": "fill", "variable": primary }));
     ex("proto.interaction.add", json!({ "id": r, "dest": x }));
@@ -879,7 +879,7 @@ const ROWS: &[Row] = &[
     r("edit.cut", r##"{}"##, &["$E"], "selection", &[("$E", "*", true)]),
     // edit.paste with no selection: pastes the clipboard ($G1 copied) on top of the current page, in place because the copy is in view
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.paste",
         r##"{}"##,
         &[],
@@ -888,7 +888,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.paste into a named parent: the copy is not inside $F, so it is centred on $F's world box, then $F's vertical auto layout re-flows it with $A and $T
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.paste",
         r##"{"parent": "$F"}"##,
         &[],
@@ -897,7 +897,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.paste with one plain frame selected: pastes into $X, centred on its world box
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.paste",
         r##"{}"##,
         &["$X"],
@@ -906,7 +906,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.paste of a main component copied in this file: makes a new instance of $K from $K's current subtree
     s(
-        r##"[["select.set", {"ids": ["$K"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$K"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.paste",
         r##"{}"##,
         &[],
@@ -915,7 +915,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.pasteOver with a selection: pastes into the selected layer's parent at its world top-left
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteOver",
         r##"{}"##,
         &["$E"],
@@ -924,7 +924,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.pasteOver with no selection: on the current page, at the copied place
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteOver",
         r##"{}"##,
         &[],
@@ -933,7 +933,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.pasteReplace: pastes in $E's parent at $E's index and world top-left, then removes $E
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteReplace",
         r##"{"ids": ["$E"]}"##,
         &[],
@@ -1011,7 +1011,7 @@ const ROWS: &[Row] = &[
     ),
     // edit.pasteProperties: applies copied properties ($G1's) to $E. It reads $E's type (text keys, corners) and its paint bindings; normalize compares the new fills with $Brand to drop the style link. It replaces fills, strokes, stroke, effects, opacity and blend
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copyProperties", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copyProperties", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteProperties",
         r##"{"ids": ["$E"]}"##,
         &[],
@@ -1022,15 +1022,15 @@ const ROWS: &[Row] = &[
     r("object.frameSelection", r##"{"ids": ["$E", "$V"]}"##, &[], "", &[("$E", "frame", true), ("$V", "frame", true)]),
     // object.frameSelection on the selection
     r("object.frameSelection", r##"{}"##, &["$E", "$V"], "selection", &[("$E", "frame", true), ("$V", "frame", true)]),
-    // object.group: same as frameSelection; the group then fits its children
+    // arrange.group: same as frameSelection; the group then fits its children
     // review: wrap rejects sections, so source kind is an input.
-    r("object.group", r##"{"ids": ["$E", "$V"]}"##, &[], "", &[("$E", "kind,frame", true), ("$V", "kind,frame", true)]),
-    // object.group on the selection
+    r("arrange.group", r##"{"ids": ["$E", "$V"]}"##, &[], "", &[("$E", "kind,frame", true), ("$V", "kind,frame", true)]),
+    // arrange.group on the selection
     // review: wrap rejects sections, so source kind is an input.
-    r("object.group", r##"{}"##, &["$E", "$V"], "selection", &[("$E", "kind,frame", true), ("$V", "kind,frame", true)]),
-    // object.ungroup: the type decides whether it acts; children go to $G's parent at $G's index with world places kept ($G's transform folded in); $G's opacity multiplies onto them when below 1; $G removed
+    r("arrange.group", r##"{}"##, &["$E", "$V"], "selection", &[("$E", "kind,frame", true), ("$V", "kind,frame", true)]),
+    // arrange.ungroup: the type decides whether it acts; children go to $G's parent at $G's index with world places kept ($G's transform folded in); $G's opacity multiplies onto them when below 1; $G removed
     r(
-        "object.ungroup",
+        "arrange.ungroup",
         r##"{"ids": ["$G"]}"##,
         &[],
         "",
@@ -1068,7 +1068,7 @@ const ROWS: &[Row] = &[
     r("object.resizeToFit", r##"{"ids": ["$D"]}"##, &[], "", &[("$D", "kind,layout,frame,~hierarchy", false), ("$LI", "frame,visible", true)]),
     // object.mask on one layer: toggles its mask flag (read and replaced)
     r("object.mask", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "props.is_mask", false)]),
-    // object.mask on several: groups them as object.group does ("Mask group"), and the bottom child ($E) becomes the mask
+    // object.mask on several: groups them as arrange.group does ("Mask group"), and the bottom child ($E) becomes the mask
     r("object.mask", r##"{"ids": ["$E", "$V"]}"##, &[], "", &[("$E", "frame,props.is_mask", true), ("$V", "frame", true)]),
     // object.releaseMask: sets the mask flag off (replaced, not read)
     r("object.releaseMask", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "props.is_mask", false)]),
@@ -1319,14 +1319,14 @@ const ROWS: &[Row] = &[
         "",
         &[("$D", "kind,frame,layout,childLayout,~hierarchy", false), ("$LI", "frame,visible,childLayout", true)],
     ),
-    // arrange.front: $R moves to the top of $P1's child list (reads its parent and the parent's child count)
-    r("arrange.front", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "-", true), ("$P1", "~hierarchy", false)]),
-    // arrange.forward: $R swaps with the sibling just above it ($E), checking that sibling is not among ids
-    r("arrange.forward", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "-", true), ("$E", "-", true)]),
-    // arrange.backward: $E swaps with the sibling just below it ($R)
-    r("arrange.backward", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "-", true), ("$R", "-", true)]),
-    // arrange.back: $E moves to index 0 of its parent
-    r("arrange.back", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "-", true)]),
+    // arrange.bringToFront: $R moves to the top of $P1's child list (reads its parent and the parent's child count)
+    r("arrange.bringToFront", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "-", true), ("$P1", "~hierarchy", false)]),
+    // arrange.bringForward: $R swaps with the sibling just above it ($E), checking that sibling is not among ids
+    r("arrange.bringForward", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "-", true), ("$E", "-", true)]),
+    // arrange.sendBackward: $E swaps with the sibling just below it ($R)
+    r("arrange.sendBackward", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "-", true), ("$R", "-", true)]),
+    // arrange.sendToBack: $E moves to index 0 of its parent
+    r("arrange.sendToBack", r##"{"ids": ["$E"]}"##, &[], "", &[("$E", "-", true)]),
     // align.left: several roots align to the union of their world bounds; moves $R/$X (frame.transform)
     r("align.left", r##"{"ids": ["$R", "$X"]}"##, &[], "", &[("$R", "frame", true), ("$X", "frame", true)]),
     // align.left: one layer aligns to its parent frame's world bounds ($LI in $D)
@@ -1355,40 +1355,34 @@ const ROWS: &[Row] = &[
     r("arrange.packV", r##"{"ids": ["$R", "$E"]}"##, &[], "", &[("$R", "frame", true), ("$E", "frame", true)]),
     // arrange.roundToPixels: local translation and size rounded (no ancestors read)
     r("arrange.roundToPixels", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "frame", false)]),
-    // node.create: no parent -> on the current page, at the top; new layer only
-    r("node.create", r##"{"type": "rectangle", "x": 10, "y": 10, "width": 20, "height": 20}"##, &[], "part", &[("$P1", "-", false)]),
+    // node.add: no parent -> on the current page, at the top; new layer only
+    r("node.add", r##"{"type": "rectangle", "x": 10, "y": 10, "width": 20, "height": 20}"##, &[], "part", &[("$P1", "-", false)]),
     // Reviewed after behavior tests: pinned from the declaration after review; create.rs:313
     // also reads ui_dark for type=text's default fill. This path was absent from the blind rows.
-    p("", "node.create", r##"{"type": "text", "text": "Hi", "x": 10, "y": 900}"##, &[], "part,mode", &[("$P1", "-", false)]),
-    // node.create: parent $F (auto layout): added at the top of $F, re-flow of $F places it and moves siblings
+    p("", "node.add", r##"{"type": "text", "text": "Hi", "x": 10, "y": 900}"##, &[], "part,mode", &[("$P1", "-", false)]),
+    // node.add: parent $F (auto layout): added at the top of $F, re-flow of $F places it and moves siblings
     r(
-        "node.create",
+        "node.add",
         r##"{"type": "rectangle", "parent": "$F", "width": 10, "height": 10}"##,
         &[],
         "",
         &[("$F", "layout,frame,childLayout", false), ("$A", "frame,visible,childLayout", true), ("$T", "frame,visible,childLayout,kind,text", true)],
     ),
-    // node.create: parent $G (group): x/y in the group's frame-relative space; the group refits to its children
+    // node.add: parent $G (group): x/y in the group's frame-relative space; the group refits to its children
     r(
-        "node.create",
+        "node.add",
         r##"{"type": "ellipse", "parent": "$G", "x": 0, "y": 0, "width": 10, "height": 10}"##,
         &[],
         "",
         &[("$G", "frame", true), ("$G1", "frame", true), ("$G2", "frame", true)],
     ),
-    // node.create: parent $D at index 0 (below $LI)
+    // node.add: parent $D at index 0 (below $LI)
+    r("node.add", r##"{"type": "ellipse", "parent": "$D", "index": 0}"##, &[], "", &[("$D", "-", false), ("slot:$D", "-", true), ("$LI", "-", true)]),
+    // frame.add: explicit position on the current page
+    r("frame.add", r##"{"x": 0, "y": 2000, "width": 100, "height": 100}"##, &[], "part", &[("$P1", "-", false)]),
+    // frame.add: preset without position: placed 100 right of the right-most top-level layer (all top-level frames read)
     r(
-        "node.create",
-        r##"{"type": "ellipse", "parent": "$D", "index": 0}"##,
-        &[],
-        "",
-        &[("$D", "-", false), ("slot:$D", "-", true), ("$LI", "-", true)],
-    ),
-    // frame.create: explicit position on the current page
-    r("frame.create", r##"{"x": 0, "y": 2000, "width": 100, "height": 100}"##, &[], "part", &[("$P1", "-", false)]),
-    // frame.create: preset without position: placed 100 right of the right-most top-level layer (all top-level frames read)
-    r(
-        "frame.create",
+        "frame.add",
         r##"{"preset": "iPhone 16"}"##,
         &[],
         "part",
@@ -1407,17 +1401,17 @@ const ROWS: &[Row] = &[
             ("$Set", "frame", false),
         ],
     ),
-    // shape.rectangle: node.create type rectangle on the current page
+    // shape.rectangle: node.add type rectangle on the current page
     r("shape.rectangle", r##"{"x": 0, "y": 2000, "width": 50, "height": 50}"##, &[], "part", &[("$P1", "-", false)]),
     // shape.rectangle: in frame $X (no layout, not a group: no geometry of $X read)
     r("shape.rectangle", r##"{"x": 10, "y": 10, "width": 50, "height": 50, "parent": "$X"}"##, &[], "", &[("$X", "-", false)]),
-    // shape.ellipse: node.create type ellipse on the current page
+    // shape.ellipse: node.add type ellipse on the current page
     r("shape.ellipse", r##"{"x": 0, "y": 2000, "width": 50, "height": 50}"##, &[], "part", &[("$P1", "-", false)]),
-    // shape.polygon: node.create type polygon on the current page
+    // shape.polygon: node.add type polygon on the current page
     r("shape.polygon", r##"{"x": 0, "y": 2000, "width": 50, "height": 50}"##, &[], "part", &[("$P1", "-", false)]),
-    // shape.star: node.create type star on the current page
+    // shape.star: node.add type star on the current page
     r("shape.star", r##"{"x": 0, "y": 2000, "width": 50, "height": 50}"##, &[], "part", &[("$P1", "-", false)]),
-    // shape.line: node.create type line (height 0) on the current page
+    // shape.line: node.add type line (height 0) on the current page
     r("shape.line", r##"{"x": 0, "y": 2000, "width": 80}"##, &[], "part", &[("$P1", "-", false)]),
     // shape.arrow: line with an arrow end cap on the current page
     r("shape.arrow", r##"{"x": 0, "y": 2000, "width": 80}"##, &[], "part", &[("$P1", "-", false)]),
@@ -1587,9 +1581,9 @@ const ROWS: &[Row] = &[
     // guide.clear: no owner: the current page's guides cleared
     r("guide.clear", r##"{}"##, &[], "part", &[("$P1", "kind", false)]),
     // ---- Reading 3 ----
-    // text.bold: ids names $T; toggle reads every span's weight, restyles all runs, detaches changed bindings; auto-size + $F reflow
+    // format.bold: ids names $T; toggle reads every span's weight, restyles all runs, detaches changed bindings; auto-size + $F reflow
     r(
-        "text.bold",
+        "format.bold",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1599,9 +1593,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.bold: no ids -> the selection; same reads on the selected text
+    // format.bold: no ids -> the selection; same reads on the selected text
     r(
-        "text.bold",
+        "format.bold",
         r##"{}"##,
         &["$T"],
         "selection",
@@ -1611,9 +1605,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.bold: ids names container $F: toggle checks $F itself (not text), restyles the texts in its subtree ($T)
+    // format.bold: ids names container $F: toggle checks $F itself (not text), restyles the texts in its subtree ($T)
     r(
-        "text.bold",
+        "format.bold",
         r##"{"ids": ["$F"]}"##,
         &[],
         "",
@@ -1624,9 +1618,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.bold: $KT inside main $K: restyle propagates to instance $I's $IT unless overridden
+    // format.bold: $KT inside main $K: restyle propagates to instance $I's $IT unless overridden
     r(
-        "text.bold",
+        "format.bold",
         r##"{"ids": ["$KT"]}"##,
         &[],
         "",
@@ -1641,10 +1635,10 @@ const ROWS: &[Row] = &[
             ("$IT", "kind,text,instance.overrides,mirrors,frame", false),
         ],
     ),
-    // text.bold: in a text edit session the edited layer's chars 0..2 (ids ignored); toggle reads their style
+    // format.bold: in a text edit session the edited layer's chars 0..2 (ids ignored); toggle reads their style
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.bold",
+        "format.bold",
         r##"{}"##,
         &[],
         "mode",
@@ -1654,9 +1648,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.italic: ids names $T; toggle on italic of every span; writes all runs; auto-size + reflow
+    // format.italic: ids names $T; toggle on italic of every span; writes all runs; auto-size + reflow
     r(
-        "text.italic",
+        "format.italic",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1666,10 +1660,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.italic: edit session: chars 0..2 of the edited layer, toggle on italic of every span over that range
+    // format.italic: edit session: chars 0..2 of the edited layer, toggle on italic of every span over that range
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.italic",
+        "format.italic",
         r##"{}"##,
         &[],
         "mode",
@@ -1679,9 +1673,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.underline: ids names $T; toggle on decoration==underline; writes all runs; auto-size + reflow
+    // format.underline: ids names $T; toggle on decoration==underline; writes all runs; auto-size + reflow
     r(
-        "text.underline",
+        "format.underline",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1691,10 +1685,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.underline: edit session: chars 0..2 of the edited layer, toggle on decoration==underline over that range
+    // format.underline: edit session: chars 0..2 of the edited layer, toggle on decoration==underline over that range
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.underline",
+        "format.underline",
         r##"{}"##,
         &[],
         "mode",
@@ -1704,9 +1698,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.strikethrough: ids names $T; toggle on decoration==strikethrough; writes all runs; auto-size + reflow
+    // format.strikethrough: ids names $T; toggle on decoration==strikethrough; writes all runs; auto-size + reflow
     r(
-        "text.strikethrough",
+        "format.strikethrough",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1716,10 +1710,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.strikethrough: edit session: chars 0..2 of the edited layer, toggle on decoration==strikethrough over that range
+    // format.strikethrough: edit session: chars 0..2 of the edited layer, toggle on decoration==strikethrough over that range
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.strikethrough",
+        "format.strikethrough",
         r##"{}"##,
         &[],
         "mode",
@@ -1804,28 +1798,28 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignLeft: ids names $T (and texts in its subtree); writes align_h; normalize reflow
+    // format.alignLeft: ids names $T (and texts in its subtree); writes align_h; normalize reflow
     // review: unchanged fixture text does not schedule reflow (derived.rs:148).
     r(
-        "text.alignLeft",
+        "format.alignLeft",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
         &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
-    // text.alignLeft: edit session: the whole edited layer (ids ignored)
+    // format.alignLeft: edit session: the whole edited layer (ids ignored)
     // review: unchanged fixture text does not schedule reflow (derived.rs:148).
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.alignLeft",
+        "format.alignLeft",
         r##"{}"##,
         &[],
         "mode",
         &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
-    // text.alignCenter: ids names $T (and texts in its subtree); writes align_h; normalize reflow
+    // format.alignCenter: ids names $T (and texts in its subtree); writes align_h; normalize reflow
     r(
-        "text.alignCenter",
+        "format.alignCenter",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1835,10 +1829,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignCenter: edit session: the whole edited layer (ids ignored)
+    // format.alignCenter: edit session: the whole edited layer (ids ignored)
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.alignCenter",
+        "format.alignCenter",
         r##"{}"##,
         &[],
         "mode",
@@ -1848,9 +1842,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignRight: ids names $T (and texts in its subtree); writes align_h; normalize reflow
+    // format.alignRight: ids names $T (and texts in its subtree); writes align_h; normalize reflow
     r(
-        "text.alignRight",
+        "format.alignRight",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1860,10 +1854,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignRight: edit session: the whole edited layer (ids ignored)
+    // format.alignRight: edit session: the whole edited layer (ids ignored)
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.alignRight",
+        "format.alignRight",
         r##"{}"##,
         &[],
         "mode",
@@ -1873,9 +1867,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignJustify: ids names $T (and texts in its subtree); writes align_h; normalize reflow
+    // format.justify: ids names $T (and texts in its subtree); writes align_h; normalize reflow
     r(
-        "text.alignJustify",
+        "format.justify",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1885,10 +1879,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignJustify: edit session: the whole edited layer (ids ignored)
+    // format.justify: edit session: the whole edited layer (ids ignored)
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.alignJustify",
+        "format.justify",
         r##"{}"##,
         &[],
         "mode",
@@ -1898,9 +1892,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeUp: ids names $T; reads each run's font size, +1; detaches changed bindings; auto-size + $F reflow
+    // format.increaseFontSize: ids names $T; reads each run's font size, +1; detaches changed bindings; auto-size + $F reflow
     r(
-        "text.sizeUp",
+        "format.increaseFontSize",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1910,10 +1904,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeUp: edit session: chars 0..2 of the edited layer (reads each run's font size, +1)
+    // format.increaseFontSize: edit session: chars 0..2 of the edited layer (reads each run's font size, +1)
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.sizeUp",
+        "format.increaseFontSize",
         r##"{}"##,
         &[],
         "mode",
@@ -1923,9 +1917,9 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeDown: ids names $T; reads each run's font size, -1; detaches changed bindings; auto-size + $F reflow
+    // format.decreaseFontSize: ids names $T; reads each run's font size, -1; detaches changed bindings; auto-size + $F reflow
     r(
-        "text.sizeDown",
+        "format.decreaseFontSize",
         r##"{"ids": ["$T"]}"##,
         &[],
         "",
@@ -1935,10 +1929,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeDown: edit session: chars 0..2 of the edited layer (reads each run's font size, -1)
+    // format.decreaseFontSize: edit session: chars 0..2 of the edited layer (reads each run's font size, -1)
     s(
         r##"[["text.edit.begin", {"id": "$T", "caret": 0}], ["text.edit.caret", {"index": 2, "extend": true}]]"##,
-        "text.sizeDown",
+        "format.decreaseFontSize",
         r##"{}"##,
         &[],
         "mode",
@@ -2192,25 +2186,25 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // UNSURE: text.create: no parent -> the current page; new text node on top (when the session knows the UI theme, ui_dark, the page background / parent fills are read to pick white text; not modelled here)
+    // UNSURE: text.add: no parent -> the current page; new text node on top (when the session knows the UI theme, ui_dark, the page background / parent fills are read to pick white text; not modelled here)
     // Reviewed after behavior tests: create.rs:313 reads ui_dark even though this headless
     // fixture has no theme; the command-wide editor declaration must include that UI path.
-    r("text.create", r##"{"text": "Hi", "x": 10, "y": 900}"##, &[], "part,mode", &[("$P1", "-", false)]),
-    // text.create: parent $F (auto layout): appended, $F re-flows with its children
+    r("text.add", r##"{"text": "Hi", "x": 10, "y": 900}"##, &[], "part,mode", &[("$P1", "-", false)]),
+    // text.add: parent $F (auto layout): appended, $F re-flows with its children
     // Reviewed after comparison: layout_frame calls fit_hug_text (layout/src/lib.rs:254,352),
     // which remeasures the existing text sibling from its kind/content and resize mode.
     r(
-        "text.create",
+        "text.add",
         r##"{"text": "Hi", "x": 0, "y": 0, "parent": "$F"}"##,
         &[],
         "",
         &[("$F", TEXT_FLOW_PARENT, false), ("$A", "frame,visible,childLayout", true), ("$T", "kind,text,frame,visible,childLayout", true)],
     ),
-    // text.create: parent group $G: x/y in $G's frame space (ancestors' transforms), $G refits to its children
+    // text.add: parent group $G: x/y in $G's frame space (ancestors' transforms), $G refits to its children
     // Reviewed after behavior tests: doc::box_children reads visibility only on masks, and
     // these children are not masks. Group/child placement supplies frame space and mask order.
     r(
-        "text.create",
+        "text.add",
         r##"{"text": "Hi", "x": 0, "y": 250, "parent": "$G"}"##,
         &[],
         "",
@@ -2803,11 +2797,11 @@ const ROWS: &[Row] = &[
     r("vector.reverse", r##"{"ids": ["$V"]}"##, &[], "", &[("$V", "kind", false)]),
     // vector.offset: the rectangle's outline (kind, size, corners) grown by the offset becomes its network; box moved and resized
     r("vector.offset", r##"{"ids": ["$R"], "offset": 5}"##, &[], "", &[("$R", "kind,frame,corners", false)]),
-    // vector.create (no parent): a new vector on top of the current page
-    r("vector.create", r##"{"path": "M0 0 L10 10"}"##, &[], "part", &[("$P1", "-", false)]),
-    // vector.create (parent: auto layout frame $F): the new vector joins $F's flow, which re-flows from $F's layout and size and its children's sizes, visibility and child layout
+    // vector.add (no parent): a new vector on top of the current page
+    r("vector.add", r##"{"path": "M0 0 L10 10"}"##, &[], "part", &[("$P1", "-", false)]),
+    // vector.add (parent: auto layout frame $F): the new vector joins $F's flow, which re-flows from $F's layout and size and its children's sizes, visibility and child layout
     r(
-        "vector.create",
+        "vector.add",
         r##"{"path": "M0 0 L10 10", "parent": "$F"}"##,
         &[],
         "",
@@ -3073,25 +3067,19 @@ const ROWS: &[Row] = &[
         ],
     ),
     // ---- Reading 5 ----
-    // component.create: one frame by id: its kind is checked (Frame/Group) and replaced by Component; ancestors only refuse (inside instance)
-    r("component.create", r##"{"ids": ["$F"]}"##, &[], "", &[("$F", "kind", false)]),
-    // component.create: a group becomes a component: kind replaced, fills cleared, clip off, blend PassThrough (each replaced whole)
-    r("component.create", r##"{"ids": ["$G"]}"##, &[], "", &[("$G", "kind,fills,props.clip,props.blend", false)]),
-    // component.create: a rectangle is wrapped in a new frame at its world bounds, at its parent/index (topmost), taking its name ("Box"), then the frame becomes the component
-    r("component.create", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "name,kind,frame", true)]),
-    // component.create: no ids: the selection names the frame
-    r("component.create", r##"{}"##, &["$F"], "selection", &[("$F", "kind", false)]),
-    // component.createMultiple: each id runs component.create alone (frame: kind; group: kind, fills, clip, blend)
-    r(
-        "component.createMultiple",
-        r##"{"ids": ["$F", "$G"]}"##,
-        &[],
-        "",
-        &[("$F", "kind", false), ("$G", "kind,fills,props.clip,props.blend", false)],
-    ),
+    // component.add: one frame by id: its kind is checked (Frame/Group) and replaced by Component; ancestors only refuse (inside instance)
+    r("component.add", r##"{"ids": ["$F"]}"##, &[], "", &[("$F", "kind", false)]),
+    // component.add: a group becomes a component: kind replaced, fills cleared, clip off, blend PassThrough (each replaced whole)
+    r("component.add", r##"{"ids": ["$G"]}"##, &[], "", &[("$G", "kind,fills,props.clip,props.blend", false)]),
+    // component.add: a rectangle is wrapped in a new frame at its world bounds, at its parent/index (topmost), taking its name ("Box"), then the frame becomes the component
+    r("component.add", r##"{"ids": ["$R"]}"##, &[], "", &[("$R", "name,kind,frame", true)]),
+    // component.add: no ids: the selection names the frame
+    r("component.add", r##"{}"##, &["$F"], "selection", &[("$F", "kind", false)]),
+    // component.addMultiple: each id runs component.add alone (frame: kind; group: kind, fills, clip, blend)
+    r("component.addMultiple", r##"{"ids": ["$F", "$G"]}"##, &[], "", &[("$F", "kind", false), ("$G", "kind,fills,props.clip,props.blend", false)]),
     // component.combineVariants: main components (kind, parent kind, remote, roots checked); z order and the top-most's parent/index place the new set; world bounds size it; first's name names the set; names without '=' are replaced ("Property 1=...")
     s(
-        r##"[["component.create", {"ids": ["$F"]}]]"##,
+        r##"[["component.add", {"ids": ["$F"]}]]"##,
         "component.combineVariants",
         r##"{"ids": ["$K", "$F"]}"##,
         &[],
@@ -3146,11 +3134,11 @@ const ROWS: &[Row] = &[
     r("component.addVariant", r##"{"id": "$Set"}"##, &[], "", &[("$Set", "kind,frame", false), ("$VS", "name,kind,frame", true), ("$VL", "*", true)]),
     // component.addVariant: on a lone main: wrapped in a new set at its parent/index/bounds, renamed "Property 1=Default", then duplicated whole
     r("component.addVariant", r##"{"id": "$K"}"##, &[], "", &[("$K", "*", true), ("$KT", "*", true)]),
-    // instance.create: the main copied whole with its subtree onto the current page (no parent), beside the main's world bounds
-    r("instance.create", r##"{"component": "$K"}"##, &[], "part", &[("$K", "*", false), ("$KT", "*", true)]),
-    // instance.create: a set gives its default variant (top-left by the variants' transforms); the set's name names the instance; explicit parent and place
+    // instance.add: the main copied whole with its subtree onto the current page (no parent), beside the main's world bounds
+    r("instance.add", r##"{"component": "$K"}"##, &[], "part", &[("$K", "*", false), ("$KT", "*", true)]),
+    // instance.add: a set gives its default variant (top-left by the variants' transforms); the set's name names the instance; explicit parent and place
     r(
-        "instance.create",
+        "instance.add",
         r##"{"component": "$Set", "parent": "$X", "x": 10, "y": 10}"##,
         &[],
         "",
@@ -3181,7 +3169,7 @@ const ROWS: &[Row] = &[
     ),
     // component.exposeInstance: the instance must be nested in a main (checked through its ancestors: the wrapper component $S1 the step made, its kind) and not inside an instance; props.exposed replaced
     s(
-        r##"[["component.create", {"ids": ["$I"]}]]"##,
+        r##"[["component.add", {"ids": ["$I"]}]]"##,
         "component.exposeInstance",
         r##"{"id": "$I"}"##,
         &[],
@@ -3192,7 +3180,7 @@ const ROWS: &[Row] = &[
     // Reviewed after comparison: the wrapper is $S1; make_slot resolves its owner and
     // add_prop_for reads/writes its definitions (component/instance.rs:158-170, props.rs:214-295).
     s(
-        r##"[["component.create", {"ids": ["$F", "$E"]}]]"##,
+        r##"[["component.add", {"ids": ["$F", "$E"]}]]"##,
         "component.makeSlot",
         r##"{"id": "$F"}"##,
         &[],
@@ -3203,7 +3191,7 @@ const ROWS: &[Row] = &[
     // Reviewed after comparison: remove_slot/delete_prop resolves the same wrapper's kind
     // and place before rewriting its definitions (component/instance.rs:172-182, props.rs:522-555).
     s(
-        r##"[["component.create", {"ids": ["$F", "$E"]}], ["component.makeSlot", {"id": "$F"}]]"##,
+        r##"[["component.add", {"ids": ["$F", "$E"]}], ["component.makeSlot", {"id": "$F"}]]"##,
         "component.removeSlot",
         r##"{"id": "$F"}"##,
         &[],
@@ -3308,7 +3296,7 @@ const ROWS: &[Row] = &[
     ),
     // instance.setProperties: variant switch on $S1 (instance of $Set's default $VS): current variant's name and parent (the set), the set's children names (options, find_variant); kind.component replaced; normalize rebuilds $S1 from $VL whole
     s(
-        r##"[["instance.create", {"component": "$Set"}]]"##,
+        r##"[["instance.add", {"component": "$Set"}]]"##,
         "instance.setProperties",
         r##"{"ids": ["$S1"], "properties": {"Size": "L"}}"##,
         &[],
@@ -3573,7 +3561,7 @@ const ROWS: &[Row] = &[
     ),
     // library.aliasVariable: local number variable $S1 (not remote; its type checked against "space"); the copy of FILE's "space" made; $S1's value in its collection's default mode replaced by an alias of it
     s(
-        r##"[["variable.create", {"collection": "$Colors", "name": "gap", "type": "number", "value": 4}]]"##,
+        r##"[["variable.add", {"collection": "$Colors", "name": "gap", "type": "number", "value": 4}]]"##,
         "library.aliasVariable",
         r##"{"library": "Buttons", "alias": "space", "variable": "$S1"}"##,
         &[],
@@ -3774,10 +3762,10 @@ const ROWS: &[Row] = &[
     r("export.add", r##"{"ids": ["$X"]}"##, &[], "", &[("$X", "props.exports", false)]),
     // export.add with a setting: pushed onto the list
     r("export.add", r##"{"ids": ["$X"], "setting": {"size": "2x", "format": "png"}}"##, &[], "", &[("$X", "props.exports", false)]),
-    // export.update: setting 0 updated from its current value with the given keys
+    // export.set: setting 0 updated from its current value with the given keys
     s(
         r##"[["export.add", {"ids": ["$X"]}]]"##,
-        "export.update",
+        "export.set",
         r##"{"ids": ["$X"], "index": 0, "format": "svg"}"##,
         &[],
         "",
@@ -3821,41 +3809,41 @@ const ROWS: &[Row] = &[
         "",
         &[("$X", "props.grids,bindings.styles,bindings.bound", false)],
     ),
-    // selection.setPaint list target: $R's fill 0 replaced, fill style cleared, fills/0/color binding dropped (colour changed)
+    // select.setPaint list target: $R's fill 0 replaced, fill style cleared, fills/0/color binding dropped (colour changed)
     r(
-        "selection.setPaint",
+        "select.setPaint",
         r##"{"targets": [{"id": "$R", "fills": true, "index": 0, "range": null}], "paint": "#0000ff"}"##,
         &[],
         "",
         &[("$R", "fills,bindings.styles,bindings.bound", false)],
     ),
-    // selection.setPaint text range target: chars 0..2 of $T get own fills = the layer's fills with slot 0 replaced (reads fills, writes kind)
+    // select.setPaint text range target: chars 0..2 of $T get own fills = the layer's fills with slot 0 replaced (reads fills, writes kind)
     r(
-        "selection.setPaint",
+        "select.setPaint",
         r##"{"targets": [{"id": "$T", "fills": true, "index": 0, "range": [0, 2]}], "paint": "#0000ff"}"##,
         &[],
         "",
         &[("$T", "fills,kind,text", false)],
     ),
-    // selection.applyColorStyle by id: $R's fills replaced by $Brand's paints, link set, fill bindings dropped
+    // select.applyColorStyle by id: $R's fills replaced by $Brand's paints, link set, fill bindings dropped
     r(
-        "selection.applyColorStyle",
+        "select.applyColorStyle",
         r##"{"targets": [{"id": "$R", "fills": true, "index": 0, "range": null}], "style": "$Brand"}"##,
         &[],
         "",
         &[("$R", "fills,bindings.styles,bindings.bound", false), ("$Brand", "value,props.bound", false)],
     ),
-    // selection.applyColorStyle by name
+    // select.applyColorStyle by name
     r(
-        "selection.applyColorStyle",
+        "select.applyColorStyle",
         r##"{"targets": [{"id": "$R", "fills": true, "index": 0, "range": null}], "style": "Brand"}"##,
         &[],
         "",
         &[("$R", "fills,bindings.styles,bindings.bound", false), ("$Brand", "name,value,props.bound", false)],
     ),
-    // selection.bindColorVariable on $E's fill 0: drops $Brand link, binds fills/0/color to $Primary; normalize writes $Primary's value (in $E's modes) into $E's fill
+    // select.bindColorVariable on $E's fill 0: drops $Brand link, binds fills/0/color to $Primary; normalize writes $Primary's value (in $E's modes) into $E's fill
     r(
-        "selection.bindColorVariable",
+        "select.bindColorVariable",
         r##"{"targets": [{"id": "$E", "fills": true, "index": 0, "range": null}], "variable": "$Primary"}"##,
         &[],
         "",
@@ -3866,9 +3854,9 @@ const ROWS: &[Row] = &[
             ("$P1", "bindings.var_modes", false),
         ],
     ),
-    // selection.bindColorVariable by variable name
+    // select.bindColorVariable by variable name
     r(
-        "selection.bindColorVariable",
+        "select.bindColorVariable",
         r##"{"targets": [{"id": "$E", "fills": true, "index": 0, "range": null}], "variable": "primary"}"##,
         &[],
         "",
@@ -3879,48 +3867,30 @@ const ROWS: &[Row] = &[
             ("$P1", "bindings.var_modes", false),
         ],
     ),
-    // selection.detachColor on $R's fill 0: unbinds fills/0/color, moves the colour's alpha into the paint opacity, clears fill style link
+    // select.detachColor on $R's fill 0: unbinds fills/0/color, moves the colour's alpha into the paint opacity, clears fill style link
     r(
-        "selection.detachColor",
+        "select.detachColor",
         r##"{"targets": [{"id": "$R", "fills": true, "index": 0, "range": null}]}"##,
         &[],
         "",
         &[("$R", "fills,bindings.styles,bindings.bound", false)],
     ),
-    // selection.detachColor on $E's fill 0: clears the $Brand link (no binding to drop)
+    // select.detachColor on $E's fill 0: clears the $Brand link (no binding to drop)
     r(
-        "selection.detachColor",
+        "select.detachColor",
         r##"{"targets": [{"id": "$E", "fills": true, "index": 0, "range": null}]}"##,
         &[],
         "",
         &[("$E", "bindings.styles,bindings.bound", false)],
     ),
-    // style.create with value: a new style from the given paints; reads no layer
-    r("style.create", r##"{"type": "paint", "name": "Green", "value": "#00ff00"}"##, &[], "", &[]),
-    // style.create from $X: takes $X's fills (and their bindings), links $X to the new style (fills rewritten, fill bindings dropped)
-    r(
-        "style.create",
-        r##"{"type": "paint", "name": "Screen fill", "from": "$X"}"##,
-        &[],
-        "",
-        &[("$X", "fills,bindings.styles,bindings.bound", false)],
-    ),
-    // style.create without from/value: takes the first selected layer (here via `on`) for the effect style and links it
-    r(
-        "style.create",
-        r##"{"type": "effect", "name": "Screen fx"}"##,
-        &["$X"],
-        "selection",
-        &[("$X", "effects,bindings.styles,bindings.bound", false)],
-    ),
-    // style.create text from $T: takes $T's text style, links all its chars (kind) and styles.text
-    r(
-        "style.create",
-        r##"{"type": "text", "name": "Body", "from": "$T"}"##,
-        &[],
-        "mode",
-        &[("$T", "kind,text,bindings.styles,bindings.bound", false)],
-    ),
+    // style.add with value: a new style from the given paints; reads no layer
+    r("style.add", r##"{"type": "paint", "name": "Green", "value": "#00ff00"}"##, &[], "", &[]),
+    // style.add from $X: takes $X's fills (and their bindings), links $X to the new style (fills rewritten, fill bindings dropped)
+    r("style.add", r##"{"type": "paint", "name": "Screen fill", "from": "$X"}"##, &[], "", &[("$X", "fills,bindings.styles,bindings.bound", false)]),
+    // style.add without from/value: takes the first selected layer (here via `on`) for the effect style and links it
+    r("style.add", r##"{"type": "effect", "name": "Screen fx"}"##, &["$X"], "selection", &[("$X", "effects,bindings.styles,bindings.bound", false)]),
+    // style.add text from $T: takes $T's text style, links all its chars (kind) and styles.text
+    r("style.add", r##"{"type": "text", "name": "Body", "from": "$T"}"##, &[], "mode", &[("$T", "kind,text,bindings.styles,bindings.bound", false)]),
     // style.apply paint style by id on $X: fills replaced by $Brand's paints, link set, fill bindings dropped
     r(
         "style.apply",
@@ -3943,19 +3913,19 @@ const ROWS: &[Row] = &[
     r("style.detach", r##"{"ids": ["$T"], "which": "text"}"##, &[], "mode", &[("$T", "kind,text,bindings.styles", false)]),
     // style.detach text with start/end: unlinks chars 0..2 only
     r("style.detach", r##"{"ids": ["$T"], "which": "text", "start": 0, "end": 2}"##, &[], "", &[("$T", "kind,text", false)]),
-    // style.update name: replaces $Brand's name
-    r("style.update", r##"{"style": "$Brand", "name": "Brand/Main"}"##, &[], "", &[("$Brand", "name", false)]),
-    // style.update value: replaces $Brand's value (prunes its bindings) and propagates to linked $E (fills rewritten)
+    // style.set name: replaces $Brand's name
+    r("style.set", r##"{"style": "$Brand", "name": "Brand/Main"}"##, &[], "", &[("$Brand", "name", false)]),
+    // style.set value: replaces $Brand's value (prunes its bindings) and propagates to linked $E (fills rewritten)
     r(
-        "style.update",
+        "style.set",
         r##"{"style": "$Brand", "value": "#00ff00"}"##,
         &[],
         "",
         &[("$Brand", "value,props.bound", false), ("$E", "fills,bindings.styles,bindings.bound", false)],
     ),
-    // style.update from $X: $Brand's value taken from $X's fills, then propagated to $E
+    // style.set from $X: $Brand's value taken from $X's fills, then propagated to $E
     r(
-        "style.update",
+        "style.set",
         r##"{"style": "$Brand", "from": "$X"}"##,
         &[],
         "",
@@ -3981,7 +3951,7 @@ const ROWS: &[Row] = &[
     r("style.move", r##"{"styles": ["$Brand"], "folder": "Kit"}"##, &[], "", &[("$Brand", "name", false)]),
     // style.move before $Brand: the moved style lands where $Brand is in the list
     s(
-        r##"[["style.create", {"type": "paint", "name": "Other", "value": "#0000ff"}]]"##,
+        r##"[["style.add", {"type": "paint", "name": "Other", "value": "#0000ff"}]]"##,
         "style.move",
         r##"{"styles": ["$S1"], "before": "$Brand"}"##,
         &[],
@@ -3992,7 +3962,7 @@ const ROWS: &[Row] = &[
     // Reviewed after behavior tests: rename_folder scans names, including styles that another
     // writer moves into or out of the folder; replay must hold that name-based membership.
     s(
-        r##"[["style.update", {"style": "$Brand", "name": "Old/Brand"}]]"##,
+        r##"[["style.set", {"style": "$Brand", "name": "Old/Brand"}]]"##,
         "style.renameFolder",
         r##"{"folder": "Old", "name": "New"}"##,
         &[],
@@ -4003,8 +3973,8 @@ const ROWS: &[Row] = &[
     r("style.delete", r##"{"style": "$Brand"}"##, &[], "", &[("$Brand", "-", false), ("$E", "bindings.styles", false)]),
     // style.delete by name
     r("style.delete", r##"{"style": "Brand"}"##, &[], "", &[("$Brand", "name", false), ("$E", "bindings.styles", false)]),
-    // variable.createCollection: new collection; name uniqueness only refuses
-    r("variable.createCollection", r##"{"name": "Sizes", "modes": ["S", "L"]}"##, &[], "", &[]),
+    // variable.addCollection: new collection; name uniqueness only refuses
+    r("variable.addCollection", r##"{"name": "Sizes", "modes": ["S", "L"]}"##, &[], "", &[]),
     // variable.addMode: appended to $Colors' modes; every variable of $Colors gets the default mode's value for it
     r(
         "variable.addMode",
@@ -4021,13 +3991,13 @@ const ROWS: &[Row] = &[
         "",
         &[("$Colors", "name,modes", false), ("$Primary", "collection,values", false), ("$Accent", "collection,values", false)],
     ),
-    // variable.create with one value: given value in every mode of $Colors
-    r("variable.create", r##"{"collection": "$Colors", "name": "space", "type": "number", "value": 4}"##, &[], "", &[("$Colors", "modes", false)]),
-    // variable.create with an alias value by name: alias target $Primary resolved by name (and type checked)
+    // variable.add with one value: given value in every mode of $Colors
+    r("variable.add", r##"{"collection": "$Colors", "name": "space", "type": "number", "value": 4}"##, &[], "", &[("$Colors", "modes", false)]),
+    // variable.add with an alias value by name: alias target $Primary resolved by name (and type checked)
     // Reviewed after behavior tests: var_create resolves aliases inside each values entry;
     // replay of name/type/collection detects a renamed or reassigned alias target too.
     r(
-        "variable.create",
+        "variable.add",
         r##"{"collection": "$Colors", "name": "link", "type": "color", "values": {"Light": {"alias": "primary"}, "Dark": "#000000"}}"##,
         &[],
         "",
@@ -4752,7 +4722,7 @@ const ROWS: &[Row] = &[
     b(r##""##, "board.sticky", r##"{"x": 0, "y": 900, "color": "blue", "author": false}"##, &[], "part", &[]),
     // board.sticky into a section made by a before step: the parent named by id (it exists; its kind only validates), no layout there, so nothing else read
     b(
-        r##"[["node.create", {"type": "section", "name": "Area", "x": 0, "y": 1200, "width": 600, "height": 400}]]"##,
+        r##"[["node.add", {"type": "section", "name": "Area", "x": 0, "y": 1200, "width": 600, "height": 400}]]"##,
         "board.sticky",
         r##"{"x": 20, "y": 20, "parent": "$S1", "color": "blue", "author": false}"##,
         &[],
@@ -5022,7 +4992,7 @@ const ROWS: &[Row] = &[
     // ---- Reading 1: the fallback paths ----
     // edit.pasteReplace on the selection: replaces the selected $E with the clipboard at $E's index and world top-left
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copy", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteReplace",
         r##"{}"##,
         &["$E"],
@@ -5035,16 +5005,16 @@ const ROWS: &[Row] = &[
     r("edit.delete", r##"{}"##, &["$E"], "selection", &[("$E", "-", false)]),
     // edit.pasteProperties on the selection: copied properties onto $E (type, paint bindings, style link against $Brand)
     s(
-        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copyProperties", {}], ["select.none", {}]]"##,
+        r##"[["select.set", {"ids": ["$G1"]}], ["edit.copyProperties", {}], ["edit.deselectAll", {}]]"##,
         "edit.pasteProperties",
         r##"{}"##,
         &["$E"],
         "selection,mode",
         &[("$E", "kind,fills,strokes,stroke,effects,opacity,props.blend,bindings.styles,bindings.bound", false), ("$Brand", "value", false)],
     ),
-    // object.ungroup on the selection: $G's children go to its parent at its index with world places kept, $G removed
+    // arrange.ungroup on the selection: $G's children go to its parent at its index with world places kept, $G removed
     r(
-        "object.ungroup",
+        "arrange.ungroup",
         r##"{}"##,
         &["$G"],
         "selection",
@@ -5174,14 +5144,21 @@ const ROWS: &[Row] = &[
         "selection",
         &[("$D", "kind,frame,layout,childLayout,~hierarchy", false), ("$LI", "frame,visible,childLayout", true)],
     ),
-    // arrange.front: no ids -> the selection ($R) to the top of its parent
-    s(r##"[["select.set", {"ids": ["$R"]}]]"##, "arrange.front", r##"{}"##, &[], "selection", &[("$R", "-", true), ("$P1", "~hierarchy", false)]),
-    // arrange.forward: no ids -> the selection ($R) swaps with $E above it
-    s(r##"[["select.set", {"ids": ["$R"]}]]"##, "arrange.forward", r##"{}"##, &[], "selection", &[("$R", "-", true), ("$E", "-", true)]),
-    // arrange.backward: no ids -> the selection ($E) swaps with $R below it
-    s(r##"[["select.set", {"ids": ["$E"]}]]"##, "arrange.backward", r##"{}"##, &[], "selection", &[("$E", "-", true), ("$R", "-", true)]),
-    // arrange.back: no ids -> the selection ($E) to index 0
-    s(r##"[["select.set", {"ids": ["$E"]}]]"##, "arrange.back", r##"{}"##, &[], "selection", &[("$E", "-", true)]),
+    // arrange.bringToFront: no ids -> the selection ($R) to the top of its parent
+    s(
+        r##"[["select.set", {"ids": ["$R"]}]]"##,
+        "arrange.bringToFront",
+        r##"{}"##,
+        &[],
+        "selection",
+        &[("$R", "-", true), ("$P1", "~hierarchy", false)],
+    ),
+    // arrange.bringForward: no ids -> the selection ($R) swaps with $E above it
+    s(r##"[["select.set", {"ids": ["$R"]}]]"##, "arrange.bringForward", r##"{}"##, &[], "selection", &[("$R", "-", true), ("$E", "-", true)]),
+    // arrange.sendBackward: no ids -> the selection ($E) swaps with $R below it
+    s(r##"[["select.set", {"ids": ["$E"]}]]"##, "arrange.sendBackward", r##"{}"##, &[], "selection", &[("$E", "-", true), ("$R", "-", true)]),
+    // arrange.sendToBack: no ids -> the selection ($E) to index 0
+    s(r##"[["select.set", {"ids": ["$E"]}]]"##, "arrange.sendToBack", r##"{}"##, &[], "selection", &[("$E", "-", true)]),
     // align.left: no ids -> the selection ($R,$X), union bounds
     s(r##"[["select.set", {"ids": ["$R", "$X"]}]]"##, "align.left", r##"{}"##, &[], "selection", &[("$R", "frame", true), ("$X", "frame", true)]),
     // align.hcenter: no ids -> the selection
@@ -5220,8 +5197,8 @@ const ROWS: &[Row] = &[
     s(r##"[["select.set", {"ids": ["$R", "$E"]}]]"##, "arrange.packV", r##"{}"##, &[], "selection", &[("$R", "frame", true), ("$E", "frame", true)]),
     // arrange.roundToPixels: no ids -> the selection ($R)
     s(r##"[["select.set", {"ids": ["$R"]}]]"##, "arrange.roundToPixels", r##"{}"##, &[], "selection", &[("$R", "frame", false)]),
-    // frame.create: preset, no position, current page empty ($P2): placed at the view's centre (view state)
-    s(r##"[["page.select", {"id": "$P2"}]]"##, "frame.create", r##"{"preset": "iPhone 16"}"##, &[], "part,mode", &[("$P2", "~hierarchy", false)]),
+    // frame.add: preset, no position, current page empty ($P2): placed at the view's centre (view state)
+    s(r##"[["page.select", {"id": "$P2"}]]"##, "frame.add", r##"{"preset": "iPhone 16"}"##, &[], "part,mode", &[("$P2", "~hierarchy", false)]),
     // frame.swapOrientation: no ids -> the selection ($X)
     s(r##"[["select.set", {"ids": ["$X"]}]]"##, "frame.swapOrientation", r##"{}"##, &[], "selection", &[("$X", "frame,childLayout", false)]),
     // node.set: no ids -> the selection ($R); reviewed opacity binding detachment as above.
@@ -5316,10 +5293,10 @@ const ROWS: &[Row] = &[
     // guide.remove: index, no frame/page -> the current page's guide 0
     s(r##"[["guide.add", {"vertical": true, "offset": 10}]]"##, "guide.remove", r##"{"index": 0}"##, &[], "part", &[("$P1", "kind", false)]),
     // ---- Reading 3: the fallback paths ----
-    // text.italic: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
+    // format.italic: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.italic",
+        "format.italic",
         r##"{}"##,
         &[],
         "selection",
@@ -5329,10 +5306,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.underline: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
+    // format.underline: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.underline",
+        "format.underline",
         r##"{}"##,
         &[],
         "selection",
@@ -5342,10 +5319,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.strikethrough: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
+    // format.strikethrough: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.strikethrough",
+        "format.strikethrough",
         r##"{}"##,
         &[],
         "selection",
@@ -5368,10 +5345,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeUp: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
+    // format.increaseFontSize: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.sizeUp",
+        "format.increaseFontSize",
         r##"{}"##,
         &[],
         "selection",
@@ -5381,10 +5358,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.sizeDown: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
+    // format.decreaseFontSize: no ids -> the selection ($T, and the texts in its subtree); same reads as the ids path; detaches changed bindings; auto-size + $F reflow
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.sizeDown",
+        "format.decreaseFontSize",
         r##"{}"##,
         &[],
         "selection",
@@ -5586,20 +5563,20 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignLeft: no ids -> the selection ($T and its subtree); writes align
+    // format.alignLeft: no ids -> the selection ($T and its subtree); writes align
     // review: unchanged fixture text does not schedule reflow (derived.rs:148).
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.alignLeft",
+        "format.alignLeft",
         r##"{}"##,
         &[],
         "selection",
         &[("$T", "kind,text,frame.width,frame.height,childLayout.sizing_h,childLayout.sizing_v,bindings.styles", false)],
     ),
-    // text.alignCenter: no ids -> the selection ($T and its subtree); writes align
+    // format.alignCenter: no ids -> the selection ($T and its subtree); writes align
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.alignCenter",
+        "format.alignCenter",
         r##"{}"##,
         &[],
         "selection",
@@ -5609,10 +5586,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignRight: no ids -> the selection ($T and its subtree); writes align
+    // format.alignRight: no ids -> the selection ($T and its subtree); writes align
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.alignRight",
+        "format.alignRight",
         r##"{}"##,
         &[],
         "selection",
@@ -5622,10 +5599,10 @@ const ROWS: &[Row] = &[
             ("$A", "frame,visible,childLayout", true),
         ],
     ),
-    // text.alignJustify: no ids -> the selection ($T and its subtree); writes align
+    // format.justify: no ids -> the selection ($T and its subtree); writes align
     s(
         r##"[["select.set", {"ids": ["$T"]}]]"##,
-        "text.alignJustify",
+        "format.justify",
         r##"{}"##,
         &[],
         "selection",
@@ -6011,17 +5988,11 @@ const ROWS: &[Row] = &[
         &[("$V", "kind,frame", false)],
     ),
     // ---- Reading 5: the fallback paths ----
-    // component.createMultiple: no ids: the selection names the layers; each runs component.create (frame: kind; group: kind, fills, clip, blend)
-    r(
-        "component.createMultiple",
-        r##"{}"##,
-        &["$F", "$G"],
-        "selection",
-        &[("$F", "kind", false), ("$G", "kind,fills,props.clip,props.blend", false)],
-    ),
+    // component.addMultiple: no ids: the selection names the layers; each runs component.add (frame: kind; group: kind, fills, clip, blend)
+    r("component.addMultiple", r##"{}"##, &["$F", "$G"], "selection", &[("$F", "kind", false), ("$G", "kind,fills,props.clip,props.blend", false)]),
     // component.combineVariants: no ids: the selected main components are combined (kinds, z order, top-most's parent/index, world bounds, names)
     s(
-        r##"[["component.create", {"ids": ["$F"]}]]"##,
+        r##"[["component.add", {"ids": ["$F"]}]]"##,
         "component.combineVariants",
         r##"{}"##,
         &["$K", "$F"],
@@ -6072,7 +6043,7 @@ const ROWS: &[Row] = &[
     ),
     // component.exposeInstance: no id: the selected instance nested in the wrapper component $S1; props.exposed replaced
     s(
-        r##"[["component.create", {"ids": ["$I"]}]]"##,
+        r##"[["component.add", {"ids": ["$I"]}]]"##,
         "component.exposeInstance",
         r##"{}"##,
         &["$I"],
@@ -6081,7 +6052,7 @@ const ROWS: &[Row] = &[
     ),
     // component.makeSlot: no id: the selected frame inside the main $S1; its name names the property; def into $S1's kind, frame prop_refs.slot
     s(
-        r##"[["component.create", {"ids": ["$F", "$E"]}]]"##,
+        r##"[["component.add", {"ids": ["$F", "$E"]}]]"##,
         "component.makeSlot",
         r##"{}"##,
         &["$F"],
@@ -6091,7 +6062,7 @@ const ROWS: &[Row] = &[
     // component.removeSlot: no id: the selected slot frame; def removed from $S1's kind, prop_refs naming it in $S1's subtree removed
     // Reviewed after comparison: Owner::resolve also uses the wrapper's place (component/props.rs:528).
     s(
-        r##"[["component.create", {"ids": ["$F", "$E"]}], ["component.makeSlot", {"id": "$F"}]]"##,
+        r##"[["component.add", {"ids": ["$F", "$E"]}], ["component.makeSlot", {"id": "$F"}]]"##,
         "component.removeSlot",
         r##"{}"##,
         &["$F"],
@@ -6287,10 +6258,10 @@ const ROWS: &[Row] = &[
     ),
     // export.add without ids: the selection (next step after its last setting)
     r("export.add", r##"{}"##, &["$X"], "selection", &[("$X", "props.exports", false)]),
-    // export.update without ids: the selection
+    // export.set without ids: the selection
     s(
         r##"[["export.add", {"ids": ["$X"]}]]"##,
-        "export.update",
+        "export.set",
         r##"{"index": 0, "format": "svg"}"##,
         &["$X"],
         "selection",
@@ -6630,7 +6601,7 @@ fn fixture_roles() {
 /// never schedules layout_frame. An unconsumed parent limit makes that observable.
 #[test]
 fn review_noop_text_paths_do_not_reflow_the_parent() {
-    for command in ["text.alignLeft", "text.caseOriginal", "text.fit"] {
+    for command in ["format.alignLeft", "text.caseOriginal", "text.fit"] {
         let (bytes, roles) = fixture();
         let node = |role: &str| roles.iter().find(|(name, _)| *name == role).unwrap().1.as_u64().unwrap();
         let (text, parent) = (kition_design_doc::NodeId(node("$T")), kition_design_doc::NodeId(node("$F")));

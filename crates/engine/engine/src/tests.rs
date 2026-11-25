@@ -14,7 +14,7 @@ fn id(v: &Value) -> NodeId {
 #[test]
 fn create_select_undo_redo() {
     let mut s = sess();
-    let r = s.execute("node.create", &json!({"type": "rectangle", "x": 10, "y": 20, "width": 30, "height": 40})).unwrap();
+    let r = s.execute("node.add", &json!({"type": "rectangle", "x": 10, "y": 20, "width": 30, "height": 40})).unwrap();
     let rid = id(&r);
     assert_eq!(s.selection(), vec![rid]);
     assert_eq!(s.doc().unwrap().world_bounds(rid).unwrap().x0, 10.0);
@@ -111,11 +111,11 @@ fn group_ungroup_and_frame() {
     let mut s = sess();
     let a = id(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap());
     let b = id(&s.execute("shape.ellipse", &json!({"x": 50, "y": 50, "width": 10, "height": 10})).unwrap());
-    let g = id(&s.execute("object.group", &json!({"ids": [a, b]})).unwrap());
+    let g = id(&s.execute("arrange.group", &json!({"ids": [a, b]})).unwrap());
     let doc = s.doc().unwrap();
     assert_eq!(doc.node(g).unwrap().kind.type_name(), "GROUP");
     assert_eq!(doc.world_bounds(g).unwrap().width(), 60.0);
-    s.execute("object.ungroup", &json!({"ids": [g]})).unwrap();
+    s.execute("arrange.ungroup", &json!({"ids": [g]})).unwrap();
     assert!(!s.doc().unwrap().contains(g));
     let f = id(&s.execute("object.frameSelection", &json!({"ids": [a, b]})).unwrap());
     assert_eq!(s.doc().unwrap().node(a).unwrap().parent, Some(f));
@@ -145,7 +145,7 @@ fn auto_layout_add_hugs() {
 #[test]
 fn text_create_autosize_and_edit() {
     let mut s = sess();
-    let t = id(&s.execute("text.create", &json!({"text": "Hello", "x": 0, "y": 0, "props": {"fontSize": 24}})).unwrap());
+    let t = id(&s.execute("text.add", &json!({"text": "Hello", "x": 0, "y": 0, "props": {"fontSize": 24}})).unwrap());
     let w0 = s.doc().unwrap().node(t).unwrap().width;
     textedit::begin(&mut s, t, Some(5), false).unwrap();
     textedit::insert(&mut s, " world").unwrap();
@@ -169,7 +169,7 @@ fn find_replace_replaces_every_occurrence_when_replacement_contains_find() {
         ("banana", "a", "aa", "baanaanaa"),
     ] {
         let mut s = sess();
-        let t = id(&s.execute("text.create", &json!({"text": text, "x": 0, "y": 0})).unwrap());
+        let t = id(&s.execute("text.add", &json!({"text": text, "x": 0, "y": 0})).unwrap());
         s.execute("edit.findReplace", &json!({"find": find, "replace": replace})).unwrap();
         assert_eq!(s.doc().unwrap().node(t).unwrap().kind.text().unwrap().characters, want, "{text}: {find} -> {replace}");
     }
@@ -178,7 +178,7 @@ fn find_replace_replaces_every_occurrence_when_replacement_contains_find() {
 #[test]
 fn find_replace_rejects_empty_find() {
     let mut s = sess();
-    let t = id(&s.execute("text.create", &json!({"text": "cat", "x": 0, "y": 0})).unwrap());
+    let t = id(&s.execute("text.add", &json!({"text": "cat", "x": 0, "y": 0})).unwrap());
     assert!(s.execute("edit.findReplace", &json!({"find": "", "replace": "x"})).is_err());
     assert_eq!(s.doc().unwrap().node(t).unwrap().kind.text().unwrap().characters, "cat");
 }
@@ -186,11 +186,11 @@ fn find_replace_rejects_empty_find() {
 #[test]
 fn components_and_instances_sync() {
     let mut s = sess();
-    let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 50, "name": "Button"})).unwrap());
-    let label = id(&s.execute("text.create", &json!({"text": "OK", "x": 10, "y": 10, "parent": f})).unwrap());
-    let c = id(&s.execute("component.create", &json!({"ids": [f]})).unwrap());
+    let f = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 50, "name": "Button"})).unwrap());
+    let label = id(&s.execute("text.add", &json!({"text": "OK", "x": 10, "y": 10, "parent": f})).unwrap());
+    let c = id(&s.execute("component.add", &json!({"ids": [f]})).unwrap());
     assert_eq!(c, f);
-    let i = id(&s.execute("instance.create", &json!({"component": c, "x": 200, "y": 0})).unwrap());
+    let i = id(&s.execute("instance.add", &json!({"component": c, "x": 200, "y": 0})).unwrap());
     let doc = s.doc().unwrap();
     assert_eq!(doc.node(i).unwrap().children.len(), 1);
     let inst_label = doc.node(i).unwrap().children[0];
@@ -220,18 +220,18 @@ fn variants_switch() {
     let mut s = sess();
     let a = id(&s
         .execute(
-            "node.create",
+            "node.add",
             &json!({"type": "component", "x": 0, "y": 0, "width": 40, "height": 40, "name": "State=Default", "props": {"fill": "#ff0000"}}),
         )
         .unwrap());
     let b = id(&s
         .execute(
-            "node.create",
+            "node.add",
             &json!({"type": "component", "x": 60, "y": 0, "width": 40, "height": 40, "name": "State=Hover", "props": {"fill": "#0000ff"}}),
         )
         .unwrap());
     s.execute("component.combineVariants", &json!({"ids": [a, b]})).unwrap();
-    let i = id(&s.execute("instance.create", &json!({"component": a, "x": 0, "y": 200})).unwrap());
+    let i = id(&s.execute("instance.add", &json!({"component": a, "x": 0, "y": 200})).unwrap());
     s.execute("instance.setProperties", &json!({"ids": [i], "properties": {"State": "Hover"}})).unwrap();
     let n = s.doc().unwrap().node(i).unwrap().clone();
     assert!(matches!(n.kind, NodeKind::Instance { component, .. } if component == b));
@@ -242,16 +242,16 @@ fn variants_switch() {
 fn styles_and_variables() {
     let mut s = sess();
     let r = id(&s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "props": {"fill": "#123456"}})).unwrap());
-    let st = s.execute("style.create", &json!({"type": "paint", "name": "Brand/Primary", "from": r})).unwrap();
+    let st = s.execute("style.add", &json!({"type": "paint", "name": "Brand/Primary", "from": r})).unwrap();
     let sid = st["id"].as_str().unwrap().to_string();
     let r2 = id(&s.execute("shape.rectangle", &json!({"x": 20, "y": 0, "width": 10, "height": 10})).unwrap());
     s.execute("style.apply", &json!({"ids": [r2], "style": "Brand/Primary"})).unwrap();
     assert_eq!(s.doc().unwrap().node(r2).unwrap().fills[0].solid_color().unwrap().to_hex(), "123456");
-    s.execute("style.update", &json!({"style": sid, "value": ["#ff00ff"]})).unwrap();
+    s.execute("style.set", &json!({"style": sid, "value": ["#ff00ff"]})).unwrap();
     assert_eq!(s.doc().unwrap().node(r2).unwrap().fills[0].solid_color().unwrap().to_hex(), "FF00FF");
     // Variables with modes.
-    s.execute("variable.createCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#ffffff", "Dark": "#000000"}}))
+    s.execute("variable.addCollection", &json!({"name": "Theme", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Theme", "name": "bg", "type": "color", "values": {"Light": "#ffffff", "Dark": "#000000"}}))
         .unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "fill", "variable": "bg"})).unwrap();
     assert_eq!(s.doc().unwrap().node(r).unwrap().fills[0].solid_color().unwrap().to_hex(), "FFFFFF");
@@ -270,7 +270,7 @@ fn align_distribute_zorder() {
     assert_eq!(s.doc().unwrap().world_bounds(b).unwrap().y0, 0.0);
     s.execute("distribute.horizontal", &json!({"ids": [a, b, c]})).unwrap();
     assert_eq!(s.doc().unwrap().world_bounds(b).unwrap().x0, 50.0);
-    s.execute("arrange.back", &json!({"ids": [c]})).unwrap();
+    s.execute("arrange.sendToBack", &json!({"ids": [c]})).unwrap();
     let page = s.page().unwrap();
     assert_eq!(s.doc().unwrap().node(page).unwrap().children[0], c);
 }
@@ -293,7 +293,7 @@ fn distribute_spans_the_outermost_edge() {
 fn a_layer_alone_on_the_page_has_nothing_to_align_to() {
     use crate::cmd::arrange::can_align;
     let mut s = sess();
-    let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
+    let f = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
     let inner = id(&s.execute("shape.rectangle", &json!({"x": 20, "y": 30, "width": 10, "height": 10, "parent": f})).unwrap());
     let loose = id(&s.execute("shape.rectangle", &json!({"x": 300, "y": 5, "width": 10, "height": 10})).unwrap());
     let doc = s.doc().unwrap();
@@ -313,7 +313,7 @@ fn a_layer_alone_on_the_page_has_nothing_to_align_to() {
 #[test]
 fn send_to_back_across_frames_counts_per_parent() {
     let mut s = sess();
-    let make = |s: &mut Session, p: Value| id(&s.execute("node.create", &p).unwrap());
+    let make = |s: &mut Session, p: Value| id(&s.execute("node.add", &p).unwrap());
     let fa = make(&mut s, json!({"type": "frame", "x": 0, "y": 0, "width": 200, "height": 200}));
     let fb = make(&mut s, json!({"type": "frame", "x": 300, "y": 0, "width": 200, "height": 200}));
     let rect = |parent: NodeId| json!({"type": "rectangle", "parent": parent, "x": 10, "y": 10, "width": 20, "height": 20});
@@ -322,11 +322,11 @@ fn send_to_back_across_frames_counts_per_parent() {
     let idx = |s: &Session, n: NodeId| s.doc().unwrap().index_in_parent(n);
     assert_eq!(idx(&s, a[1]), Some(1));
     assert_eq!(idx(&s, b[2]), Some(2));
-    s.execute("arrange.back", &json!({"ids": [a[1], b[2]]})).unwrap();
+    s.execute("arrange.sendToBack", &json!({"ids": [a[1], b[2]]})).unwrap();
     assert_eq!(idx(&s, a[1]), Some(0), "top of frame A at the back");
     assert_eq!(idx(&s, b[2]), Some(0), "top of frame B at the back");
     // Two from B plus one from A: each parent's selection ends at 0..n in its original order.
-    s.execute("arrange.back", &json!({"ids": [b[1], a[0], b[0]]})).unwrap();
+    s.execute("arrange.sendToBack", &json!({"ids": [b[1], a[0], b[0]]})).unwrap();
     let kids = |s: &Session, f: NodeId| s.doc().unwrap().node(f).unwrap().children.clone();
     assert_eq!(kids(&s, fa), vec![a[0], a[1]]);
     assert_eq!(kids(&s, fb), vec![b[0], b[1], b[2]]);
@@ -455,8 +455,8 @@ fn every_command_survives_junk_params() {
         json!({"ids": [2, 3], "type": "vector", "path": [5], "width": -1e308, "props": {"path": "M0 0 L1e308 0 L-1e308 1e308", "height": "NaN", "x": 1e308}}),
         json!({"id": 2, "type": "vector", "path": {"d": 1}, "props": {"path": "M NaN 0 Z", "width": 1e-308}}),
         // Batch step names and reference paths as junk.
-        json!({"commands": [{"command": "select.none", "as": "a"}, {"command": "select.none", "as": [1]}, {"command": "select.none", "as": "a"}]}),
-        json!({"commands": [{"command": "select.all", "as": "\u{0}"}, {"command": "node.set", "params": {"ids": [
+        json!({"commands": [{"command": "edit.deselectAll", "as": "a"}, {"command": "edit.deselectAll", "as": [1]}, {"command": "edit.deselectAll", "as": "a"}]}),
+        json!({"commands": [{"command": "edit.selectAll", "as": "\u{0}"}, {"command": "node.set", "params": {"ids": [
             {"$ref": "\u{0}", "field": "ids/18446744073709551616/x"}, {"$ref": {"x": 1}}, {"$step": 0, "field": "//"}, {"$ref": "\u{0}", "field": "/"}],
             "props": {"name": {"$ref": "nope", "field": 5}}}}]}),
     ];
@@ -480,7 +480,7 @@ fn every_command_survives_junk_params() {
         for j in &junk {
             let mut s = sess();
             let _ = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10}));
-            let _ = s.execute("text.create", &json!({"text": "t"}));
+            let _ = s.execute("text.add", &json!({"text": "t"}));
             if let Err(EngineError::Internal { cmd, msg }) = s.execute(spec.id, j) {
                 panic!("{cmd} panicked on {j}: {msg}");
             }
@@ -498,8 +498,8 @@ fn parity_catalog_mostly_covered() {
 #[test]
 fn export_frames_to_pdf() {
     let mut s = sess();
-    let a = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
-    let b = id(&s.execute("frame.create", &json!({"x": 300, "y": 0, "width": 120, "height": 80})).unwrap());
+    let a = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 200, "height": 100})).unwrap());
+    let b = id(&s.execute("frame.add", &json!({"x": 300, "y": 0, "width": 120, "height": 80})).unwrap());
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
     let r = s.execute("file.exportFramesPdf", &json!({})).unwrap();
     assert_eq!(r["pages"], 2);
@@ -559,7 +559,7 @@ fn vector_edit_mode() {
 #[test]
 fn arrows_reorder_auto_layout_children_and_cmd_arrows_resize() {
     let mut s = sess();
-    let row = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 300, "height": 40})).unwrap());
+    let row = id(&s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 300, "height": 40})).unwrap());
     let kids: Vec<NodeId> =
         (0..3).map(|i| id(&s.execute("shape.rectangle", &json!({"x": i * 60, "y": 0, "width": 40, "height": 20, "parent": row})).unwrap())).collect();
     s.execute("layout.add", &json!({"ids": [row]})).unwrap();
@@ -644,9 +644,9 @@ fn guides_add_move_remove() {
 #[test]
 fn find_replace_matches_and_replaces_case_insensitively() {
     let mut s = sess();
-    let t = id(&s.execute("text.create", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap());
-    let u = id(&s.execute("text.create", &json!({"text": "İ HELLO hello", "x": 0, "y": 40})).unwrap());
-    let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 80, "width": 50, "height": 50, "name": "HELLO box"})).unwrap());
+    let t = id(&s.execute("text.add", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap());
+    let u = id(&s.execute("text.add", &json!({"text": "İ HELLO hello", "x": 0, "y": 40})).unwrap());
+    let f = id(&s.execute("frame.add", &json!({"x": 0, "y": 80, "width": 50, "height": 50, "name": "HELLO box"})).unwrap());
     let chars = |s: &Session, i| s.doc().unwrap().node(i).unwrap().kind.text().unwrap().characters.clone();
     let r = s.execute("edit.findReplace", &json!({"find": "hello", "replace": "bye", "layerNames": true})).unwrap();
     assert_eq!(r["matches"], json!([t, u, f]));
@@ -658,8 +658,8 @@ fn find_replace_matches_and_replaces_case_insensitively() {
 #[test]
 fn find_replace_changing_only_the_case_replaces_every_occurrence() {
     let mut s = sess();
-    let t = id(&s.execute("text.create", &json!({"text": "kition and KITION, kition", "x": 0, "y": 0})).unwrap());
-    let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 80, "width": 50, "height": 50, "name": "kition / kition"})).unwrap());
+    let t = id(&s.execute("text.add", &json!({"text": "kition and KITION, kition", "x": 0, "y": 0})).unwrap());
+    let f = id(&s.execute("frame.add", &json!({"x": 0, "y": 80, "width": 50, "height": 50, "name": "kition / kition"})).unwrap());
     s.execute("edit.findReplace", &json!({"find": "kition", "replace": "Kition", "layerNames": true})).unwrap();
     assert_eq!(s.doc().unwrap().node(t).unwrap().kind.text().unwrap().characters, "Kition and Kition, Kition");
     assert_eq!(s.doc().unwrap().node(f).unwrap().name, "Kition / Kition");

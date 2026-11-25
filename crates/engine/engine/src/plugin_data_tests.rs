@@ -9,7 +9,7 @@ use serde_json::json;
 #[test]
 fn node_get_reports_the_layer_data_node_set_wrote() {
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
     let r = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10})));
     let page = s.ds().unwrap().page;
     assert!(ex(&mut s, "node.get", json!({"id": f})).get("pluginData").is_none(), "no data, no field");

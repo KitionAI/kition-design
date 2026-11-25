@@ -50,7 +50,7 @@ fn node_set_takes_the_shorthand() {
 fn node_create_fill_add_and_fill_set_take_the_shorthand() {
     let want = paint_of(&long()).unwrap();
     let mut s = Session::new();
-    let v = s.execute("node.create", &json!({"type": "rectangle", "width": 200, "height": 100, "props": {"fills": [short()]}})).unwrap();
+    let v = s.execute("node.add", &json!({"type": "rectangle", "width": 200, "height": 100, "props": {"fills": [short()]}})).unwrap();
     let r = id_of(&v["id"]).unwrap();
     assert_eq!(fills(&s, r), vec![want.clone()]);
     s.execute("fill.add", &json!({"ids": [r], "paint": short()})).unwrap();

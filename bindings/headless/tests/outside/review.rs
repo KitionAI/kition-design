@@ -24,7 +24,7 @@ async fn instance_place_holds_the_drop_destination_and_source_descendants() {
     for change in ["destination", "source", "unrelated"] {
         let f = Fixture::new(Guard::Premise);
         let child =
-            rewrite(&f, |d| d.execute("node.create", json!({"parent":f.component,"type":"rectangle","width":10,"height":10})).unwrap())["id"].clone();
+            rewrite(&f, |d| d.execute("node.add", json!({"parent":f.component,"type":"rectangle","width":10,"height":10})).unwrap())["id"].clone();
         let basis = f.basis().await;
         match change {
             "destination" => f.colleague(&[("transform.move", json!({"ids":[f.destination],"dx":300,"dy":0}))]),
@@ -39,7 +39,7 @@ async fn instance_place_holds_the_drop_destination_and_source_descendants() {
 fn library(f: &Fixture) -> Value {
     let mut lib = DesignDocument::create("Library.kdesign", 100, 100).unwrap();
     let component = lib.inspect().unwrap()["tree"][0]["id"].clone();
-    lib.execute("component.create", json!({"ids":[component]})).unwrap();
+    lib.execute("component.add", json!({"ids":[component]})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
     let bytes = lib.save_file(None).unwrap();
     std::fs::write(f.workspace.path().join("Library.kdesign"), &bytes).unwrap();
@@ -89,7 +89,7 @@ async fn library_place_uses_the_view_point_when_coordinates_are_omitted() {
         let destination = rewrite(&f, |d| {
             let view = d.session().ds().unwrap().view.clone();
             let page = d.inspect().unwrap()["page"].clone();
-            d.execute("frame.create", json!({"parent":page,"x":view.cx-50.0,"y":view.cy-50.0,"width":100,"height":100})).unwrap()["id"].clone()
+            d.execute("frame.add", json!({"parent":page,"x":view.cx-50.0,"y":view.cy-50.0,"width":100,"height":100})).unwrap()["id"].clone()
         });
         let basis = f.basis().await;
         f.colleague(&[("transform.move", json!({"ids":[if necessary {destination} else {json!(f.b)}],"dx":300,"dy":0}))]);
@@ -132,16 +132,16 @@ async fn expression_names_cannot_silently_rebind() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
         let ids = rewrite(&f, |d| {
-            let c = d.execute("variable.createCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
-            let v = d.execute("variable.create", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
-            let dest = d.execute("variable.create", json!({"collection":c,"name":"result","type":"number","value":0})).unwrap()["id"].clone();
+            let c = d.execute("variable.addCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
+            let v = d.execute("variable.add", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
+            let dest = d.execute("variable.add", json!({"collection":c,"name":"result","type":"number","value":0})).unwrap()["id"].clone();
             json!({"collection":c,"variable":v,"dest":dest})
         });
         let basis = f.basis().await;
         if necessary {
             f.colleague(&[
                 ("variable.update", json!({"variable":ids["variable"],"name":"away"})),
-                ("variable.create", json!({"collection":ids["collection"],"name":"count","type":"number","value":99})),
+                ("variable.add", json!({"collection":ids["collection"],"name":"count","type":"number","value":99})),
             ]);
         } else {
             f.colleague(&[("node.set", json!({"id":f.b,"props":{"opacity":0.5}}))]);
@@ -163,8 +163,8 @@ async fn implicit_prototype_conditions_hold_the_default_variable() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
         let variable = rewrite(&f, |d| {
-            let c = d.execute("variable.createCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
-            let v = d.execute("variable.create", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
+            let c = d.execute("variable.addCollection", json!({"name":"Counts"})).unwrap()["id"].clone();
+            let v = d.execute("variable.add", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
             d.execute("proto.interaction.add", json!({"id":f.a,"action":{"type":"conditional","blocks":[{"expression":"count == 1","actions":[]}]}}))
                 .unwrap();
             v
@@ -185,10 +185,10 @@ async fn variable_bind_holds_the_alias_chain_it_evaluates() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
         let variables = rewrite(&f, |d| {
-            let c = d.execute("variable.createCollection", json!({"name":"Numbers"})).unwrap()["id"].clone();
-            let base = d.execute("variable.create", json!({"collection":c,"name":"Base","type":"number","value":0.5})).unwrap()["id"].clone();
+            let c = d.execute("variable.addCollection", json!({"name":"Numbers"})).unwrap()["id"].clone();
+            let base = d.execute("variable.add", json!({"collection":c,"name":"Base","type":"number","value":0.5})).unwrap()["id"].clone();
             let alias =
-                d.execute("variable.create", json!({"collection":c,"name":"Alias","type":"number","value":{"alias":base}})).unwrap()["id"].clone();
+                d.execute("variable.add", json!({"collection":c,"name":"Alias","type":"number","value":{"alias":base}})).unwrap()["id"].clone();
             json!({"base":base,"alias":alias})
         });
         let basis = f.basis().await;
@@ -208,8 +208,8 @@ async fn component_property_references_and_definitions_are_premises() {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
             let other = rewrite(&f, |d| {
-                let c = d.execute("frame.create", json!({"x":900,"width":30,"height":30})).unwrap()["id"].clone();
-                d.execute("component.create", json!({"ids":[c]})).unwrap();
+                let c = d.execute("frame.add", json!({"x":900,"width":30,"height":30})).unwrap()["id"].clone();
+                d.execute("component.add", json!({"ids":[c]})).unwrap();
                 d.execute("component.addProperty", json!({"id":f.component,"name":"Swap","type":"instanceSwap","default":c})).unwrap();
                 c
             });
@@ -226,7 +226,7 @@ async fn component_property_references_and_definitions_are_premises() {
                 "default" => ("component.addProperty", json!({"id":f.component,"name":"New","type":"instanceSwap","default":other})),
                 "preferred" => ("component.editProperty", json!({"id":f.component,"name":"Swap","preferred":[other.to_string()]})),
                 "definition" => ("instance.setProperties", json!({"ids":[f.instance],"properties":{"Swap":f.component}})),
-                "stored-default" => ("instance.create", json!({"component":f.component,"parent":f.frame,"x":300,"y":20})),
+                "stored-default" => ("instance.add", json!({"component":f.component,"parent":f.frame,"x":300,"y":20})),
                 _ => ("instance.setProperties", json!({"ids":[f.instance],"properties":{"Swap":other}})),
             };
             outcome(&f, &basis, command, params, necessary).await;
@@ -241,7 +241,7 @@ async fn traversing_writes_hold_the_descendants_they_consume() {
     for family in ["text", "layout", "flatten", "page", "publish"] {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
-            let text = rewrite(&f, |d| d.execute("text.create", json!({"parent":f.frame,"text":"Original","x":0,"y":100})).unwrap())["id"].clone();
+            let text = rewrite(&f, |d| d.execute("text.add", json!({"parent":f.frame,"text":"Original","x":0,"y":100})).unwrap())["id"].clone();
             let page = DesignDocument::open(FILE, &f.bytes()).unwrap().inspect().unwrap()["page"].clone();
             let basis = f.basis().await;
             if necessary {
@@ -254,11 +254,11 @@ async fn traversing_writes_hold_the_descendants_they_consume() {
                 if family == "publish" {
                     f.colleague(&[("node.set", json!({"id":f.destination,"props":{"opacity":0.5}}))]);
                 } else {
-                    f.colleague(&[("style.update", json!({"style":f.style,"description":"Colleague"}))]);
+                    f.colleague(&[("style.set", json!({"style":f.style,"description":"Colleague"}))]);
                 }
             }
             let (command, params) = match family {
-                "text" => ("text.bold", json!({"ids":[f.frame]})),
+                "text" => ("format.bold", json!({"ids":[f.frame]})),
                 "layout" => ("layout.add", json!({"ids":[f.frame],"direction":"horizontal"})),
                 "flatten" => ("vector.flatten", json!({"ids":[f.frame]})),
                 "page" => ("page.duplicate", json!({"id":page})),
@@ -337,23 +337,23 @@ async fn normalization_search_and_layout_dependencies_are_held() {
                 if family == "layout-props" {
                     d.execute("node.set", json!({"id":f.frame,"props":{"sizingH":"fixed","sizingV":"fixed","width":800,"height":600}})).unwrap();
                 }
-                d.execute("text.create", json!({"parent":f.frame,"text":"Original"})).unwrap()["id"].clone()
+                d.execute("text.add", json!({"parent":f.frame,"text":"Original"})).unwrap()["id"].clone()
             });
             let basis = f.basis().await;
             if necessary {
                 match family {
                     "component-users" => f.colleague(&[("instance.setProperties", json!({"ids":[f.instance],"properties":{"Label":"Colleague"}}))]),
                     "layout-props" => f.colleague(&[("node.set", json!({"id":f.a,"props":{"width":100}}))]),
-                    "text-membership" => f.colleague(&[("text.create", json!({"parent":f.frame,"text":"New"}))]),
+                    "text-membership" => f.colleague(&[("text.add", json!({"parent":f.frame,"text":"New"}))]),
                     _ => f.colleague(&[("text.set", json!({"id":text,"characters":"Colleague Original"}))]),
                 }
             } else {
-                f.colleague(&[("style.update", json!({"style":f.style,"description":"Unrelated"}))]);
+                f.colleague(&[("style.set", json!({"style":f.style,"description":"Unrelated"}))]);
             }
             let (command, params) = match family {
                 "component-users" => ("component.editProperty", json!({"id":f.component,"name":"Label","newName":"Title"})),
                 "layout-props" => ("node.set", json!({"id":f.frame,"props":{"gap":30}})),
-                "text-membership" => ("text.bold", json!({"ids":[f.frame]})),
+                "text-membership" => ("format.bold", json!({"ids":[f.frame]})),
                 _ => ("edit.findReplace", json!({"find":"Original","replace":"Agent"})),
             };
             let answer = f.write(&basis, command, params).await;
@@ -374,10 +374,10 @@ async fn stored_resources_and_nested_setters_hold_their_inputs() {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
             let setup = rewrite(&f, |d| {
-                let c = d.execute("variable.createCollection", json!({"name":"Counts","modes":["Day","Night"]})).unwrap()["id"].clone();
-                let v = d.execute("variable.create", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
-                let dest = d.execute("variable.create", json!({"collection":c,"name":"result","type":"number","value":0})).unwrap()["id"].clone();
-                d.execute("style.update", json!({"style":f.style,"name":"Folder/Accent"})).unwrap();
+                let c = d.execute("variable.addCollection", json!({"name":"Counts","modes":["Day","Night"]})).unwrap()["id"].clone();
+                let v = d.execute("variable.add", json!({"collection":c,"name":"count","type":"number","value":1})).unwrap()["id"].clone();
+                let dest = d.execute("variable.add", json!({"collection":c,"name":"result","type":"number","value":0})).unwrap()["id"].clone();
+                d.execute("style.set", json!({"style":f.style,"name":"Folder/Accent"})).unwrap();
                 json!({"collection":c,"variable":v,"dest":dest})
             });
             let basis = f.basis().await;
@@ -386,14 +386,14 @@ async fn stored_resources_and_nested_setters_hold_their_inputs() {
                     "mode-copy" => f.colleague(&[("variable.set", json!({"variable":setup["variable"],"value":9}))]),
                     "default-mode" => f.colleague(&[("variable.moveMode", json!({"collection":setup["collection"],"mode":"Night","to":0}))]),
                     "style-name" | "folder" => f.colleague(&[
-                        ("style.update", json!({"style":f.style,"name":"Away"})),
-                        ("style.create", json!({"type":"paint","name":"Folder/Accent","value":["#0f0"]})),
+                        ("style.set", json!({"style":f.style,"name":"Away"})),
+                        ("style.add", json!({"type":"paint","name":"Folder/Accent","value":["#0f0"]})),
                     ]),
                     "nested-action" => f.colleague(&[
                         ("variable.update", json!({"variable":setup["variable"],"name":"away"})),
-                        ("variable.create", json!({"collection":setup["collection"],"name":"count","type":"number","value":9})),
+                        ("variable.add", json!({"collection":setup["collection"],"name":"count","type":"number","value":9})),
                     ]),
-                    _ => f.colleague(&[("node.create", json!({"parent":f.frame,"type":"rectangle","width":10,"height":10}))]),
+                    _ => f.colleague(&[("node.add", json!({"parent":f.frame,"type":"rectangle","width":10,"height":10}))]),
                 }
             } else {
                 f.colleague(&[("node.set", json!({"id":f.destination,"props":{"opacity":0.5}}))]);
@@ -494,7 +494,7 @@ async fn page_move_holds_the_destination_window() {
         if necessary {
             f.colleague(&[("page.move", json!({"id":pages["third"],"index":1}))]);
         } else {
-            f.colleague(&[("style.update", json!({"style":f.style,"description":"Unrelated"}))]);
+            f.colleague(&[("style.set", json!({"style":f.style,"description":"Unrelated"}))]);
         }
         outcome(&f, &basis, "page.move", json!({"id":pages["first"],"index":1}), necessary).await;
         f.shutdown().await;
@@ -553,7 +553,7 @@ async fn restoring_a_version_holds_the_styles_it_replaces() {
         let version = file_version(&f);
         let basis = f.basis().await;
         if necessary {
-            f.colleague(&[("style.update", json!({"style":f.style,"description":"Colleague"}))]);
+            f.colleague(&[("style.set", json!({"style":f.style,"description":"Colleague"}))]);
         } else {
             f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
         }

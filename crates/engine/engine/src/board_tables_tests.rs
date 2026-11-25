@@ -186,7 +186,7 @@ fn a_double_click_types_in_the_cell_and_its_row_grows_with_the_text() {
     let r = s.execute("board.table", &json!({"x": 0, "y": 0})).unwrap();
     let t = id(&r, "id");
     let h0 = node(&s, t).height;
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     // The middle cell (columns 160 wide, rows about 40 tall).
     let row_h = h0 / 3.0;
     s.pointer(&PointerEvent::at(PointerKind::DoubleClick, 240.0, row_h * 1.5, 1.0)).unwrap();
@@ -204,7 +204,7 @@ several lines",
     assert!(h1 > h0 + 10.0, "the row grew: {h0} → {h1}");
     assert!(lines(&s, t).iter().all(|(_, h)| (*h - h1).abs() < 1e-6), "column lines follow: {:?} vs {h1}", lines(&s, t));
     // A plain click picks the table whole.
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::Down, 240.0, 10.0, 1.0)).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::Up, 240.0, 10.0, 1.0)).unwrap();
     assert_eq!(s.selection(), [t]);

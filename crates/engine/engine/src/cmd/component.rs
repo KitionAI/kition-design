@@ -50,15 +50,9 @@ fn hide_when_publishing(s: &mut Session, p: &Value) -> Result<Value> {
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        spec!(
-            "component.create",
-            "Create component",
-            "{ids?}  (one frame/group becomes a component; several layers are wrapped in one)",
-            true,
-            create
-        ),
-        spec!("component.createMultiple", "Create multiple components", "{ids?}", true, |s, p| {
-            let ids = req_targets("component.createMultiple", s, p)?;
+        spec!("component.add", "Create component", "{ids?}  (one frame/group becomes a component; several layers are wrapped in one)", true, create),
+        spec!("component.addMultiple", "Create multiple components", "{ids?}", true, |s, p| {
+            let ids = req_targets("component.addMultiple", s, p)?;
             let mut out = Vec::new();
             for i in ids {
                 let r = create(s, &json!({"ids": [i]}))?;
@@ -81,8 +75,8 @@ pub fn specs() -> Vec<CommandSpec> {
             true,
             add_variant
         ),
-        spec!("instance.create", "Create instance", "{component (component or set: its default variant), x?, y?, parent?}", true, |s, p| {
-            let cmd = "instance.create";
+        spec!("instance.add", "Create instance", "{component (component or set: its default variant), x?, y?, parent?}", true, |s, p| {
+            let cmd = "instance.add";
             let c = req_id(cmd, p, "component")?;
             let page = s.page()?;
             let parent = crate::params::opt_id(cmd, p, "parent")?.unwrap_or(page);
@@ -303,7 +297,7 @@ pub(crate) fn main_of(doc: &Document, id: NodeId) -> Option<NodeId> {
 }
 
 fn create(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "component.create";
+    let cmd = "component.add";
     let ids = req_targets(cmd, s, p)?;
     let doc = s.doc_mut()?;
     if ids.iter().any(|i| inside_instance(doc, *i)) {

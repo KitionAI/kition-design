@@ -40,7 +40,7 @@ fn observe_read_commands() {
         .collect();
     for id in reads {
         let mut doc = DesignDocument::open("basic.kdesign", &bytes).unwrap();
-        let _ = doc.execute("select.all", serde_json::json!({}));
+        let _ = doc.execute("edit.selectAll", serde_json::json!({}));
         let answer = match doc.execute(&id, serde_json::json!({})) {
             Ok(value) => value,
             Err(error) => serde_json::json!({ "__error": error }),
@@ -95,7 +95,7 @@ fn read_commands_answer_what_their_output_schemas_say() {
     for command in DesignDocument::open("basic.kdesign", &bytes).unwrap().commands() {
         let (Some(output), true) = (command.output_schema.as_ref(), command.schema.is_some() && !command.mutates) else { continue };
         let mut doc = DesignDocument::open("basic.kdesign", &bytes).unwrap();
-        let _ = doc.execute("select.all", serde_json::json!({}));
+        let _ = doc.execute("edit.selectAll", serde_json::json!({}));
         if let Ok(answer) = doc.execute(&command.id, serde_json::json!({}))
             && let Err(error) = fits(&answer, output, &command.id)
         {

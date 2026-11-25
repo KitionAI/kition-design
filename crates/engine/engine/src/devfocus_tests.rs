@@ -7,7 +7,7 @@ use kition_design_doc::*;
 use serde_json::json;
 
 fn frame(s: &mut Session, x: f64, name: &str) -> NodeId {
-    idv(&ex(s, "frame.create", json!({"x": x, "y": 0, "width": 200, "height": 200, "name": name})))
+    idv(&ex(s, "frame.add", json!({"x": x, "y": 0, "width": 200, "height": 200, "name": name})))
 }
 
 fn focused(s: &Session) -> Option<NodeId> {
@@ -98,7 +98,7 @@ fn only_the_focused_frame_is_hit_and_escape_leaves() {
 fn nested_frames_stay_out_of_the_ready_list_and_its_navigation() {
     let mut s = Session::new();
     let screen = frame(&mut s, 0.0, "Screen");
-    let card = idv(&ex(&mut s, "frame.create", json!({"parent": screen, "width": 100, "height": 50, "name": "Card"})));
+    let card = idv(&ex(&mut s, "frame.add", json!({"parent": screen, "width": 100, "height": 50, "name": "Card"})));
     // node.set refuses a status on a nested frame, and one an older file already stores is ignored.
     assert!(s.execute("node.set", &json!({"id": card, "props": {"devStatus": "readyForDev"}})).is_err());
     s.doc_mut().unwrap().node_mut(card).unwrap().dev_status = DevStatus::ReadyForDev;
@@ -115,8 +115,8 @@ fn nested_frames_stay_out_of_the_ready_list_and_its_navigation() {
         assert_eq!((v["id"].clone(), v["count"].clone()), (json!(screen), json!(1)), "{direction} wraps to the only ready frame");
     }
     // A frame directly inside a section still counts.
-    let sec = idv(&ex(&mut s, "node.create", json!({"type": "section", "x": 1000, "y": 0, "width": 400, "height": 300})));
-    let in_sec = idv(&ex(&mut s, "frame.create", json!({"parent": sec, "width": 100, "height": 100, "name": "In section"})));
+    let sec = idv(&ex(&mut s, "node.add", json!({"type": "section", "x": 1000, "y": 0, "width": 400, "height": 300})));
+    let in_sec = idv(&ex(&mut s, "frame.add", json!({"parent": sec, "width": 100, "height": 100, "name": "In section"})));
     ex(&mut s, "node.set", json!({"ids": [sec, in_sec], "props": {"devStatus": "readyForDev"}}));
     assert_eq!(ids(ex(&mut s, "inspect.readyForDev", json!({}))), vec![json!(screen), json!(sec), json!(in_sec)]);
 }

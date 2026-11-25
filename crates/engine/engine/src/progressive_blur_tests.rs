@@ -56,9 +56,9 @@ fn both_radii_bind_to_number_variables() {
     let mut s = Session::new();
     let r = rect(&mut s);
     s.execute("effect.add", &json!({"ids": [r], "effect": {"type": "layerBlur", "radius": 10, "blurType": PROGRESSIVE}})).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "Tokens"})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Tokens"})).unwrap();
     for (name, v) in [("soft", 4), ("strong", 24)] {
-        s.execute("variable.create", &json!({"collection": "Tokens", "name": name, "type": "number", "value": v})).unwrap();
+        s.execute("variable.add", &json!({"collection": "Tokens", "name": name, "type": "number", "value": v})).unwrap();
     }
     s.execute("variable.bind", &json!({"ids": [r], "field": "effects/0/startRadius", "variable": "soft"})).unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "effects/0/radius", "variable": "strong"})).unwrap();

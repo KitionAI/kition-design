@@ -25,7 +25,7 @@ fn frame(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>
     if let Some(parent) = parent {
         p["parent"] = json!(parent);
     }
-    id(&ex(s, "frame.create", p))
+    id(&ex(s, "frame.add", p))
 }
 
 fn rect(s: &mut Session, x: f64, y: f64, parent: Option<NodeId>) -> NodeId {
@@ -80,7 +80,7 @@ fn scene(s: &mut Session) -> Scene {
     let h = frame(s, 600.0, 0.0, 100.0, 100.0, None);
     ex(s, "object.toggleVisible", json!({"ids": [h], "visible": false}));
     rect(s, 800.0, 0.0, None);
-    ex(s, "select.none", json!({}));
+    ex(s, "edit.deselectAll", json!({}));
     Scene { f, n, r, h }
 }
 

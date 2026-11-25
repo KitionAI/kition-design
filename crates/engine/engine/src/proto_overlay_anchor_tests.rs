@@ -6,11 +6,11 @@ use kition_design_doc::NodeId;
 use kition_design_doc::proto::{Action, OverlayAnchor, OverlayPosition};
 
 fn frame(s: &mut Session, x: f64, w: f64, h: f64, name: &str) -> NodeId {
-    id_of(&s.execute("frame.create", &json!({"x": x, "y": 0, "width": w, "height": h, "name": name})).unwrap()["id"]).unwrap()
+    id_of(&s.execute("frame.add", &json!({"x": x, "y": 0, "width": w, "height": h, "name": name})).unwrap()["id"]).unwrap()
 }
 
 fn button(s: &mut Session, parent: NodeId) -> NodeId {
-    let r = s.execute("node.create", &json!({"type": "rectangle", "x": 10, "y": 30, "width": 100, "height": 40, "parent": parent, "name": "Button"}));
+    let r = s.execute("node.add", &json!({"type": "rectangle", "x": 10, "y": 30, "width": 100, "height": 40, "parent": parent, "name": "Button"}));
     id_of(&r.unwrap()["id"]).unwrap()
 }
 

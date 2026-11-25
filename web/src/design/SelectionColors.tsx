@@ -107,14 +107,14 @@ function ColorRow({ group, index }: { group: Group; index: number }) {
   const { targets, paint } = group
   const linked = group.style ? (styles?.find((s) => s.id === group.style)?.name ?? group.style) : group.variable ? (variables.find((v) => v.id === group.variable)?.name ?? group.variable) : null
   const width = 'max(40px, calc(100% - 148px))'
-  const setPaint = (next: Paint) => void run('selection.setPaint', { targets, paint: next })
+  const setPaint = (next: Paint) => void run('select.setPaint', { targets, paint: next })
   const colorStyles = (styles ?? []).filter((s) => /paint|fill|color/i.test(s.type))
   const colorVariables = variables.filter((v) => v.resolvedType === 'color')
   const items: MenuEntry[] = [
     ...(colorStyles.length
-      ? colorStyles.map((s) => ({ label: s.name, onSelect: () => void run('selection.applyColorStyle', { targets, style: s.id }) }))
+      ? colorStyles.map((s) => ({ label: s.name, onSelect: () => void run('select.applyColorStyle', { targets, style: s.id }) }))
       : [{ type: 'custom' as const, render: () => <div className="design-d-menu-note">{t('No color styles')}</div> }]),
-    ...(colorVariables.length ? [{ type: 'separator' as const }, menuHeading(t('Color variables')), ...colorVariables.map((v) => ({ label: v.name, onSelect: () => void run('selection.bindColorVariable', { targets, variable: v.id }) }))] : []),
+    ...(colorVariables.length ? [{ type: 'separator' as const }, menuHeading(t('Color variables')), ...colorVariables.map((v) => ({ label: v.name, onSelect: () => void run('select.bindColorVariable', { targets, variable: v.id }) }))] : []),
   ]
   return (
     <Line testId={`design-design-color-${index}`}>
@@ -151,14 +151,14 @@ function ColorRow({ group, index }: { group: Group; index: number }) {
         }}
       />
       {linked ? (
-        <IconButton iconSize={16} icon="Detach" label={group.style ? t('Detach style') : t('Detach variable')} onClick={() => void run('selection.detachColor', { targets })} />
+        <IconButton iconSize={16} icon="Detach" label={group.style ? t('Detach style') : t('Detach variable')} onClick={() => void run('select.detachColor', { targets })} />
       ) : (
         <span ref={stylesMenu.ref} className="design-d-anchor">
           <IconButton iconSize={16} icon="Styles" label={t('Color styles')} onClick={stylesMenu.toggle} testId={`design-design-color-${index}-styles`} />
         </span>
       )}
       {stylesMenu.show(items, 200)}
-      <IconButton iconSize={16} icon="Move" label={t('Select layers with this color')} onClick={() => void run('selection.selectColor', { targets })} testId={`design-design-color-${index}-select`} />
+      <IconButton iconSize={16} icon="Move" label={t('Select layers with this color')} onClick={() => void run('select.selectColor', { targets })} testId={`design-design-color-${index}-select`} />
     </Line>
   )
 }

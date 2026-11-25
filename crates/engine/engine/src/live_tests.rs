@@ -298,7 +298,7 @@ fn following_shows_their_viewport_and_page() {
     assert_eq!(s.live().follow, None);
     // So does Escape, before anything else it does.
     s.execute("collab.follow", &json!({"client": 5})).unwrap();
-    s.execute("select.all", &json!({})).ok();
+    s.execute("edit.selectAll", &json!({})).ok();
     s.escape().unwrap();
     assert_eq!(s.live().follow, None);
     // And `collab.follow {}`.

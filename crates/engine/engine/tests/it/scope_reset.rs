@@ -8,8 +8,8 @@ fn scopes(session: &Session, variable: &str) -> Option<Vec<String>> {
 #[test]
 fn null_restores_all_supported_properties() {
     let mut session = Session::new();
-    session.execute("variable.createCollection", &json!({"name": "Theme"})).unwrap();
-    let result = session.execute("variable.create", &json!({"collection": "Theme", "name": "Accent", "type": "color"})).unwrap();
+    session.execute("variable.addCollection", &json!({"name": "Theme"})).unwrap();
+    let result = session.execute("variable.add", &json!({"collection": "Theme", "name": "Accent", "type": "color"})).unwrap();
     let variable = result["id"].as_str().unwrap();
     assert_eq!(scopes(&session, variable), None);
     session.execute("variable.update", &json!({"variable": variable, "scopes": []})).unwrap();

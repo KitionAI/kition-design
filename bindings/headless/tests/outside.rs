@@ -49,27 +49,26 @@ impl Fixture {
         let mut doc = DesignDocument::create(FILE, 800, 600).unwrap();
         let frame = doc.inspect().unwrap()["tree"][0]["id"].as_u64().unwrap();
         let mut rect = |name, x| {
-            doc.execute("node.create", json!({"type":"rectangle", "parent":frame, "name":name, "x":x,"y":20,"width":40,"height":40})).unwrap()["id"]
+            doc.execute("node.add", json!({"type":"rectangle", "parent":frame, "name":name, "x":x,"y":20,"width":40,"height":40})).unwrap()["id"]
                 .as_u64()
                 .unwrap()
         };
         let a = rect("A", 20);
         let b = rect("B", 100);
         let page = doc.inspect().unwrap()["page"].clone();
-        let destination = doc.execute("frame.create", json!({"parent":page,"name":"Destination","x":500,"y":400,"width":100,"height":100})).unwrap()
-            ["id"]
-            .as_u64()
-            .unwrap();
+        let destination =
+            doc.execute("frame.add", json!({"parent":page,"name":"Destination","x":500,"y":400,"width":100,"height":100})).unwrap()["id"]
+                .as_u64()
+                .unwrap();
         for i in 0..3 {
-            doc.execute("node.create", json!({"type":"rectangle","parent":destination,"name":format!("D{i}"),"x":i*20,"y":0,"width":10,"height":10}))
+            doc.execute("node.add", json!({"type":"rectangle","parent":destination,"name":format!("D{i}"),"x":i*20,"y":0,"width":10,"height":10}))
                 .unwrap();
         }
-        let component = doc.execute("frame.create", json!({"parent":page,"name":"Source","x":500,"y":200,"width":60,"height":60})).unwrap()["id"]
-            .as_u64()
-            .unwrap();
-        doc.execute("component.create", json!({"ids":[component]})).unwrap();
-        let instance = doc.execute("instance.create", json!({"component":component,"parent":frame,"x":200,"y":20})).unwrap()["id"].as_u64().unwrap();
-        let style = doc.execute("style.create", json!({"type":"paint","name":"Accent","value":["#f00"]})).unwrap()["id"].clone();
+        let component =
+            doc.execute("frame.add", json!({"parent":page,"name":"Source","x":500,"y":200,"width":60,"height":60})).unwrap()["id"].as_u64().unwrap();
+        doc.execute("component.add", json!({"ids":[component]})).unwrap();
+        let instance = doc.execute("instance.add", json!({"component":component,"parent":frame,"x":200,"y":20})).unwrap()["id"].as_u64().unwrap();
+        let style = doc.execute("style.add", json!({"type":"paint","name":"Accent","value":["#f00"]})).unwrap()["id"].clone();
         std::fs::write(workspace.path().join(FILE), doc.save_file(None).unwrap()).unwrap();
         let kit = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
         let kits = KitManager::new(Some(workspace.path().to_path_buf()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-design"))))]);
@@ -189,7 +188,7 @@ async fn inserted_before_an_index_is_refused_but_inserted_after_it_applies() {
         let f = Fixture::new(Guard::Premise);
         let basis = f.basis().await;
         let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
-        let created = writer.execute("node.create", json!({"type":"rectangle","parent":f.destination,"width":10,"height":10})).unwrap()["id"].clone();
+        let created = writer.execute("node.add", json!({"type":"rectangle","parent":f.destination,"width":10,"height":10})).unwrap()["id"].clone();
         if before {
             writer.execute("node.reorder", json!({"id":created,"index":0})).unwrap();
         }
@@ -227,11 +226,11 @@ async fn renamed_away_and_swapped_resource_names_are_refused() {
     for swap in [false, true] {
         let f = Fixture::new(Guard::Premise);
         let basis = f.basis().await;
-        f.colleague(&[("style.update", json!({"style":f.style,"name":"Away"}))]);
+        f.colleague(&[("style.set", json!({"style":f.style,"name":"Away"}))]);
         if swap {
-            f.colleague(&[("style.create", json!({"type":"paint","name":"Accent","value":["#0f0"]}))]);
+            f.colleague(&[("style.add", json!({"type":"paint","name":"Accent","value":["#0f0"]}))]);
         }
-        let answer = f.write(&basis, "style.update", json!({"style":"Accent","description":"Agent"})).await;
+        let answer = f.write(&basis, "style.set", json!({"style":"Accent","description":"Agent"})).await;
         assert_eq!(answer["error"]["code"], "conflict", "{answer}");
         f.shutdown().await;
     }
@@ -302,14 +301,14 @@ async fn fixed_seed_mixed_table() {
                 3 => ("A-delete", "edit.delete", json!({"ids":[f.a]})),
                 4 => ("A-move", "transform.move", json!({"ids":[f.a],"dx":10,"dy":0})),
                 5 => ("parent-move", "transform.move", json!({"ids":[f.frame],"dx":300,"dy":0})),
-                6 => ("style-name", "style.update", json!({"style":f.style,"name":"Away"})),
+                6 => ("style-name", "style.set", json!({"style":f.style,"name":"Away"})),
                 7 => ("point-move", "transform.move", json!({"ids":[f.instance],"dx":100,"dy":0})),
-                8 => ("style-description", "style.update", json!({"style":f.style,"description":"Colleague"})),
+                8 => ("style-description", "style.set", json!({"style":f.style,"description":"Colleague"})),
                 _ => ("destination-move", "transform.move", json!({"ids":[f.destination],"dx":10,"dy":0})),
             };
             let (write, command, params, necessary) = match form {
                 0 => ("id", "node.set", json!({"id":f.a,"props":{"name":"Agent"}}), matches!(change, 2 | 3)),
-                1 => ("name", "style.update", json!({"style":"Accent","description":"Agent"}), matches!(change, 6 | 8)),
+                1 => ("name", "style.set", json!({"style":"Accent","description":"Agent"}), matches!(change, 6 | 8)),
                 2 => ("point", "instance.swapAt", json!({"component":f.component,"x":210,"y":30}), matches!(change, 5 | 7)),
                 _ => ("structure", "node.reparent", json!({"ids":[f.a],"parent":f.destination}), matches!(change, 3 | 4 | 5 | 9)),
             };

@@ -18,16 +18,16 @@ fn page(doc: &DesignDocument) -> Value {
 
 fn frame(doc: &mut DesignDocument, name: &str) -> Value {
     let parent = page(doc);
-    run(doc, "frame.create", json!({ "x": 0, "y": 0, "width": 200, "height": 100, "parent": parent, "name": name }))["id"].clone()
+    run(doc, "frame.add", json!({ "x": 0, "y": 0, "width": 200, "height": 100, "parent": parent, "name": name }))["id"].clone()
 }
 
 #[test]
 fn issue_1_variables() {
     let mut doc = DesignDocument::create("theme.fig", 800, 600).unwrap();
-    run(&mut doc, "variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }));
+    run(&mut doc, "variable.addCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }));
     let surface = run(
         &mut doc,
-        "variable.create",
+        "variable.add",
         json!({ "collection": "Theme", "name": "surface", "type": "color", "values": { "Light": "#FFFFFF", "Dark": "#162032" } }),
     )["id"]
         .clone();
@@ -64,17 +64,17 @@ fn issue_2_answers_use_the_inputs_keys() {
     assert!(node.contains("durationMs") && !node.contains("duration_ms"), "{node}");
     let text = run(
         &mut doc,
-        "text.create",
+        "text.add",
         json!({ "text": "Title", "x": 10, "y": 10, "parent": a, "props": { "fontFamily": "Inter", "fontSize": 24 } }),
     )["id"]
         .clone();
-    run(&mut doc, "style.create", json!({ "type": "text", "name": "Title", "from": text }));
+    run(&mut doc, "style.add", json!({ "type": "text", "name": "Title", "from": text }));
     let styles = run(&mut doc, "style.list", json!({})).to_string();
     assert!(styles.contains("fontFamily") && !styles.contains("font_family") && !styles.contains("font_size"), "{styles}");
     let parent = page(&doc);
     let ring = run(
         &mut doc,
-        "node.create",
+        "node.add",
         json!({ "type": "ellipse", "parent": parent, "x": 0, "y": 0, "width": 100, "height": 100, "props": { "arcStart": -90, "arcSweep": 250 } }),
     )["id"]
         .clone();
@@ -87,8 +87,8 @@ fn issue_2_answers_use_the_inputs_keys() {
 fn issue_3_layer_tree() {
     let mut doc = DesignDocument::create("tree.fig", 800, 600).unwrap();
     let screen = frame(&mut doc, "Screen");
-    let row = run(&mut doc, "frame.create", json!({ "x": 0, "y": 0, "width": 100, "height": 40, "parent": screen, "name": "Row" }))["id"].clone();
-    run(&mut doc, "text.create", json!({ "text": "Hi", "x": 0, "y": 0, "parent": row }));
+    let row = run(&mut doc, "frame.add", json!({ "x": 0, "y": 0, "width": 100, "height": 40, "parent": screen, "name": "Row" }))["id"].clone();
+    run(&mut doc, "text.add", json!({ "text": "Hi", "x": 0, "y": 0, "parent": row }));
     let inspected = doc.inspect().unwrap();
     let tree = inspected["tree"].as_array().unwrap_or_else(|| panic!("inspect has a layer tree: {inspected}"));
     let top = tree.iter().find(|n| n["id"] == screen).unwrap();

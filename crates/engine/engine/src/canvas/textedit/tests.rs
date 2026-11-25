@@ -5,7 +5,7 @@ use serde_json::json;
 
 fn setup(text: &str) -> (Session, NodeId) {
     let mut s = Session::new();
-    let r = s.execute("text.create", &json!({"text": text, "x": 0, "y": 0, "props": {"fontSize": 24}})).unwrap();
+    let r = s.execute("text.add", &json!({"text": text, "x": 0, "y": 0, "props": {"fontSize": 24}})).unwrap();
     let id = crate::params::id_of(&r["id"]).unwrap();
     (s, id)
 }
@@ -30,8 +30,8 @@ fn whole_editing_session_is_one_undo_step() {
     // Styling a range mid-session joins the same step.
     set_caret(&mut s, 0, false).unwrap();
     set_caret(&mut s, 5, true).unwrap();
-    s.execute("text.bold", &json!({})).unwrap();
-    s.execute("text.alignCenter", &json!({})).unwrap();
+    s.execute("format.bold", &json!({})).unwrap();
+    s.execute("format.alignCenter", &json!({})).unwrap();
     end(&mut s).unwrap();
     let t = data(&s, id);
     assert_eq!(t.characters, "Hello big worl");
@@ -179,9 +179,9 @@ fn text_commands_apply_to_edited_range() {
     begin(&mut s, id, Some(0), false).unwrap();
     set_caret(&mut s, 6, true).unwrap(); // "Hello "
     for (cmd, p) in [
-        ("text.underline", json!({})),
-        ("text.italic", json!({})),
-        ("text.sizeUp", json!({})),
+        ("format.underline", json!({})),
+        ("format.italic", json!({})),
+        ("format.increaseFontSize", json!({})),
         ("text.trackingUp", json!({})),
         ("text.lineHeightUp", json!({})),
         ("text.caseSmallCaps", json!({})),
@@ -328,7 +328,7 @@ fn variable_font_axes_as_commands_and_props() {
     assert!(data(&s, id).runs.is_empty() && data(&s, id).style.variations.is_empty());
     // Picking a named style (Bold, weight steps) drops the custom weight but keeps width.
     s.execute("text.setVariations", &json!({"ids": ids, "variations": {"wght": 650, "wdth": 90}})).unwrap();
-    s.execute("text.bold", &json!({"ids": ids})).unwrap();
+    s.execute("format.bold", &json!({"ids": ids})).unwrap();
     let st = data(&s, id).style;
     assert_eq!(st.font_style, "Bold", "650 is lighter than bold, so Bold applies");
     assert!(!st.variations.contains_key("wght"));
@@ -494,7 +494,7 @@ fn ime_owner_identity_changes_with_the_document() {
     let first = ime_surrounding(&s).unwrap().owner;
     end(&mut s).unwrap();
     s.execute("file.new", &json!({"name": "Second"})).unwrap();
-    let r = s.execute("text.create", &json!({"text": "There", "x": 0, "y": 0})).unwrap();
+    let r = s.execute("text.add", &json!({"text": "There", "x": 0, "y": 0})).unwrap();
     let other = crate::params::id_of(&r["id"]).unwrap();
     begin(&mut s, other, Some(5), false).unwrap();
     let second = ime_surrounding(&s).unwrap().owner;

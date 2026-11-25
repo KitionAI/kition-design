@@ -24,15 +24,15 @@ fn bad_msg(r: crate::Result<Value>) -> String {
 #[test]
 fn auto_layout_keys_on_layers_without_auto_layout_are_refused() {
     let mut s = Session::new();
-    let t = id(&ex(&mut s, "node.create", json!({"type": "text", "text": "Hi"}))["id"]);
-    let r = id(&ex(&mut s, "node.create", json!({"type": "rectangle"}))["id"]);
+    let t = id(&ex(&mut s, "node.add", json!({"type": "text", "text": "Hi"}))["id"]);
+    let r = id(&ex(&mut s, "node.add", json!({"type": "rectangle"}))["id"]);
     for (target, key, value) in [(t, "gap", json!(8)), (r, "padding", json!(4)), (t, "mainAlign", json!("center")), (r, "wrap", json!(true))] {
         let msg = bad_msg(s.execute("node.set", &json!({"ids": [target], "props": {key: value}})));
         assert!(msg.contains(key) && msg.contains("auto layout"), "{msg}");
         assert!(s.doc().unwrap().node(target).unwrap().layout.is_none(), "no hidden auto layout on {target}");
     }
     // Frames still take them, with or without a layout mode first.
-    let f = id(&ex(&mut s, "node.create", json!({"type": "frame"}))["id"]);
+    let f = id(&ex(&mut s, "node.add", json!({"type": "frame"}))["id"]);
     let out = ex(&mut s, "node.set", json!({"ids": [f], "props": {"gap": 8, "padding": 4}}));
     assert_eq!(s.doc().unwrap().node(f).unwrap().layout.as_ref().map(|l| l.gap), Some(8.0));
     assert!(out.get("warnings").is_none(), "{out}");
@@ -41,8 +41,8 @@ fn auto_layout_keys_on_layers_without_auto_layout_are_refused() {
 #[test]
 fn with_several_layers_the_frames_take_auto_layout_keys_and_the_others_are_named() {
     let mut s = Session::new();
-    let f = id(&ex(&mut s, "node.create", json!({"type": "frame", "name": "Card"}))["id"]);
-    let t = id(&ex(&mut s, "node.create", json!({"type": "text", "text": "Hi", "name": "Title"}))["id"]);
+    let f = id(&ex(&mut s, "node.add", json!({"type": "frame", "name": "Card"}))["id"]);
+    let t = id(&ex(&mut s, "node.add", json!({"type": "text", "text": "Hi", "name": "Title"}))["id"]);
     let out = ex(&mut s, "node.set", json!({"ids": [f, t], "props": {"gap": 8, "opacity": 0.5}}));
     let doc = s.doc().unwrap();
     assert_eq!(doc.node(f).unwrap().layout.as_ref().map(|l| l.gap), Some(8.0));
@@ -66,7 +66,7 @@ fn a_font_style_draws_in_the_nearest_face_and_says_so_when_it_differs() {
     });
     let Some((family, styles)) = pick else { return };
     let mut s = Session::new();
-    let t = id(&ex(&mut s, "node.create", json!({"type": "text", "text": "Hi", "props": {"fontFamily": family}}))["id"]);
+    let t = id(&ex(&mut s, "node.add", json!({"type": "text", "text": "Hi", "props": {"fontFamily": family}}))["id"]);
     let set = |s: &mut Session, style: &str| ex(s, "node.set", json!({"ids": [t], "props": {"fontStyle": style}}));
     // Any spelling of a style it has, and names that resolve to the weight they ask for, say nothing.
     let bold = styles.iter().find(|x| kition_design_doc::style_weight(x) == 700).unwrap().clone();
@@ -87,7 +87,7 @@ fn a_font_style_draws_in_the_nearest_face_and_says_so_when_it_differs() {
 #[test]
 fn a_refused_call_changes_nothing() {
     let mut s = Session::new();
-    let t = id(&ex(&mut s, "node.create", json!({"type": "text", "text": "Hi"}))["id"]);
+    let t = id(&ex(&mut s, "node.add", json!({"type": "text", "text": "Hi"}))["id"]);
     let before = s.doc().unwrap().node(t).unwrap().fills.clone();
     // `fill` comes before `gap` (keys apply in order), so this checks the rollback.
     assert!(s.execute("node.set", &json!({"ids": [t], "props": {"fill": "#FF0000", "gap": 8}})).is_err());

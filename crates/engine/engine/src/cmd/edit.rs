@@ -108,8 +108,8 @@ pub fn specs() -> Vec<CommandSpec> {
             false,
             layers_at
         ),
-        spec!("select.all", "Select all", "{}", false, select_all),
-        spec!("select.none", "Select none", "{}", false, |s, _| {
+        spec!("edit.selectAll", "Select all", "{}", false, select_all),
+        spec!("edit.deselectAll", "Select none", "{}", false, |s, _| {
             s.set_selection(vec![]);
             if let Ok(ds) = s.ds_mut() {
                 ds.text_edit = None;
@@ -229,8 +229,8 @@ pub fn specs() -> Vec<CommandSpec> {
             }
             ok()
         }),
-        spec!("layers.collapseAll", "Collapse layers", "{}", false, |s, _| {
-            s.request_ui("layers.collapseAll", json!({}));
+        spec!("layer.collapseAll", "Collapse layers", "{}", false, |s, _| {
+            s.request_ui("layer.collapseAll", json!({}));
             ok()
         }),
         spec!("node.set", "Set properties", super::props::KEYS, true, set),
@@ -361,12 +361,12 @@ pub fn specs() -> Vec<CommandSpec> {
             }
         ),
         spec!(
-            "export.update",
+            "export.set",
             "Edit export setting",
             "{ids?, index, size? (2x|512w|512h|{by, value}), suffix?, format? (png|jpg|svg|pdf|webp|xml: Android Vector Drawable), bleed? (PDF: points, or with a unit: \"3mm\", \"0.125in\", \"9pt\"), cropMarks?, bleedMarks?, cmyk? (PDF print options), vdCompat? (XML: bestEffort|exact|ignore), contentsOnly?, includeBoundingBox?, svgOutlineText?, svgIdAttribute?, svgSimplifyStroke?}",
             true,
             |s, p| {
-                let cmd = "export.update";
+                let cmd = "export.set";
                 let i = req_index(cmd, p, "index")?;
                 super::file::export_setting(cmd, ExportSetting::default(), p)?;
                 for id in req_targets(cmd, s, p)? {

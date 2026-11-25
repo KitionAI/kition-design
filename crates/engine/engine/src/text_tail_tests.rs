@@ -13,7 +13,7 @@ use crate::textedit::{begin, insert, key, set_caret};
 use kition_design_doc::{DecorationLength, DecorationStyle, ListStyle, NodeId, ParaList, TextData, color::Color};
 
 fn text(s: &mut Session, chars: &str) -> NodeId {
-    id_of(&s.execute("text.create", &json!({"text": chars, "x": 0, "y": 0, "props": {"fontSize": 20}})).unwrap()["id"]).unwrap()
+    id_of(&s.execute("text.add", &json!({"text": chars, "x": 0, "y": 0, "props": {"fontSize": 20}})).unwrap()["id"]).unwrap()
 }
 
 fn data(s: &Session, t: NodeId) -> TextData {

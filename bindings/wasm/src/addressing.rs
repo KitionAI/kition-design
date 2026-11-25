@@ -21,16 +21,16 @@ const LIBRARY: &[&str] = &["Library"];
 /// file, so only its local link (and a local variable being aliased) is an object here.
 fn additional(id: &str) -> &'static [Reference] {
     match id {
-        "node.create"
-        | "frame.create"
+        "node.add"
+        | "frame.add"
         | "shape.rectangle"
         | "shape.ellipse"
         | "shape.polygon"
         | "shape.star"
         | "shape.line"
         | "shape.arrow"
-        | "text.create"
-        | "vector.create"
+        | "text.add"
+        | "vector.add"
         | "edit.paste"
         | "edit.pasteDesignLayers"
         | "board.sticky"
@@ -42,22 +42,22 @@ fn additional(id: &str) -> &'static [Reference] {
         "arrange.reorder" => &[("source", NODE, false), ("target", NODE, false)],
         "guide.add" | "guide.move" | "guide.remove" | "guide.select" | "guide.clear" => &[("frame", NODE, false), ("page", NODE, false)],
         "text.onPath" => &[("text", NODE, false), ("path", NODE, false)],
-        "style.create" => &[("from", NODE, false)],
-        "style.update" => &[("style", STYLE, true), ("from", NODE, false)],
-        "style.apply" | "style.duplicate" | "style.delete" | "selection.applyColorStyle" => &[("style", STYLE, true)],
+        "style.add" => &[("from", NODE, false)],
+        "style.set" => &[("style", STYLE, true), ("from", NODE, false)],
+        "style.apply" | "style.duplicate" | "style.delete" | "select.applyColorStyle" => &[("style", STYLE, true)],
         "style.bind" => &[("style", STYLE, true), ("variable", VARIABLE, true)],
         "style.move" => &[("styles", STYLE, true), ("before", STYLE, true)],
         "edit.duplicate" => &[("style", STYLE, true), ("variable", VARIABLE, true)],
         "variable.set" | "variable.resetOverride" => &[("variable", VARIABLE, true), ("mode", MODE, true)],
-        "variable.bind" | "variable.delete" | "variable.update" | "variable.duplicate" | "selection.bindColorVariable" => {
+        "variable.bind" | "variable.delete" | "variable.update" | "variable.duplicate" | "select.bindColorVariable" => {
             &[("variable", VARIABLE, true)]
         }
-        "variable.create" | "variable.renameCollection" | "variable.deleteCollection" => &[("collection", COLLECTION, true)],
+        "variable.add" | "variable.renameCollection" | "variable.deleteCollection" => &[("collection", COLLECTION, true)],
         "variable.addMode" => &[("collection", COLLECTION, true), ("from", MODE, true)],
         "variable.setMode" | "variable.renameMode" | "variable.removeMode" | "variable.moveMode" => {
             &[("collection", COLLECTION, true), ("mode", MODE, true)]
         }
-        "instance.create" => &[("component", NODE, false), ("parent", NODE, false)],
+        "instance.add" => &[("component", NODE, false), ("parent", NODE, false)],
         "instance.place" | "instance.slotInsert" | "instance.swap" | "instance.swapAt" => &[("component", NODE, false)],
         "component.addProperty" | "component.bindProperty" => &[("layer", NODE, false)],
         "library.swap" => &[("from", LIBRARY, true), ("to", LIBRARY, true)],
@@ -97,10 +97,10 @@ pub(crate) fn declare(command: &mut KitCommand) {
         if matches!(
             command.id.as_str(),
             "node.set"
-                | "node.create"
-                | "frame.create"
-                | "text.create"
-                | "vector.create"
+                | "node.add"
+                | "frame.add"
+                | "text.add"
+                | "vector.add"
                 | "shape.rectangle"
                 | "shape.ellipse"
                 | "shape.polygon"
@@ -116,7 +116,7 @@ pub(crate) fn declare(command: &mut KitCommand) {
                 ("props.gridStyle", STYLE, true),
             ]);
         }
-        if matches!(command.id.as_str(), "variable.set" | "variable.create") {
+        if matches!(command.id.as_str(), "variable.set" | "variable.add") {
             refs.push(("value.alias", VARIABLE, true));
         }
         if let Some(target) = command.targets {

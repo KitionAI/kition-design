@@ -45,7 +45,7 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 | `end` | `from`, `to` | `board.reattach` |
 | `field` | `visible`, `characters`, `mainComponent`, `slot` | `component.bindProperty` |
 | `filter` | `all`, `open`, `resolved`, `mine`, `unread` | `comment.next`, `comment.list` |
-| `format` | `png`, `jpg`, `svg`, `pdf`, `webp`, `xml` | `export.update` |
+| `format` | `png`, `jpg`, `svg`, `pdf`, `webp`, `xml` | `export.set` |
 | `format` | `png`, `jpg`, `svg`, `pdf`, `webp`, `xml`, `fig` | `file.export` |
 | `format` | `json`, `css` | `variable.export` |
 | `fromSide` | `auto`, `top`, `right`, `bottom`, `left` | `board.connector` |
@@ -79,9 +79,9 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 | `toSide` | `auto`, `top`, `right`, `bottom`, `left` | `board.connector` |
 | `type` | `boolean`, `text`, `instanceSwap`, `variant`, `slot` | `component.addProperty` |
 | `type` | `dropShadow`, `innerShadow`, `layerBlur`, `backgroundBlur`, `noise`, `texture`, `glass` | `effect.add` |
-| `type` | `rectangle`, `ellipse`, `polygon`, `star`, `line`, `arrow`, `vector`, `text`, `frame`, `section`, `component`, `slice` | `node.create` |
-| `type` | `paint`, `text`, `effect`, `grid` | `style.create`, `style.list` |
-| `type` | `color`, `number`, `string`, `boolean` | `variable.create` |
+| `type` | `rectangle`, `ellipse`, `polygon`, `star`, `line`, `arrow`, `vector`, `text`, `frame`, `section`, `component`, `slice` | `node.add` |
+| `type` | `paint`, `text`, `effect`, `grid` | `style.add`, `style.list` |
+| `type` | `color`, `number`, `string`, `boolean` | `variable.add` |
 | `unit` | `px`, `rem` | `inspect.code` |
 | `view` | `fit`, `center`, `keep` | `comment.open` |
 | `which` | `fill`, `stroke`, `effect`, `grid`, `text` | `style.detach` |
@@ -174,9 +174,9 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `apply` boolean
 - `edit.setDefaultProperties` (reads): Makes a layer's properties the defaults for new layers of its kind.
   - `id` integer or string, an id
-- `select.all` (reads): Selects every layer on the current page (or in the current frame). No parameters.
+- `edit.selectAll` (reads): Selects every layer on the current page (or in the current frame). No parameters.
 - `select.matching` (reads): Selects the layers that match the selected one in kind and properties. No parameters.
-- `select.none` (reads): Clears the selection, deselecting every layer. No parameters.
+- `edit.deselectAll` (reads): Clears the selection, deselecting every layer. No parameters.
 - `select.inverse` (reads): Selects the layers that aren't selected and deselects the others. No parameters.
 
 ### Edit > Select all with same
@@ -231,10 +231,10 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `object.frameSelection` (writes): Wraps the selected or given layers in a new frame, optionally named.
   - `ids` array
   - `name` string
-- `object.group` (writes): Groups the selected or given layers, optionally naming the group.
+- `arrange.group` (writes): Groups the selected or given layers, optionally naming the group.
   - `ids` array
   - `name` string
-- `object.ungroup` (writes): Ungroups the selected or given groups, keeping their children in place.
+- `arrange.ungroup` (writes): Ungroups the selected or given groups, keeping their children in place.
   - `ids` array
 - `object.removeFrame` (writes): Removes the selected frames, keeping their children in place.
   - `ids` array
@@ -248,9 +248,9 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `layout.suggest` (writes): Adds the auto layout that best fits the current arrangement of the selected layers.
   - `direction` string, one of `horizontal` | `vertical` | `grid`, default: what fits the arrangement
   - `ids` array
-- `component.create` (writes): Makes the selected frame or group a component, or wraps several layers in one.
+- `component.add` (writes): Makes the selected frame or group a component, or wraps several layers in one.
   - `ids` array
-- `component.createMultiple` (writes): Makes each selected layer its own component.
+- `component.addMultiple` (writes): Makes each selected layer its own component.
   - `ids` array
 - `component.combineVariants` (writes): Combines main components into a component set of variants.
   - `ids` array, main components; none already a variant, a library copy or inside an instance
@@ -270,13 +270,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `ids` array
 - `object.setThumbnail` (writes): Sets a frame as the file's thumbnail.
   - `id` integer or string, an id
-- `arrange.front` (writes): Brings the selected or given layers to the front of their parent.
+- `arrange.bringToFront` (writes): Brings the selected or given layers to the front of their parent.
   - `ids` array
-- `arrange.forward` (writes): Brings the selected or given layers one step forward.
+- `arrange.bringForward` (writes): Brings the selected or given layers one step forward.
   - `ids` array
-- `arrange.backward` (writes): Sends the selected or given layers one step backward.
+- `arrange.sendBackward` (writes): Sends the selected or given layers one step backward.
   - `ids` array
-- `arrange.back` (writes): Sends the selected or given layers to the back of their parent.
+- `arrange.sendToBack` (writes): Sends the selected or given layers to the back of their parent.
   - `ids` array
 - `object.flipH` (writes): Flips the selected or given layers (or selected vector points) horizontally.
   - `ids` array
@@ -302,7 +302,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `ids` array
   - `locked` boolean
 - `object.hideOthers` (writes): Hides every layer on the page except the selected ones. No parameters.
-- `layers.collapseAll` (reads): Collapses every row in the layers panel; the design is unchanged. No parameters.
+- `layer.collapseAll` (reads): Collapses every row in the layers panel; the design is unchanged. No parameters.
 - `object.removeFill` (writes): Removes every fill from the selected or given layers.
   - `ids` array
 - `object.removeStroke` (writes): Removes every stroke from the selected or given layers.
@@ -345,13 +345,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Text
 
-- `text.bold` (writes): Toggles bold on the selected or given text layers (or the selected text range).
+- `format.bold` (writes): Toggles bold on the selected or given text layers (or the selected text range).
   - `ids` array
-- `text.italic` (writes): Toggles italic on the selected or given text layers (or the selected text range).
+- `format.italic` (writes): Toggles italic on the selected or given text layers (or the selected text range).
   - `ids` array
-- `text.underline` (writes): Toggles underline on the selected or given text layers (or the selected text range).
+- `format.underline` (writes): Toggles underline on the selected or given text layers (or the selected text range).
   - `ids` array
-- `text.strikethrough` (writes): Toggles strikethrough on the selected or given text layers (or the selected text range).
+- `format.strikethrough` (writes): Toggles strikethrough on the selected or given text layers (or the selected text range).
   - `ids` array
 - `text.link` (writes): Makes the selected or given text (or text range) a hyperlink to url.
   - `ids` array
@@ -364,20 +364,20 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Text > Alignment
 
-- `text.alignLeft` (writes): Aligns the text of the selected or given text layers to the left.
+- `format.alignLeft` (writes): Aligns the text of the selected or given text layers to the left.
   - `ids` array
-- `text.alignCenter` (writes): Centres the text of the selected or given text layers.
+- `format.alignCenter` (writes): Centres the text of the selected or given text layers.
   - `ids` array
-- `text.alignRight` (writes): Aligns the text of the selected or given text layers to the right.
+- `format.alignRight` (writes): Aligns the text of the selected or given text layers to the right.
   - `ids` array
-- `text.alignJustify` (writes): Justifies the text of the selected or given text layers.
+- `format.justify` (writes): Justifies the text of the selected or given text layers.
   - `ids` array
 
 ### Text > Adjust
 
-- `text.sizeUp` (writes): Increases the font size of the selected or given text layers by one step.
+- `format.increaseFontSize` (writes): Increases the font size of the selected or given text layers by one step.
   - `ids` array
-- `text.sizeDown` (writes): Decreases the font size of the selected or given text layers by one step.
+- `format.decreaseFontSize` (writes): Decreases the font size of the selected or given text layers by one step.
   - `ids` array
 - `text.weightUp` (writes): Moves the selected or given text to the next heavier font weight available.
   - `ids` array
@@ -458,17 +458,17 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `on` boolean
 - `view.snapPixel` (reads): Turns snapping to the pixel grid on, off or toggles it.
   - `on` boolean
-- `pref.keepTool` (reads): Sets whether a drawing tool stays selected after use.
+- `prefs.keepTool` (reads): Sets whether a drawing tool stays selected after use.
   - `on` boolean
-- `pref.highlightHover` (reads): Sets whether layers highlight on hover.
+- `prefs.highlightHover` (reads): Sets whether layers highlight on hover.
   - `on` boolean
-- `pref.renameDuplicates` (reads): Sets whether duplicated layers get numbered names.
+- `prefs.renameDuplicates` (reads): Sets whether duplicated layers get numbered names.
   - `on` boolean
-- `pref.showDimensions` (reads): Sets whether the canvas shows dimensions on selected objects.
+- `prefs.showDimensions` (reads): Sets whether the canvas shows dimensions on selected objects.
   - `on` boolean
-- `pref.numberKeysOpacity` (reads): Sets whether number keys set the selection's opacity.
+- `prefs.numberKeysOpacity` (reads): Sets whether number keys set the selection's opacity.
   - `on` boolean
-- `pref.nudge` (reads): Sets the small and big nudge amounts used by transform.nudge.
+- `prefs.nudge` (reads): Sets the small and big nudge amounts used by transform.nudge.
   - `big` number
   - `small` number
 
@@ -483,21 +483,21 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `tool.move` (reads): Chooses the Move tool in the editor; the design is unchanged. No parameters.
 - `tool.scale` (reads): Chooses the Scale tool in the editor; the design is unchanged. No parameters.
 - `tool.hand` (reads): Chooses the Hand tool in the editor; the design is unchanged. No parameters.
-- `tool.frame` (reads): Chooses the Frame tool in the editor; use frame.create to make a frame directly. No parameters.
-- `tool.section` (reads): Chooses the Section tool in the editor; use node.create to make a section directly. No parameters.
-- `tool.slice` (reads): Chooses the Slice tool in the editor; use node.create to make a slice directly. No parameters.
+- `tool.frame` (reads): Chooses the Frame tool in the editor; use frame.add to make a frame directly. No parameters.
+- `tool.section` (reads): Chooses the Section tool in the editor; use node.add to make a section directly. No parameters.
+- `tool.slice` (reads): Chooses the Slice tool in the editor; use node.add to make a slice directly. No parameters.
 - `tool.rectangle` (reads): Chooses the Rectangle tool in the editor; use shape.rectangle to draw one directly. No parameters.
 - `tool.line` (reads): Chooses the Line tool in the editor; use shape.line to draw one directly. No parameters.
 - `tool.arrow` (reads): Chooses the Arrow tool in the editor; use shape.arrow to draw one directly. No parameters.
 - `tool.ellipse` (reads): Chooses the Ellipse tool in the editor; use shape.ellipse to draw one directly. No parameters.
 - `tool.polygon` (reads): Chooses the Polygon tool in the editor; use shape.polygon to draw one directly. No parameters.
 - `tool.star` (reads): Chooses the Star tool in the editor; use shape.star to draw one directly. No parameters.
-- `tool.pen` (reads): Chooses the Pen tool in the editor; use vector.create to make a path directly. No parameters.
-- `tool.pencil` (reads): Chooses the Pencil tool in the editor; use vector.create to make a path directly. No parameters.
-- `tool.text` (reads): Chooses the Text tool in the editor; use text.create to add text directly. No parameters.
+- `tool.pen` (reads): Chooses the Pen tool in the editor; use vector.add to make a path directly. No parameters.
+- `tool.pencil` (reads): Chooses the Pencil tool in the editor; use vector.add to make a path directly. No parameters.
+- `tool.text` (reads): Chooses the Text tool in the editor; use text.add to add text directly. No parameters.
 - `tool.comment` (reads): Chooses the Comment tool in the editor; use comment.add to add a comment directly. No parameters.
 - `tool.shapeBuilder` (reads): Chooses the Shape builder tool in the editor; the design is unchanged. No parameters.
-- `node.create` (writes): Creates a layer of a type (rectangle, ellipse, polygon, star, line, arrow, vector, text, frame, section, component, slice) at x, y in a parent with properties; answers its id.
+- `node.add` (writes): Creates a layer of a type (rectangle, ellipse, polygon, star, line, arrow, vector, text, frame, section, component, slice) at x, y in a parent with properties; answers its id.
   - `characters` string
   - `closed` boolean, vector points: a closed shape
   - `height` number
@@ -513,7 +513,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `width` number
   - `x` number
   - `y` number, relative to the parent frame; groups don't count
-- `frame.create` (writes): Creates a frame from a device preset or a size, in a parent, with a name and properties; answers its id.
+- `frame.add` (writes): Creates a frame from a device preset or a size, in a parent, with a name and properties; answers its id.
   - `height` number
   - `name` string
   - `parent` integer or string, an id (a number, or its digits as text)
@@ -559,14 +559,14 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `width` number, length
   - `x` number
   - `y` number
-- `text.create` (writes): Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.
+- `text.add` (writes): Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.
   - `parent` integer or string, an id (a number, or its digits as text)
   - `props` object
   - `text` string
   - `width` number, fixed width wraps
   - `x` number
   - `y` number
-- `vector.create` (writes): Creates a vector layer from SVG path data or points, open or closed, scaled to a box, in a parent; answers its id.
+- `vector.add` (writes): Creates a vector layer from SVG path data or points, open or closed, scaled to a box, in a parent; answers its id.
   - `closed` boolean
   - `height` number, scale the path; one keeps its proportion
   - `parent` integer or string, an id (a number, or its digits as text)
@@ -588,7 +588,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `y` number
 - `frame.swapOrientation` (writes): Swaps the width and height of the selected or given frames (portrait and landscape).
   - `ids` array
-- `frame.presets` (reads): Answers the device and paper frame presets with their sizes, for frame.create. No parameters.
+- `frame.presets` (reads): Answers the device and paper frame presets with their sizes, for frame.add. No parameters.
 - `edit.pasteDesignLayers` (writes): Pastes layers copied from another design app (clipboard HTML or design data) into a parent at x, y.
   - `data` string
   - `html` string
@@ -628,7 +628,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `node.set` (writes): Sets properties of a layer: name, visibility, lock, opacity, blend, position, size, rotation, fills, strokes, effects, corner radius, constraints, auto layout and text fields.
   - `id` integer, The layer to change (default the selection).
   - `ids` integer[], The layers to change (default the selection).
-  - `props` object, required, The properties to set: name, visible, locked, opacity (0-1), blend, x, y (relative to the parent frame; groups don't count), width, height, rotation (degrees), fills (paints or colours; gradients as {type: linearGradient|radialGradient|angularGradient|diamondGradient, stops: ["#hex", ...], from?, to?} too), fill (colour, or "none"/null: no fill), strokes, stroke (colour, or "none"/null: no stroke), strokeWeight, strokeAlign (inside|center|outside), strokeSides [t,r,b,l], strokeTopWeight / strokeRightWeight / strokeBottomWeight / strokeLeftWeight (one side; turns on individual strokes), strokeCap / startCap / endCap, strokeJoin, miterAngle (degrees: sharper joins bevel; or miterLimit as a ratio), dashes [..], widthProfile (preset uniform|wedge|taper|eye|rounded|pinch, [[t, scale], ...] or null), brush (preset id, {preset, spacing, sizeJitter, rotationJitter, scatter, seed} or null), cornerRadius (n or [tl,tr,br,bl]), cornerSmoothing (0-1), effects, clip, isMask, layout (null|horizontal|vertical|grid|{...}), gap, crossGap, padding (n or [t,r,b,l]), paddingTop/Right/Bottom/Left, mainAlign (min|center|max, or the auto gaps spaceBetween|spaceAround|spaceEvenly), crossAlign (min|center|max|baseline: first text baselines, horizontal layouts), contentAlign (wrapped lines: auto = packed where crossAlign says | spaceBetween), wrap (rows of a horizontal layout, columns of a vertical one), strokesIncluded (the frame's inside stroke takes up space), reverseZ (canvas stacking: true = first on top), columnGap / rowGap (aliases of gap / crossGap), gridColumns, gridRows, columnTracks / rowTracks ([120 | "1fr" | "auto" | {sizing, value}]), gridColumn / gridRow (0-based cell anchor, null = auto), gridColumnSpan, gridRowSpan, gridAlignH / gridAlignV (a grid child's alignment in its cell: min|center|max, auto/null = the frame's), sizingH / sizingV (fixed|hug|fill), absolute (ignore auto layout; follows constraints), minWidth, maxWidth, minHeight, maxHeight (null removes), constraints {horizontal, vertical}, grids, exports, characters, fontFamily, fontStyle, fontSize, lineHeight (auto|px|"150%"), letterSpacing (px|"2%"), textAlign (left|center|right|justified), textAlignVertical, textAutoResize (widthAndHeight|height|none|truncate), textDecoration, textDecorationStyle (solid|dotted|wavy), textDecorationThickness / textDecorationOffset (auto|px|"10%" of the font size; the offset runs from the baseline down to an underline's top edge), textDecorationSkipInk (underlines break around descenders), textDecorationColor (colour, or auto/null: the text's), textCase (original|upper|lower|title|smallCaps), paragraphSpacing, paragraphIndent, listStyle (none|bulleted|numbered; with start/end: the paragraphs those chars touch), indentation (list nesting level 0-8, same range rule), listSpacing (px between list items, in place of paragraphSpacing), hangingPunctuation, hangingList (markers outside the box), leadingTrim (vertical trim: none|capHeight), maxLines, features ({tag: bool}, e.g. {"liga": false, "tnum": true}), fontVariations / variationSettings ({axis: number}, e.g. {"wght": 550, "wdth": 85}; null = none), path (a vector's SVG path data: replaces its geometry, keeping the layer, its paints, styles and bindings; width/height in the same call scale it as node.create does; its own box goes at the layer's x/y, or with x/y given, at x + its left edge and y + its top as node.create places it), pointCount, innerRadius, arcStart, arcSweep, arcInner, booleanOperation (a boolean group's operation, or an operand's own; null: the group's), operandOperation (a layer in a boolean group: how it combines with the operands below it; null: the group's), constrainProportions, description, interactions, overflow, pluginData {k: v}
+  - `props` object, required, The properties to set: name, visible, locked, opacity (0-1), blend, x, y (relative to the parent frame; groups don't count), width, height, rotation (degrees), fills (paints or colours; gradients as {type: linearGradient|radialGradient|angularGradient|diamondGradient, stops: ["#hex", ...], from?, to?} too), fill (colour, or "none"/null: no fill), strokes, stroke (colour, or "none"/null: no stroke), strokeWeight, strokeAlign (inside|center|outside), strokeSides [t,r,b,l], strokeTopWeight / strokeRightWeight / strokeBottomWeight / strokeLeftWeight (one side; turns on individual strokes), strokeCap / startCap / endCap, strokeJoin, miterAngle (degrees: sharper joins bevel; or miterLimit as a ratio), dashes [..], widthProfile (preset uniform|wedge|taper|eye|rounded|pinch, [[t, scale], ...] or null), brush (preset id, {preset, spacing, sizeJitter, rotationJitter, scatter, seed} or null), cornerRadius (n or [tl,tr,br,bl]), cornerSmoothing (0-1), effects, clip, isMask, layout (null|horizontal|vertical|grid|{...}), gap, crossGap, padding (n or [t,r,b,l]), paddingTop/Right/Bottom/Left, mainAlign (min|center|max, or the auto gaps spaceBetween|spaceAround|spaceEvenly), crossAlign (min|center|max|baseline: first text baselines, horizontal layouts), contentAlign (wrapped lines: auto = packed where crossAlign says | spaceBetween), wrap (rows of a horizontal layout, columns of a vertical one), strokesIncluded (the frame's inside stroke takes up space), reverseZ (canvas stacking: true = first on top), columnGap / rowGap (aliases of gap / crossGap), gridColumns, gridRows, columnTracks / rowTracks ([120 | "1fr" | "auto" | {sizing, value}]), gridColumn / gridRow (0-based cell anchor, null = auto), gridColumnSpan, gridRowSpan, gridAlignH / gridAlignV (a grid child's alignment in its cell: min|center|max, auto/null = the frame's), sizingH / sizingV (fixed|hug|fill), absolute (ignore auto layout; follows constraints), minWidth, maxWidth, minHeight, maxHeight (null removes), constraints {horizontal, vertical}, grids, exports, characters, fontFamily, fontStyle, fontSize, lineHeight (auto|px|"150%"), letterSpacing (px|"2%"), textAlign (left|center|right|justified), textAlignVertical, textAutoResize (widthAndHeight|height|none|truncate), textDecoration, textDecorationStyle (solid|dotted|wavy), textDecorationThickness / textDecorationOffset (auto|px|"10%" of the font size; the offset runs from the baseline down to an underline's top edge), textDecorationSkipInk (underlines break around descenders), textDecorationColor (colour, or auto/null: the text's), textCase (original|upper|lower|title|smallCaps), paragraphSpacing, paragraphIndent, listStyle (none|bulleted|numbered; with start/end: the paragraphs those chars touch), indentation (list nesting level 0-8, same range rule), listSpacing (px between list items, in place of paragraphSpacing), hangingPunctuation, hangingList (markers outside the box), leadingTrim (vertical trim: none|capHeight), maxLines, features ({tag: bool}, e.g. {"liga": false, "tnum": true}), fontVariations / variationSettings ({axis: number}, e.g. {"wght": 550, "wdth": 85}; null = none), path (a vector's SVG path data: replaces its geometry, keeping the layer, its paints, styles and bindings; width/height in the same call scale it as node.add does; its own box goes at the layer's x/y, or with x/y given, at x + its left edge and y + its top as node.add places it), pointCount, innerRadius, arcStart, arcSweep, arcInner, booleanOperation (a boolean group's operation, or an operand's own; null: the group's), operandOperation (a layer in a boolean group: how it combines with the operands below it; null: the group's), constrainProportions, description, interactions, overflow, pluginData {k: v}
 - `node.get` (reads): Answers one layer's properties by id: its type, geometry, paints, effects, layout and children.
   - `id` integer or string, an id
 - `node.reparent` (writes): Moves layers into another parent at an index among its children.
@@ -716,7 +716,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `index` integer, a position counted from 0 (the first is 0)
 - `export.add` (writes): Adds an export setting (size, suffix, format, PDF bleed) to the selected or given layers, used by file.exportLayers.
   - `ids` array
-- `export.update` (writes): Edits the export setting at index on the selected or given layers: size, suffix, format and PDF options.
+- `export.set` (writes): Edits the export setting at index on the selected or given layers: size, suffix, format and PDF options.
   - `bleed` number or string
   - `bleedMarks` boolean
   - `cmyk` boolean
@@ -750,20 +750,20 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `from` integer
   - `ids` array
   - `to` integer
-- `selection.colors` (reads): Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.
+- `select.colors` (reads): Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.
   - `ids` array
-- `selection.setPaint` (writes): Replaces the paint in given fill or stroke slots (from selection.colors) with a new paint.
+- `select.setPaint` (writes): Replaces the paint in given fill or stroke slots (from select.colors) with a new paint.
   - `paint` string or object
   - `targets` object[], [{id, fills, index, range: [start,end] | null}]
-- `selection.applyColorStyle` (writes): Applies a colour style to the given fill or stroke slots (from selection.colors).
+- `select.applyColorStyle` (writes): Applies a colour style to the given fill or stroke slots (from select.colors).
   - `style` string
   - `targets` object[]
-- `selection.bindColorVariable` (writes): Binds a colour variable to the given solid fill or stroke slots (from selection.colors).
+- `select.bindColorVariable` (writes): Binds a colour variable to the given solid fill or stroke slots (from select.colors).
   - `targets` object[]
   - `variable` integer or string, an id (a number, or its digits as text)
-- `selection.detachColor` (writes): Unlinks the colour style or variable of the given paint slots, keeping their colour values.
+- `select.detachColor` (writes): Unlinks the colour style or variable of the given paint slots, keeping their colour values.
   - `targets` object[]
-- `selection.selectColor` (reads): Selects the layers that own the given paint slots; answers their ids.
+- `select.selectColor` (reads): Selects the layers that own the given paint slots; answers their ids.
   - `targets` object[]
 - `arrange.spacing` (writes): Sets the horizontal and/or vertical spacing between the selected or given layers.
   - `fromGesture` boolean
@@ -993,7 +993,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `paint.documentColors` (reads): Answers the solid colours used on a page, most used first.
   - `limit` integer
   - `page` integer
-- `style.create` (writes): Creates a paint, text, effect or grid style from a layer (default the first selected) or a value; answers its id.
+- `style.add` (writes): Creates a paint, text, effect or grid style from a layer (default the first selected) or a value; answers its id.
   - `description` string
   - `from` integer or string, an id (a number, or its digits as text)
   - `name` string
@@ -1010,7 +1010,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `ids` array
   - `start` number
   - `which` string, one of `fill` | `stroke` | `effect` | `grid` | `text`
-- `style.update` (writes): Edits a style's name, description or value, or redefines it from a layer.
+- `style.set` (writes): Edits a style's name, description or value, or redefines it from a layer.
   - `description` string
   - `from` integer or string, an id (a number, or its digits as text)
   - `name` string
@@ -1033,13 +1033,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `style` string
 - `style.list` (reads): Answers the file's styles, optionally of one type, with their ids, names and values.
   - `type` string, one of `paint` | `text` | `effect` | `grid`
-- `variable.createCollection` (writes): Creates a variable collection with mode names; answers its id.
+- `variable.addCollection` (writes): Creates a variable collection with mode names; answers its id.
   - `name` string
 - `variable.addMode` (writes): Adds a mode to a variable collection, optionally duplicating another mode's values.
   - `collection` integer or string, an id (a number, or its digits as text)
   - `from` integer or string, an id (a number, or its digits as text)
   - `name` string
-- `variable.create` (writes): Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.
+- `variable.add` (writes): Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.
   - `collection` integer or string, an id (a number, or its digits as text)
   - `description` string
   - `name` string
@@ -1113,7 +1113,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `id` integer or string, an id; component set, variant, or a main component not in a set yet: it becomes a set of itself and the new variant
   - `property` string
   - `value` string
-- `instance.create` (writes): Creates an instance of a component (or a set's default variant) at x, y in a parent; answers its id.
+- `instance.add` (writes): Creates an instance of a component (or a set's default variant) at x, y in a parent; answers its id.
   - `component` integer or string, an id (a number, or its digits as text)
   - `parent` integer or string, an id (a number, or its digits as text)
   - `x` number
@@ -1205,7 +1205,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `library` integer or string, an id (a number, or its digits as text)
   - `x` number
   - `y` number, page point
-- `library.import` (writes): Copies a library component into the file as a read-only main to instantiate with instance.create.
+- `library.import` (writes): Copies a library component into the file as a read-only main to instantiate with instance.add.
   - `component` integer or string, an id (a number, or its digits as text)
   - `library` integer or string, an id (a number, or its digits as text)
 - `library.applyStyle` (writes): Copies a published library style in (linked, read-only) and applies it to the selected or given layers.
@@ -1727,7 +1727,7 @@ From [`agent/guide.md`](../agent/guide.md).
 
 ```json
 {"tool": "design_run", "arguments": {"path": "app.kdesign", "steps": [
-  {"command": "node.create", "params": {"type": "frame", "parent": 2, "x": 40, "y": 280, "width": 160, "height": 44,
+  {"command": "node.add", "params": {"type": "frame", "parent": 2, "x": 40, "y": 280, "width": 160, "height": 44,
     "name": "Button", "props": {"fill": "#5645D4", "cornerRadius": 8}}}
 ]}}
 ```
@@ -1736,7 +1736,7 @@ It answers `{"id": 6368281153765377}`. Then:
 
 ```json
 {"tool": "design_run", "arguments": {"path": "app.kdesign", "steps": [
-  {"command": "text.create", "params": {"text": "Get started", "x": 0, "y": 0, "parent": 6368281153765377,
+  {"command": "text.add", "params": {"text": "Get started", "x": 0, "y": 0, "parent": 6368281153765377,
     "props": {"fontSize": 16, "fill": "#FFFFFF"}}},
   {"command": "layout.add", "params": {"ids": [6368281153765377], "direction": "horizontal"}},
   {"command": "node.set", "params": {"id": 6368281153765377,

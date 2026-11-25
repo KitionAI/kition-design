@@ -6,7 +6,7 @@ use serde_json::json;
 use crate::Session;
 
 fn rect(s: &mut Session) -> crate::NodeId {
-    let r = s.execute("node.create", &json!({"type": "rectangle", "x": 0, "y": 10, "width": 100, "height": 50})).unwrap();
+    let r = s.execute("node.add", &json!({"type": "rectangle", "x": 0, "y": 10, "width": 100, "height": 50})).unwrap();
     crate::params::id_of(&r["id"]).unwrap()
 }
 

@@ -96,7 +96,7 @@ function SettingRow({ index, setting, text }: { index: number; setting: ExportSe
   const { ids } = useDesign()
   const more = useRef<HTMLSpanElement>(null)
   const [open, setOpen] = useState(false)
-  const update = (change: Record<string, unknown>) => void run('export.update', { ids, index, ...change })
+  const update = (change: Record<string, unknown>) => void run('export.set', { ids, index, ...change })
   const raster = RASTER.has(setting.format)
   const option = (key: keyof ExportSetting, on: boolean, label: string) => <Checkbox checked={on} label={label} onChange={() => update({ [key]: !on })} testId={`design-design-export-${index}-${key}`} />
   return (
@@ -203,7 +203,7 @@ function PrintRow({ index, setting }: { index: number; setting: ExportSetting })
   const button = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const p = { bleed: 0, cropMarks: false, bleedMarks: false, cmyk: false, ...(setting.print ?? {}) }
-  const update = (change: Partial<typeof p>) => void run('export.update', { ids, index, ...p, ...change })
+  const update = (change: Partial<typeof p>) => void run('export.set', { ids, index, ...p, ...change })
   return (
     <Line h={26}>
       <button ref={button} type="button" className="design-d-print" data-tip={t('PDF print settings')} onClick={() => setOpen(!open)} data-testid={`design-design-export-${index}-print`}>

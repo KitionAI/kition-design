@@ -112,7 +112,7 @@ fn outlining_an_instance_keeps_its_inherited_opacity_link() {
     let component = NodeId(
         run(
             &mut s,
-            "frame.create",
+            "frame.add",
             json!({
                 "width": 64, "height": 64,
                 "props": {"fill": "#FF0000", "stroke": "#0000FF", "strokeWeight": 8, "opacity": 0.5}
@@ -121,8 +121,8 @@ fn outlining_an_instance_keeps_its_inherited_opacity_link() {
             .as_u64()
             .unwrap(),
     );
-    run(&mut s, "component.create", json!({"ids": [component]}));
-    let instance = NodeId(run(&mut s, "instance.create", json!({"component": component, "x": 200}))["id"].as_u64().unwrap());
+    run(&mut s, "component.add", json!({"ids": [component]}));
+    let instance = NodeId(run(&mut s, "instance.add", json!({"component": component, "x": 200}))["id"].as_u64().unwrap());
     outlined(&mut s, instance);
     assert_eq!(s.doc().unwrap().node(instance).unwrap().opacity, 0.5);
     assert!(!s.doc().unwrap().node(instance).unwrap().overrides.contains("opacity"));
@@ -135,7 +135,7 @@ fn outlining_an_instance_keeps_its_inherited_opacity_link() {
 #[test]
 fn outlining_a_main_layer_keeps_its_instance_override() {
     let mut s = Session::new();
-    let frame = NodeId(run(&mut s, "frame.create", json!({"width": 100, "height": 100}))["id"].as_u64().unwrap());
+    let frame = NodeId(run(&mut s, "frame.add", json!({"width": 100, "height": 100}))["id"].as_u64().unwrap());
     let layer = NodeId(
         run(
             &mut s,
@@ -148,8 +148,8 @@ fn outlining_a_main_layer_keeps_its_instance_override() {
             .as_u64()
             .unwrap(),
     );
-    let component = run(&mut s, "component.create", json!({"ids": [frame]}))["id"].clone();
-    run(&mut s, "instance.create", json!({"component": component, "x": 200}));
+    let component = run(&mut s, "component.add", json!({"ids": [frame]}))["id"].clone();
+    run(&mut s, "instance.add", json!({"component": component, "x": 200}));
     let copy = s.doc().unwrap().nodes().find(|n| n.source == Some(layer)).unwrap().id;
     run(&mut s, "node.set", json!({"id": copy, "props": {"opacity": 0.25}}));
     let before = s.doc().unwrap().clone();

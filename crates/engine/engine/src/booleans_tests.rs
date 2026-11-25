@@ -36,7 +36,7 @@ fn subtract(s: &mut Session) -> (NodeId, NodeId, NodeId) {
     let a = id_of(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100}))["id"]).unwrap();
     let b = id_of(&ex(s, "shape.rectangle", json!({"x": 50, "y": 50, "width": 100, "height": 100}))["id"]).unwrap();
     let g = id_of(&ex(s, "bool.subtract", json!({"ids": [a, b]}))["id"]).unwrap();
-    ex(s, "select.none", json!({}));
+    ex(s, "edit.deselectAll", json!({}));
     let ds = s.ds_mut().unwrap();
     ds.view.snap_objects = false;
     ds.view.snap_pixel = false;
@@ -178,7 +178,7 @@ fn node_set_and_inspect_carry_operand_operations() {
     assert!(s.execute("node.set", &json!({"id": a, "props": {"operandOperation": "sideways"}})).is_err());
     // Ungrouping releases the operands' own operations.
     ex(&mut s, "node.set", json!({"id": b, "props": {"operandOperation": "union"}}));
-    ex(&mut s, "object.ungroup", json!({"ids": [g]}));
+    ex(&mut s, "arrange.ungroup", json!({"ids": [g]}));
     assert_eq!(s.doc().unwrap().node(b).unwrap().bool_op, None);
 }
 

@@ -32,7 +32,7 @@ fn frame(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>
     if let Some(parent) = parent {
         p["parent"] = json!(parent);
     }
-    id(&ex(s, "frame.create", p))
+    id(&ex(s, "frame.add", p))
 }
 
 fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>) -> NodeId {
@@ -176,7 +176,7 @@ fn zoom_to_fit_selection_and_frames() {
     }
     // Docs silent: zoom to selection with nothing selected leaves the view alone (pinned).
     ex(&mut s, "view.set", json!({"zoom": 3, "cx": 7, "cy": 8}));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     ex(&mut s, "view.zoomSelection", json!({}));
     let v = view(&s);
     assert!(near(v.zoom, 3.0) && near(v.cx, 7.0) && near(v.cy, 8.0));
@@ -354,7 +354,7 @@ fn guide_scene(s: &mut Session) -> GuideScene {
     let a = rect(s, 20.0, 20.0, 20.0, 20.0, Some(n));
     ex(s, "guide.add", json!({"vertical": true, "offset": 600}));
     let page = s.page().unwrap();
-    ex(s, "select.none", json!({}));
+    ex(s, "edit.deselectAll", json!({}));
     GuideScene { f, n, a, page }
 }
 
@@ -499,7 +499,7 @@ fn guides_snap_and_measure() {
     ex(&mut s, "select.set", json!({"ids": [r]}));
     assert_eq!(measured(&mut s, (600.5, 900.0), ALT), vec!["60"], "Alt measures from the selection to a guide");
     assert_eq!(measured(&mut s, (900.0, 700.5), ALT), vec!["160"], "Alt measures to horizontal guides too");
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     assert!(measured(&mut s, (600.5, 900.0), ALT).is_empty(), "with nothing selected Alt measures nothing");
 }
 
@@ -685,7 +685,7 @@ fn layout_grids_are_saved_as_styles() {
     let mut s = Session::new();
     let (a, _) = grid_frame(&mut s, json!([{"kind": "columns", "count": 4}, {"kind": "grid", "size": 8}]));
     let b = frame(&mut s, 700.0, 0.0, 100.0, 100.0, None);
-    let st = ex(&mut s, "style.create", json!({"type": "grid", "name": "Grid/8", "from": a}));
+    let st = ex(&mut s, "style.add", json!({"type": "grid", "name": "Grid/8", "from": a}));
     ex(&mut s, "style.apply", json!({"ids": [b], "style": st["id"]}));
     let kinds: Vec<GridKind> = s.doc().unwrap().node(b).unwrap().grids.iter().map(|g| g.kind).collect();
     assert_eq!(kinds, vec![GridKind::Columns, GridKind::Grid], "several layout grids are saved and applied as one style");
@@ -706,14 +706,14 @@ fn outline_mode_selects_layers_behind_others() {
     ];
     for (on, p, after, why) in rows {
         ex(&mut s, "view.outlines", json!({"on": on}));
-        ex(&mut s, "select.none", json!({}));
+        ex(&mut s, "edit.deselectAll", json!({}));
         click(&mut s, p.0, p.1);
         assert_eq!(s.selection(), after, "{why}");
     }
     // Docs silent: outlines for the selection only don't change what a click hits (pinned).
     ex(&mut s, "view.outlines", json!({"on": false}));
     ex(&mut s, "view.outlinesSelection", json!({"on": true}));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     click(&mut s, 0.5, 50.0);
     assert_eq!(s.selection(), vec![front]);
 }

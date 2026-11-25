@@ -74,7 +74,7 @@ export function SelectionHeader() {
       </button>
       {isFrame ? <IconButton icon="Rotate" label={t('Swap orientation')} onClick={() => void run('frame.swapOrientation', { ids })} testId="design-design-swap" className="design-d-swap" /> : null}
       <span className="design-d-header-actions">
-        <IconButton icon="Component" label={tipFor(t('Create component'), 'component.create')} onClick={() => void run('component.create', {})} testId="design-design-create-component" />
+        <IconButton icon="Component" label={tipFor(t('Create component'), 'component.add')} onClick={() => void run('component.add', {})} testId="design-design-create-component" />
         <IconButton icon="Mask" label={tipFor(t('Use as mask'), 'object.mask')} onClick={() => void run('object.mask', {})} testId="design-design-mask" />
         <span ref={boolButton} className="design-d-anchor">
           <IconButton icon={current?.icon ?? 'Union'} label={t('Boolean groups')} onClick={() => setMenu(menu === 'bool' ? null : 'bool')} testId="design-design-boolean" />

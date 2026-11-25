@@ -20,8 +20,8 @@ fn setup(light: &str, dark: &str) -> (Session, NodeId) {
     let mut s = Session::new();
     let r = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "props": {"fill": "#0D6EFD80"}})).unwrap();
     let r = NodeId(r["id"].as_u64().unwrap());
-    ex(&mut s, "variable.createCollection", json!({"name": "Tokens", "modes": ["Light", "Dark"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Tokens", "name": "tint", "type": "color", "value": light}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Tokens", "modes": ["Light", "Dark"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Tokens", "name": "tint", "type": "color", "value": light}));
     ex(&mut s, "variable.set", json!({"variable": "tint", "mode": "Dark", "value": dark}));
     (s, r)
 }
@@ -104,7 +104,7 @@ fn node_set_and_style_bindings_apply_the_alpha_once() {
     ex(&mut s, "node.set", json!({"id": r.0, "props": {"boundVariables": {"fill": null}}}));
     assert!(near(s.doc().unwrap().node(r).unwrap().fills[0].opacity, HALF));
     // A paint style made from a `#RRGGBBAA` colour, bound to the variable.
-    let st = s.execute("style.create", &json!({"type": "paint", "name": "Tint", "value": "#0D6EFD80"})).unwrap()["id"].clone();
+    let st = s.execute("style.add", &json!({"type": "paint", "name": "Tint", "value": "#0D6EFD80"})).unwrap()["id"].clone();
     ex(&mut s, "style.bind", json!({"style": st, "field": "fills/0/color", "variable": "tint"}));
     ex(&mut s, "style.apply", json!({"ids": [r.0], "style": st}));
     assert!(near(alpha(&s, r), HALF), "{}", alpha(&s, r));
@@ -134,10 +134,10 @@ fn code_gives_a_translucent_stroke_its_alpha_once() {
 fn binding_keeps_an_opacity_set_on_the_paint() {
     // A 15% tint whose colour comes from a variable (#923): the bind replaces the colour only.
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Tokens", "modes": ["Light"]}));
-    ex(&mut s, "variable.create", json!({"collection": "Tokens", "name": "red", "type": "color", "value": "#FF0000"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Tokens", "modes": ["Light"]}));
+    ex(&mut s, "variable.add", json!({"collection": "Tokens", "name": "red", "type": "color", "value": "#FF0000"}));
     let props = json!({"fills": [{"type": "solid", "color": "#000000", "opacity": 0.15}]});
-    let r = s.execute("node.create", &json!({"type": "rectangle", "x": 0, "y": 0, "width": 10, "height": 10, "props": props})).unwrap();
+    let r = s.execute("node.add", &json!({"type": "rectangle", "x": 0, "y": 0, "width": 10, "height": 10, "props": props})).unwrap();
     let r = NodeId(r["id"].as_u64().unwrap());
     ex(&mut s, "variable.bind", json!({"ids": [r.0], "field": "fill", "variable": "red"}));
     let p = s.doc().unwrap().node(r).unwrap().fills[0].clone();

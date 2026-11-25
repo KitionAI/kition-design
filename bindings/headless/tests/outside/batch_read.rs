@@ -38,11 +38,11 @@ async fn node_get_grid_cell_reads_parent_grid_without_holding_parent_appearance(
         |f| {
             prepare(f, |d| {
                 let page = d.inspect().unwrap()["page"].clone();
-                let grid = d.execute("frame.create", json!({"parent":page,"width":0,"height":0,"x":900,"y":900})).unwrap()["id"].clone();
+                let grid = d.execute("frame.add", json!({"parent":page,"width":0,"height":0,"x":900,"y":900})).unwrap()["id"].clone();
                 d.execute("node.set", json!({"id":grid,"props":{"layout":"grid","gridColumns":2,"gridRows":2}})).unwrap();
                 let mut child = Value::Null;
                 for _ in 0..3 {
-                    child = d.execute("node.create", json!({"type":"rectangle","parent":grid,"width":0,"height":0})).unwrap()["id"].clone();
+                    child = d.execute("node.add", json!({"type":"rectangle","parent":grid,"width":0,"height":0})).unwrap()["id"].clone();
                 }
                 json!({"grid":grid,"child":child})
             })
@@ -64,7 +64,7 @@ async fn node_get_variable_modes_read_mode_names_without_holding_appearance() {
     case(
         |f| {
             prepare(f, |d| {
-                d.execute("variable.createCollection", json!({"name":"Theme","modes":["Light","Dark"]})).unwrap();
+                d.execute("variable.addCollection", json!({"name":"Theme","modes":["Light","Dark"]})).unwrap();
                 d.execute("variable.setMode", json!({"ids":[f.frame],"collection":"Theme","mode":"Dark"})).unwrap();
                 Value::Null
             })
@@ -112,7 +112,7 @@ async fn style_list_result_reads_style_name_without_holding_layers() {
                 {"command":"object.rename","params":{"ids":[f.b],"name":{"$step":0,"field":"0/name"}}}
             ]})
         },
-        |f, _| vec![("style.update", json!({"style":f.style,"name":"Colleague"}))],
+        |f, _| vec![("style.set", json!({"style":f.style,"name":"Colleague"}))],
         |f, _| vec![("node.set", json!({"id":f.a,"props":{"opacity":0.5}}))],
     )
     .await;

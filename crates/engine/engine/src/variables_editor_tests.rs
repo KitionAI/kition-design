@@ -10,10 +10,10 @@ fn ex(s: &mut Session, cmd: &str, p: Value) -> Value {
 }
 
 fn tokens(s: &mut Session) {
-    ex(s, "variable.createCollection", json!({"name": "Tokens", "modes": ["Light", "Dark"]}));
-    ex(s, "variable.create", json!({"collection": "Tokens", "name": "space/sm", "type": "number", "value": 8}));
-    ex(s, "variable.create", json!({"collection": "Tokens", "name": "space/md", "type": "number", "value": 16}));
-    ex(s, "variable.create", json!({"collection": "Tokens", "name": "brand", "type": "color", "value": "#0D99FF"}));
+    ex(s, "variable.addCollection", json!({"name": "Tokens", "modes": ["Light", "Dark"]}));
+    ex(s, "variable.add", json!({"collection": "Tokens", "name": "space/sm", "type": "number", "value": 8}));
+    ex(s, "variable.add", json!({"collection": "Tokens", "name": "space/md", "type": "number", "value": 16}));
+    ex(s, "variable.add", json!({"collection": "Tokens", "name": "brand", "type": "color", "value": "#0D99FF"}));
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn rename_describe_scope_and_duplicate() {
 fn modes_and_collections_rename_and_delete() {
     let mut s = Session::new();
     tokens(&mut s);
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
     ex(&mut s, "variable.bind", json!({"ids": [f], "field": "width", "variable": "space/md"}));
     ex(&mut s, "variable.set", json!({"variable": "space/md", "mode": "Dark", "value": 24}));
     ex(&mut s, "variable.setMode", json!({"ids": [f], "collection": "Tokens", "mode": "Dark"}));
@@ -65,7 +65,7 @@ fn modes_and_collections_rename_and_delete() {
     let m = ex(&mut s, "variable.addMode", json!({"collection": "Tokens", "name": "Dim"}))["id"].as_str().unwrap().to_string();
     let coll = s.doc().unwrap().variables.collection("Tokens").cloned().unwrap();
     assert_eq!(coll.modes.iter().filter(|x| x.id == m).count(), 1);
-    ex(&mut s, "variable.createCollection", json!({"name": "Other"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Other"}));
     assert!(s.execute("variable.renameCollection", &json!({"collection": "Tokens", "name": "Other"})).is_err());
     ex(&mut s, "variable.renameCollection", json!({"collection": "Tokens", "name": "Primitives"}));
     // Deleting a collection removes its variables; bound layers keep their values.
@@ -85,7 +85,7 @@ fn modes_and_collections_rename_and_delete() {
 fn aliases_follow_their_target_and_refuse_loops_and_other_types() {
     let mut s = Session::new();
     tokens(&mut s);
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
     ex(&mut s, "variable.bind", json!({"ids": [f], "field": "width", "variable": "space/md"}));
     ex(&mut s, "variable.set", json!({"variable": "space/md", "value": {"alias": "space/sm"}}));
     // Stored by id, resolved through the target.
@@ -105,7 +105,7 @@ fn aliases_follow_their_target_and_refuse_loops_and_other_types() {
 #[test]
 fn field_scopes_by_property_and_layer() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"]).unwrap();
     let r = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 5, "height": 5}))["id"]).unwrap();
     let doc = s.doc().unwrap();
     let scope = |id, field| crate::cmd::variables::field_scope(doc, id, field);
@@ -118,10 +118,10 @@ fn field_scopes_by_property_and_layer() {
 #[test]
 fn create_collection_refuses_a_taken_name() {
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Theme"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Theme"}));
     let before = s.doc().unwrap().variables.collections.len();
-    assert!(s.execute("variable.createCollection", &json!({"name": "Theme"})).is_err());
+    assert!(s.execute("variable.addCollection", &json!({"name": "Theme"})).is_err());
     assert_eq!(s.doc().unwrap().variables.collections.len(), before);
-    ex(&mut s, "variable.createCollection", json!({"name": "Theme 2"}));
+    ex(&mut s, "variable.addCollection", json!({"name": "Theme 2"}));
     assert_eq!(s.doc().unwrap().variables.collections.len(), before + 1);
 }

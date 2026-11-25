@@ -169,7 +169,7 @@ fn component_param(rest: &mut Rest<'_>, component: NodeId) -> Option<NodeId> {
     if doc.node(component).is_some_and(|n| matches!(n.kind, NodeKind::ComponentSet { .. })) {
         rest.need(component.0, &["kind"], false);
         // A new instance is named after the set (`assets/components.rs:263`).
-        if rest.command == "instance.create" {
+        if rest.command == "instance.add" {
             rest.need(component.0, &["name"], false);
         }
         for variant in doc.node(component).map(|n| n.children.clone()).unwrap_or_default() {
@@ -227,7 +227,7 @@ fn component(rest: &mut Rest<'_>) {
         // off, blend pass-through; other layers are wrapped in a new frame at their world bounds,
         // at the top one's parent and index, named after a single layer
         // (`cmd/component.rs:60-69,305-343`, `cmd/structure.rs:161-221`).
-        "component.create" | "component.createMultiple" => {
+        "component.add" | "component.addMultiple" => {
             reset(rest);
             let mut wrapped = Vec::new();
             for &node in &targets {
@@ -242,7 +242,7 @@ fn component(rest: &mut Rest<'_>) {
                     None => {}
                 }
             }
-            let tops: Vec<NodeId> = if command == "component.createMultiple" {
+            let tops: Vec<NodeId> = if command == "component.addMultiple" {
                 wrapped
             } else {
                 kition_design_engine::cmd::edit::z_sorted(doc, &wrapped).last().copied().into_iter().collect()
@@ -426,7 +426,7 @@ fn component(rest: &mut Rest<'_>) {
         }
         // A new instance copies the main whole, beside the main's world bounds unless placed;
         // on the current page or in `parent` (`cmd/component.rs:84-98`).
-        "instance.create" => {
+        "instance.add" => {
             reset(rest);
             let Some(component) = rest.node("component") else { return };
             let main = component_param(rest, component);

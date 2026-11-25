@@ -29,8 +29,8 @@ fn library_files() -> &'static [Vec<u8>] {
                 let name = path.trim_start_matches("libraries/").trim_end_matches(".kdesign");
                 let mut s = kition_design_engine::Session::with_document(Document::new(name));
                 let run = |s: &mut kition_design_engine::Session, cmd: &str, p: Value| s.execute(cmd, &p).unwrap_or_else(|e| panic!("{cmd}: {e}"));
-                let f = run(&mut s, "frame.create", json!({ "x": 0, "y": 0, "width": 40, "height": 40, "name": name }))["id"].clone();
-                run(&mut s, "component.create", json!({ "ids": [f] }));
+                let f = run(&mut s, "frame.add", json!({ "x": 0, "y": 0, "width": 40, "height": 40, "name": name }))["id"].clone();
+                run(&mut s, "component.add", json!({ "ids": [f] }));
                 run(&mut s, "library.publish", json!({}));
                 kition_design_format::save_bytes(s.doc().unwrap()).unwrap()
             })
@@ -158,8 +158,8 @@ impl KitAdapter for DesignKit {
         };
         add(&mut d, "shape.rectangle", json!({ "x": 20, "y": 20, "width": 100, "height": 60, "parent": frame.0 }), "Probe")?;
         add(&mut d, "shape.ellipse", json!({ "x": 150, "y": 20, "width": 60, "height": 60, "parent": frame.0 }), "Circle")?;
-        add(&mut d, "frame.create", json!({ "x": 900, "y": 0, "width": 300, "height": 200 }), "Second")?;
-        add(&mut d, "text.create", json!({ "text": "Hello", "x": 20, "y": 120, "parent": frame.0 }), "Title")?;
+        add(&mut d, "frame.add", json!({ "x": 900, "y": 0, "width": 300, "height": 200 }), "Second")?;
+        add(&mut d, "text.add", json!({ "text": "Hello", "x": 20, "y": 120, "parent": frame.0 }), "Title")?;
         lend_libraries(&mut d)?;
         Ok(d)
     }
@@ -224,15 +224,15 @@ impl KitAdapter for DesignKit {
             8 => {
                 let (a, b) = (pick(rng), pick(rng));
                 match (a, b) {
-                    (Some(a), Some(b)) if a != b => run(d, "object.group", json!({ "ids": [a.0, b.0] })).then_some("group"),
+                    (Some(a), Some(b)) if a != b => run(d, "arrange.group", json!({ "ids": [a.0, b.0] })).then_some("group"),
                     _ => None,
                 }
             }
-            9 => pick(rng).and_then(|id| run(d, "object.ungroup", json!({ "ids": [id.0] })).then_some("ungroup")),
+            9 => pick(rng).and_then(|id| run(d, "arrange.ungroup", json!({ "ids": [id.0] })).then_some("ungroup")),
             10 => frames(d).first().copied().and_then(|f| run(d, "layout.add", json!({ "ids": [f.0], "direction": "vertical" })).then_some("layout")),
             11 => pick(rng).and_then(|id| run(d, "edit.delete", json!({ "ids": [id.0] })).then_some("delete")),
             12 => pick(rng).and_then(|id| run(d, "edit.duplicate", json!({ "ids": [id.0] })).then_some("duplicate")),
-            13 => run(d, "text.create", json!({ "text": format!("Note {}", rng.below(100)), "x": x, "y": y })).then_some("text"),
+            13 => run(d, "text.add", json!({ "text": format!("Note {}", rng.below(100)), "x": x, "y": y })).then_some("text"),
             14 => {
                 let doc = doc(d);
                 let texts: Vec<NodeId> =
@@ -245,7 +245,7 @@ impl KitAdapter for DesignKit {
                 let c = color(rng);
                 run(
                     d,
-                    "style.create",
+                    "style.add",
                     json!({ "type": "paint", "name": format!("Colour {}", rng.below(100)), "value": [{ "type": "solid", "color": c }] }),
                 )
                 .then_some("style")
@@ -270,7 +270,7 @@ impl KitAdapter for DesignKit {
                 let links: Vec<String> = doc(d).libraries.enabled.iter().map(|l| l.id.clone()).collect();
                 rng.pick(&links).cloned().and_then(|id| run(d, "library.remove", json!({ "id": id })).then_some("library.remove"))
             }
-            _ => pick(rng).and_then(|id| run(d, "arrange.backward", json!({ "ids": [id.0] })).then_some("backward")),
+            _ => pick(rng).and_then(|id| run(d, "arrange.sendBackward", json!({ "ids": [id.0] })).then_some("backward")),
         };
         // A step that did not apply (nothing to act on) adds a layer instead, so every step edits.
         Ok(match label {

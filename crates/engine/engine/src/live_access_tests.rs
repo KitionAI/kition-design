@@ -235,7 +235,7 @@ fn revert_refuses_live_documents_without_losing_access_or_sync() {
 #[test]
 fn revert_refusal_preserves_previews() {
     let (mut s, script) = session();
-    let text = s.execute("text.create", &json!({"text": "Preview"})).unwrap()["id"].clone();
+    let text = s.execute("text.add", &json!({"text": "Preview"})).unwrap()["id"].clone();
     let version = crate::cmd::file::saved_version(&mut s);
     let path = saved_file(&mut s);
     s.execute("collab.host", &json!({})).unwrap();

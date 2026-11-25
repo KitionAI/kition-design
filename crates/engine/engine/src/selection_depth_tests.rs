@@ -23,10 +23,10 @@ fn rect_in(s: &mut Session, x: f64, y: f64, parent: Option<NodeId>) -> NodeId {
 /// A frame (0,0 300×200) holding a group of two rectangles and a loose one; and one rectangle
 /// on the page at (400, 0).
 fn scene(s: &mut Session) -> (NodeId, NodeId, [NodeId; 3], NodeId) {
-    let f = id_of(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 300, "height": 200}))["id"]).unwrap();
+    let f = id_of(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 300, "height": 200}))["id"]).unwrap();
     let a = rect_in(s, 20.0, 20.0, Some(f));
     let b = rect_in(s, 80.0, 20.0, Some(f));
-    let g = id_of(&ex(s, "object.group", json!({"ids": [a, b]}))["id"]).unwrap();
+    let g = id_of(&ex(s, "arrange.group", json!({"ids": [a, b]}))["id"]).unwrap();
     let c = rect_in(s, 20.0, 120.0, Some(f));
     let out = rect_in(s, 400.0, 0.0, None);
     (f, g, [a, b, c], out)
@@ -57,7 +57,7 @@ fn cmd_click_selects_the_nested_layer() {
     s.pointer(&ev(PointerKind::Down, 30.0, 30.0, false, false)).unwrap();
     s.pointer(&ev(PointerKind::Up, 30.0, 30.0, false, false)).unwrap();
     assert_eq!(s.selection(), vec![g], "a click selects the frame's child");
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     s.pointer(&ev(PointerKind::Down, 30.0, 30.0, false, true)).unwrap();
     s.pointer(&ev(PointerKind::Up, 30.0, 30.0, false, true)).unwrap();
     assert_eq!(s.selection(), vec![a], "Cmd/Ctrl-click goes straight to the layer");

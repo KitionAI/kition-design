@@ -46,8 +46,8 @@ solution:
       path: screen.kdesign
       steps:
         - { command: node.set, params: { id: 2, props: { name: Card } } }
-        - { command: component.create, params: { ids: [2] } }
+        - { command: component.add, params: { ids: [2] } }
   - tool: design_run
-    args: { path: screen.kdesign, steps: [{ command: instance.create, params: { component: 2, parent: 1, x: 480, y: 0 } }] }
+    args: { path: screen.kdesign, steps: [{ command: instance.add, params: { component: 2, parent: 1, x: 480, y: 0 } }] }
 since: "2026-11-17"
 timeout_s: 600

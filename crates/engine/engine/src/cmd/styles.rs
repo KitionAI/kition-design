@@ -26,7 +26,7 @@ pub fn specs() -> Vec<CommandSpec> {
             }
         ),
         spec!(
-            "style.create",
+            "style.add",
             "Create style",
             "{type: paint|text|effect|grid, name, from? (node id; default first selected), description?, value? (paints/effects/grids/text style JSON)}",
             true,
@@ -46,7 +46,7 @@ pub fn specs() -> Vec<CommandSpec> {
             true,
             detach
         ),
-        spec!("style.update", "Edit style", "{style, name?, description?, value?, from? (node id: redefine from it)}", true, update),
+        spec!("style.set", "Edit style", "{style, name?, description?, value?, from? (node id: redefine from it)}", true, update),
         spec!(
             "style.bind",
             "Bind variable in style",
@@ -106,7 +106,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     .iter()
                     .filter(|st| t.as_deref().is_none_or(|t| st.kind.type_name() == t))
                     .map(|st| {
-                        // A text style's properties with the keys node.set and text.create take
+                        // A text style's properties with the keys node.set and text.add take
                         // (fontFamily, fontSize); paints keep the editor's keys.
                         let v = serde_json::to_value(st).unwrap_or(Value::Null);
                         if matches!(st.kind, kition_design_doc::StyleKind::Text { .. }) { crate::inspect::camel(v) } else { v }
@@ -114,8 +114,8 @@ pub fn specs() -> Vec<CommandSpec> {
                     .collect(),
             ))
         }),
-        spec!("variable.createCollection", "Create variable collection", "{name, modes? [names]}", true, |s, p| {
-            let cmd = "variable.createCollection";
+        spec!("variable.addCollection", "Create variable collection", "{name, modes? [names]}", true, |s, p| {
+            let cmd = "variable.addCollection";
             let name = req_string(cmd, p, "name")?.trim().to_string();
             if name.is_empty() {
                 return Err(bad(cmd, "name can't be empty"));
@@ -164,7 +164,7 @@ pub fn specs() -> Vec<CommandSpec> {
             Ok(json!({"id": mid}))
         }),
         spec!(
-            "variable.create",
+            "variable.add",
             "Create variable",
             "{collection, name, type: color|number|string|boolean, value? (the default mode's value), values?: {modeName: value} (instead of value: one per mode), description?}",
             true,
@@ -323,7 +323,7 @@ fn kind_from_node(t: &str, n: &Node) -> Option<StyleKind> {
 }
 
 fn create(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "style.create";
+    let cmd = "style.add";
     let t = req_string(cmd, p, "type")?.to_ascii_lowercase();
     let name = style_name(cmd, &req_string(cmd, p, "name")?)?;
     let from = id(p, "from").or_else(|| s.selection().first().copied());
@@ -514,7 +514,7 @@ fn bind_style(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn update(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "style.update";
+    let cmd = "style.set";
     let st = req_string(cmd, p, "style")?;
     let doc = s.doc_mut()?;
     let idx = doc.styles.iter().position(|x| x.id == st || x.name == st).ok_or_else(|| bad(cmd, "no such style"))?;
@@ -897,7 +897,7 @@ fn var_value(kind: VariableType, v: &Value) -> Option<VariableValue> {
 }
 
 fn var_create(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "variable.create";
+    let cmd = "variable.add";
     let c = req_string(cmd, p, "collection")?;
     let name = req_string(cmd, p, "name")?;
     let kind = match req_string(cmd, p, "type")?.to_ascii_lowercase().as_str() {

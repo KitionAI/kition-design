@@ -324,7 +324,7 @@ fn a_press_on_a_stickys_background_picks_and_drags_it() {
     let a = id(&s.execute("board.sticky", &json!({"x": 0, "y": 0, "text": "Hi"})).unwrap(), "id");
     let b = id(&s.execute("board.sticky", &json!({"x": 400, "y": 0})).unwrap(), "id");
     let c = id(&s.execute("board.connector", &json!({"from": a, "to": b})).unwrap(), "id");
-    s.execute("select.none", &json!({})).unwrap();
+    s.execute("edit.deselectAll", &json!({})).unwrap();
     // Below the note, on the sticky's own fill (a top-level frame's background is the canvas).
     s.pointer(&PointerEvent::at(PointerKind::Down, 100.0, 150.0, 1.0)).unwrap();
     s.pointer(&PointerEvent::at(PointerKind::Move, 100.0, 250.0, 1.0)).unwrap();

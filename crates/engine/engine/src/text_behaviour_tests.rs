@@ -14,7 +14,7 @@ fn id(v: Value) -> NodeId {
 }
 
 fn text(s: &mut Session, chars: &str, props: Value) -> NodeId {
-    id(s.execute("text.create", &json!({"text": chars, "x": 0, "y": 0, "props": props})).unwrap())
+    id(s.execute("text.add", &json!({"text": chars, "x": 0, "y": 0, "props": props})).unwrap())
 }
 
 fn chars(s: &Session, t: NodeId) -> String {
@@ -291,7 +291,7 @@ fn a_drag_with_the_text_tool_makes_a_fixed_size_box() {
 
 #[test]
 fn new_text_starts_in_the_builds_default_font() {
-    // `text.create` without a fontFamily and a click with the Text tool both start in
+    // `text.add` without a fontFamily and a click with the Text tool both start in
     // `kition_design_doc::DEFAULT_FONT` (Inter, unless the build names another with
     // `KITION_DESIGN_DEFAULT_FONT`), and the family is written with the text.
     use crate::tools::{PointerEvent, PointerKind, ToolId};

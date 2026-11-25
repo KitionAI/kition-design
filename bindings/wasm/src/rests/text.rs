@@ -16,13 +16,13 @@ use super::layout::{created, settle};
 /// edit changes (`bound_before`/`detach_edited`, cmd/styles.rs:994/1002): they read
 /// `bindings.bound`; the paragraph commands (`para`, `set_list`) do not.
 const DETACHES: &[&str] = &[
-    "text.bold",
-    "text.italic",
-    "text.underline",
-    "text.strikethrough",
+    "format.bold",
+    "format.italic",
+    "format.underline",
+    "format.strikethrough",
     "text.link",
-    "text.sizeUp",
-    "text.sizeDown",
+    "format.increaseFontSize",
+    "format.decreaseFontSize",
     "text.weightUp",
     "text.weightDown",
     "text.lineHeightUp",
@@ -47,7 +47,7 @@ const CARET_KEYS: &[&str] = &["Left", "Right", "Up", "Down", "Home", "End", "Sel
 
 pub(super) fn rest(rest: &mut Rest<'_>) {
     match rest.command {
-        "text.create" => created(rest),
+        "text.add" => created(rest),
         "text.onPath" => on_path(rest),
         "text.refit" => refit(rest),
         "text.edit.begin" => {

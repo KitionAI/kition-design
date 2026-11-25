@@ -345,7 +345,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
             }
         }
         // A value in every mode of its collection: modes the JSON lacks take the default mode's
-        // (a new variable whose values all failed starts like one made with variable.create).
+        // (a new variable whose values all failed starts like one made with variable.add).
         let all: Vec<ModeId> =
             doc.variables.collections.iter().find(|x| x.id == *cid).map(|x| x.modes.iter().map(|m| m.id.clone()).collect()).unwrap_or_default();
         if let Some(slot) = doc.variables.variables.iter_mut().find(|x| x.id == *local) {

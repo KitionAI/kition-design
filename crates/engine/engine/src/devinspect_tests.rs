@@ -19,14 +19,14 @@ fn row<'a>(sections: &'a [Section], title: &str, label: &str) -> &'a crate::devi
 #[test]
 fn properties_group_layout_auto_layout_paints_and_tokens() {
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 100, "y": 50, "width": 300, "height": 200})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 100, "y": 50, "width": 300, "height": 200})).unwrap());
     let r = id(s.execute("shape.rectangle", &json!({"x": 130, "y": 90, "width": 80, "height": 40, "parent": f})).unwrap());
     s.execute("node.set", &json!({"id": r, "props": {"fill": "#0D99FF80", "cornerRadius": 6, "opacity": 0.5}})).unwrap();
-    s.execute("variable.createCollection", &json!({"name": "T"})).unwrap();
-    s.execute("variable.create", &json!({"collection": "T", "name": "radius/sm", "type": "number", "value": 6})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "T"})).unwrap();
+    s.execute("variable.add", &json!({"collection": "T", "name": "radius/sm", "type": "number", "value": 6})).unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "cornerRadius", "variable": "radius/sm"})).unwrap();
     s.execute("select.set", &json!({"ids": [r]})).unwrap();
-    s.execute("style.create", &json!({"type": "paint", "name": "Brand/Blue"})).unwrap();
+    s.execute("style.add", &json!({"type": "paint", "name": "Brand/Blue"})).unwrap();
     s.execute("style.apply", &json!({"ids": [r], "style": "Brand/Blue"})).unwrap();
     let doc = s.doc().unwrap();
     let p = properties(doc, r);
@@ -61,7 +61,7 @@ fn properties_group_layout_auto_layout_paints_and_tokens() {
 #[test]
 fn typography_section_for_text() {
     let mut s = Session::new();
-    let t = id(s.execute("text.create", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap());
+    let t = id(s.execute("text.add", &json!({"text": "Hello", "x": 0, "y": 0})).unwrap());
     s.execute("node.set", &json!({"id": t, "props": {"fontSize": 18, "textAlignHorizontal": "center"}})).unwrap();
     let p = properties(s.doc().unwrap(), t);
     assert_eq!(row(&p, "Typography", "Size").value, "18");
@@ -86,7 +86,7 @@ fn redlines_measure_on_hover_without_alt() {
 #[test]
 fn assets_list_layers_with_export_settings_under_the_selection() {
     let mut s = Session::new();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     let icon = id(s.execute("shape.ellipse", &json!({"x": 10, "y": 10, "width": 20, "height": 20, "parent": f})).unwrap());
     s.execute("shape.rectangle", &json!({"x": 40, "y": 10, "width": 20, "height": 20, "parent": f})).unwrap();
     s.execute("export.add", &json!({"ids": [icon]})).unwrap();

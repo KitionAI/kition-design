@@ -14,7 +14,7 @@ async fn measure(children: usize, form: &str) {
     let mut ids = Vec::new();
     for i in 0..children {
         ids.push(
-            doc.execute("node.create", json!({"type":"rectangle","parent":frame,"x":(i%20)*20,"y":(i/20)*20,"width":10,"height":10})).unwrap()["id"]
+            doc.execute("node.add", json!({"type":"rectangle","parent":frame,"x":(i%20)*20,"y":(i/20)*20,"width":10,"height":10})).unwrap()["id"]
                 .clone(),
         );
     }

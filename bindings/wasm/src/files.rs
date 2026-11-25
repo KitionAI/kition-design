@@ -30,8 +30,8 @@ mod tests {
         ("proto.conditional.setCondition", "path"),
         ("proto.conditional.removeBlock", "path"),
         // SVG path data.
-        ("node.create", "path"),
-        ("vector.create", "path"),
+        ("node.add", "path"),
+        ("vector.add", "path"),
         ("board.ink", "path"),
         // The vector or shape layer the text follows.
         ("text.onPath", "path"),

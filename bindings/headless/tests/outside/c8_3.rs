@@ -37,7 +37,7 @@ async fn tool_place_holds_the_actual_pick() {
             "cover" => {
                 rewrite(&f, |d| {
                     let page = d.inspect().unwrap()["page"].clone();
-                    d.execute("frame.create", json!({"parent":page,"x":490,"y":390,"width":120,"height":120})).unwrap()
+                    d.execute("frame.add", json!({"parent":page,"x":490,"y":390,"width":120,"height":120})).unwrap()
                 });
             }
             "layout" => f.colleague(&[("layout.add", json!({"ids":[f.destination]}))]),
@@ -72,7 +72,7 @@ async fn tool_place_holds_enclosed_geometry_but_not_unrelated_fields() {
 async fn vector_session_does_not_delete_a_colleagues_isolated_point() {
     for necessary in [true, false] {
         let f = Fixture::new(Guard::Premise);
-        let vector = rewrite(&f, |d| d.execute("node.create", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
+        let vector = rewrite(&f, |d| d.execute("node.add", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
         let basis = f.basis().await;
         if necessary {
             f.colleague(&[("vector.edit.begin", json!({"ids":[vector]})), ("vector.edit.pen", json!({"x":510,"y":410}))]);
@@ -122,7 +122,7 @@ async fn tool_switch_cleanup_pairs_interfering_and_unrelated_writers() {
     for command in ["tool.rectangle", "tool.set", "edit.pickColor"] {
         for necessary in [true, false] {
             let f = Fixture::new(Guard::Premise);
-            let vector = rewrite(&f, |d| d.execute("node.create", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
+            let vector = rewrite(&f, |d| d.execute("node.add", json!({"type":"vector","parent":f.destination})).unwrap())["id"].clone();
             let basis = f.basis().await;
             if necessary {
                 f.colleague(&[("vector.edit.begin", json!({"ids":[vector]})), ("vector.edit.pen", json!({"x":510,"y":410}))]);
@@ -159,7 +159,7 @@ async fn waiting_for_sdk_tool_place_without_place_parameters() {
     let frame = rewrite(&f, |d| {
         let view = d.session().ds().unwrap().view.clone();
         let page = d.inspect().unwrap()["page"].clone();
-        d.execute("frame.create", json!({"parent":page,"x":view.cx-60.0,"y":view.cy-60.0,"width":120,"height":120})).unwrap()
+        d.execute("frame.add", json!({"parent":page,"x":view.cx-60.0,"y":view.cy-60.0,"width":120,"height":120})).unwrap()
     })["id"]
         .clone();
     let basis = f.basis().await;
@@ -196,7 +196,7 @@ async fn audited_dev_resource_fields_and_document_wide_font_refit() {
             let f = Fixture::new(Guard::Premise);
             let text = rewrite(&f, |d| {
                 d.execute("devResource.add", json!({"id":f.a,"url":"https://example.test/spec","name":"Before"})).unwrap();
-                d.execute("text.create", json!({"parent":f.destination,"text":"Before"})).unwrap()["id"].clone()
+                d.execute("text.add", json!({"parent":f.destination,"text":"Before"})).unwrap()["id"].clone()
             });
             let basis = f.basis().await;
             match (family, necessary) {

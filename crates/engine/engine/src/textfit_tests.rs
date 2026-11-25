@@ -9,7 +9,7 @@ use serde_json::json;
 /// A fixed-width (auto-height) headline of `width` px at 64px. Returns its id.
 fn headline(s: &mut Session, text: &str, width: f64) -> NodeId {
     kition_design_text::scan_system_fonts();
-    let t = idv(&ex(s, "text.create", json!({"text": text, "x": 0, "y": 0, "props": {"name": "Headline", "fontSize": 64}})));
+    let t = idv(&ex(s, "text.add", json!({"text": text, "x": 0, "y": 0, "props": {"name": "Headline", "fontSize": 64}})));
     ex(s, "node.set", json!({"id": t, "props": {"width": width, "textAutoResize": "height"}}));
     t
 }
@@ -45,7 +45,7 @@ fn text_shrinks_to_its_line_limit_and_no_further() {
     assert_eq!(r["fitted"][0]["fits"], false);
     assert_eq!(size(&s, t), 50.0);
     // Text that grows to its content has no box to fit.
-    let auto = idv(&ex(&mut s, "text.create", json!({"text": "x", "x": 0, "y": 0})));
+    let auto = idv(&ex(&mut s, "text.add", json!({"text": "x", "x": 0, "y": 0})));
     assert!(s.execute("text.fit", &json!({"ids": [auto]})).is_err());
 }
 
@@ -70,8 +70,8 @@ fn a_one_word_last_line_is_avoided() {
 fn data_fill_sizes_each_copys_text() {
     kition_design_text::scan_system_fonts();
     let mut s = Session::new();
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
-    let t = idv(&ex(&mut s, "text.create", json!({"text": "Curto", "x": 80, "y": 80, "parent": f, "props": {"name": "Headline", "fontSize": 96}})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 1080, "height": 1350, "name": "Post"})));
+    let t = idv(&ex(&mut s, "text.add", json!({"text": "Curto", "x": 80, "y": 80, "parent": f, "props": {"name": "Headline", "fontSize": 96}})));
     ex(&mut s, "node.set", json!({"id": t, "props": {"width": 920, "textAutoResize": "height"}}));
     let r = ex(
         &mut s,

@@ -11,11 +11,11 @@ import { Caption, Dialog } from './Dialog'
 type Prefs = { keepTool: boolean; highlightOnHover: boolean; renameDuplicates: boolean; showDimensions: boolean; numberKeysOpacity: boolean; nudgeSmall: number; nudgeBig: number }
 
 const TOGGLES: Array<{ id: string; key: keyof Prefs; label: string }> = [
-  { id: 'pref.keepTool', key: 'keepTool', label: 'Keep tool selected after use' },
-  { id: 'pref.highlightHover', key: 'highlightOnHover', label: 'Highlight layers on hover' },
-  { id: 'pref.renameDuplicates', key: 'renameDuplicates', label: 'Rename duplicated layers' },
-  { id: 'pref.showDimensions', key: 'showDimensions', label: 'Show dimensions on objects' },
-  { id: 'pref.numberKeysOpacity', key: 'numberKeysOpacity', label: 'Use number keys for opacity' },
+  { id: 'prefs.keepTool', key: 'keepTool', label: 'Keep tool selected after use' },
+  { id: 'prefs.highlightHover', key: 'highlightOnHover', label: 'Highlight layers on hover' },
+  { id: 'prefs.renameDuplicates', key: 'renameDuplicates', label: 'Rename duplicated layers' },
+  { id: 'prefs.showDimensions', key: 'showDimensions', label: 'Show dimensions on objects' },
+  { id: 'prefs.numberKeysOpacity', key: 'numberKeysOpacity', label: 'Use number keys for opacity' },
 ]
 
 export function PreferencesDialog({ onClose }: { onClose: () => void }) {
@@ -37,10 +37,10 @@ export function PreferencesDialog({ onClose }: { onClose: () => void }) {
       <div className="design-dialog-row" style={{ marginTop: 14 }}>
         <label>{t('Nudge amount')}</label>
         <span className="design-drag-value">
-          <NumberField value={prefs?.nudgeSmall ?? 1} min={0.1} max={100} width={36} ariaLabel={t('Nudge amount')} onCommit={(edit) => void set('pref.nudge', { small: edit.kind === 'set' ? edit.value : edit.apply(prefs?.nudgeSmall ?? 1) })} testId="design-pref-nudge-small" />
+          <NumberField value={prefs?.nudgeSmall ?? 1} min={0.1} max={100} width={36} ariaLabel={t('Nudge amount')} onCommit={(edit) => void set('prefs.nudge', { small: edit.kind === 'set' ? edit.value : edit.apply(prefs?.nudgeSmall ?? 1) })} testId="design-pref-nudge-small" />
         </span>
         <span className="design-drag-value">
-          <NumberField value={prefs?.nudgeBig ?? 10} min={1} max={1000} width={36} ariaLabel={t('Nudge amount')} onCommit={(edit) => void set('pref.nudge', { big: edit.kind === 'set' ? edit.value : edit.apply(prefs?.nudgeBig ?? 10) })} testId="design-pref-nudge-big" />
+          <NumberField value={prefs?.nudgeBig ?? 10} min={1} max={1000} width={36} ariaLabel={t('Nudge amount')} onCommit={(edit) => void set('prefs.nudge', { big: edit.kind === 'set' ? edit.value : edit.apply(prefs?.nudgeBig ?? 10) })} testId="design-pref-nudge-big" />
         </span>
       </div>
       <Caption tone="secondary" style={{ marginTop: 14 }}>

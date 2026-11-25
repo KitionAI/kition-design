@@ -70,7 +70,7 @@ fn the_box_shows_for_two_or_more_points_with_the_move_tool() {
 fn corners_clear_of_points_scale_them_in_one_undo_step() {
     let mut s = Session::new();
     // An L of three points: the box's bottom-right corner (50, 50) has no point under it.
-    let id = id_of(&ex(&mut s, "vector.create", json!({"points": [[0, 0], [50, 0], [0, 50]], "closed": false}))["id"]).unwrap();
+    let id = id_of(&ex(&mut s, "vector.add", json!({"points": [[0, 0], [50, 0], [0, 50]], "closed": false}))["id"]).unwrap();
     ex(&mut s, "vector.edit.begin", json!({"id": id}));
     select_all(&mut s);
     drag(&mut s, (50.0, 50.0), (150.0, 120.0));
@@ -212,7 +212,7 @@ fn flip_and_rotate_act_on_selected_points_while_editing() {
 fn dragged_points_snap_to_other_vectors_points_and_midpoints() {
     let mut s = Session::new();
     // Another vector with a point clear of its box's edge and centre lines.
-    ex(&mut s, "vector.create", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
+    ex(&mut s, "vector.add", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
     let id = rect(&mut s);
     let v = vertex_at(&net(&s, id), 100.0, 100.0);
     ex(&mut s, "vector.edit.select", json!({"vertices": [v]}));
@@ -233,7 +233,7 @@ fn dragged_points_snap_to_other_vectors_points_and_midpoints() {
 #[test]
 fn ctrl_suppresses_snapping_and_the_pixel_grid_rounds() {
     let mut s = Session::new();
-    ex(&mut s, "vector.create", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
+    ex(&mut s, "vector.add", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
     let id = rect(&mut s);
     let v = vertex_at(&net(&s, id), 100.0, 100.0);
     ex(&mut s, "vector.edit.select", json!({"vertices": [v]}));
@@ -288,7 +288,7 @@ fn handles_follow_the_pointer_while_the_vector_refits() {
 #[test]
 fn pens_snap_their_clicks() {
     let mut s = Session::new();
-    ex(&mut s, "vector.create", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
+    ex(&mut s, "vector.add", json!({"points": [[300, 0], [400, 100], [320, 60]], "closed": true}));
     let id = rect(&mut s);
     ex(&mut s, "vector.edit.tool", json!({"tool": "pen"}));
     s.pointer(&ev(PointerKind::Hover, 322.0, 58.0)).unwrap();

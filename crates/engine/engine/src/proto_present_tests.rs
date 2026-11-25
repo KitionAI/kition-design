@@ -72,10 +72,10 @@ fn present_options_ask_the_ui_and_check_their_values() {
 fn explicit_variable_modes_go_back_to_auto() {
     let mut s = Session::new();
     let id = |v: serde_json::Value| id_of(&v["id"]).unwrap();
-    let f = id(s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap());
     let r = id(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 10, "height": 10, "parent": f})).unwrap());
-    s.execute("variable.createCollection", &json!({"name": "Tokens", "modes": ["Light", "Dark"]})).unwrap();
-    s.execute("variable.create", &json!({"collection": "Tokens", "name": "size", "type": "number", "value": 20})).unwrap();
+    s.execute("variable.addCollection", &json!({"name": "Tokens", "modes": ["Light", "Dark"]})).unwrap();
+    s.execute("variable.add", &json!({"collection": "Tokens", "name": "size", "type": "number", "value": 20})).unwrap();
     s.execute("variable.set", &json!({"variable": "size", "mode": "Dark", "value": 40})).unwrap();
     s.execute("variable.bind", &json!({"ids": [r], "field": "width", "variable": "size"})).unwrap();
     let width = |s: &Session| s.doc().unwrap().node(r).unwrap().width;

@@ -321,7 +321,7 @@ fn plugins_cant_forge_widgets_or_call_widget_commands() {
     assert!(!node(&s, r).plugin_data.contains_key("kition-design.widget"));
     // Text that merely mentions the keys is fine.
     let mut b = W::default();
-    let body = b.call("text.create", &json!({"text": "kition-design.widget", "props": {"pluginData": {"note": "kition-design.widget"}}}));
+    let body = b.call("text.add", &json!({"text": "kition-design.widget", "props": {"pluginData": {"note": "kition-design.widget"}}}));
     install(&mut s, json!({"id": "org.test.text", "name": "Text", "main": "t.wasm", "permissions": {"access": "write"}}), &b.build(&body));
     let layers = layer_count(&s);
     ex(&mut s, "plugin.run", json!({"id": "org.test.text"}));

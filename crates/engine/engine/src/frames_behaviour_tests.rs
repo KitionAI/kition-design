@@ -26,7 +26,7 @@ fn frame(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>
     if let Some(parent) = parent {
         p["parent"] = json!(parent);
     }
-    id(ex(s, "frame.create", p))
+    id(ex(s, "frame.add", p))
 }
 
 fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>) -> NodeId {
@@ -38,7 +38,7 @@ fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64, parent: Option<NodeId>)
 }
 
 fn section(s: &mut Session, x: f64, y: f64, w: f64, h: f64) -> NodeId {
-    id(ex(s, "node.create", json!({"type": "section", "x": x, "y": y, "width": w, "height": h})))
+    id(ex(s, "node.add", json!({"type": "section", "x": x, "y": y, "width": w, "height": h})))
 }
 
 /// Page bounds as (x, y, w, h).
@@ -106,7 +106,7 @@ fn resizing_a_frame_applies_constraints_and_a_group_scales() {
     let mut s = Session::new();
     let a = rect(&mut s, 0.0, 0.0, 20.0, 20.0, None);
     let b = rect(&mut s, 30.0, 0.0, 20.0, 20.0, None);
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "node.set", json!({"id": g, "props": {"width": 100}}));
     assert_eq!((wb(&s, a), wb(&s, b)), ((0.0, 0.0, 40.0, 20.0), (60.0, 0.0, 40.0, 20.0)));
 }
@@ -207,7 +207,7 @@ fn grouping_and_ungrouping_keep_layers_in_place() {
     let b = rect(&mut s, 60.0, 30.0, 20.0, 20.0, None);
     ex(&mut s, "node.set", json!({"id": b, "props": {"rotation": 45}}));
     let before = (wb(&s, a), wb(&s, b));
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     assert_eq!((wb(&s, a), wb(&s, b)), before);
     let hug = s.doc().unwrap().bounds_of(&[a, b]).unwrap();
     assert_eq!(wb(&s, g), (hug.x0, hug.y0, hug.width(), hug.height()), "the group hugs its layers");
@@ -215,7 +215,7 @@ fn grouping_and_ungrouping_keep_layers_in_place() {
     ex(&mut s, "transform.rotate", json!({"ids": [g], "degrees": 30}));
     let worlds = |s: &Session| [a, b].map(|i| s.doc().unwrap().world_transform(i));
     let turned = worlds(&s);
-    ex(&mut s, "object.ungroup", json!({"ids": [g]}));
+    ex(&mut s, "arrange.ungroup", json!({"ids": [g]}));
     for (x, y) in worlds(&s).iter().zip(turned.iter()) {
         let (p, q) = (x.as_coeffs(), y.as_coeffs());
         assert!(p.iter().zip(q.iter()).all(|(u, v)| (u - v).abs() < 1e-9), "{p:?} {q:?}");
@@ -224,14 +224,14 @@ fn grouping_and_ungrouping_keep_layers_in_place() {
     assert_eq!(s.selection(), vec![a, b]);
     // Nested groups: ungrouping the outer one keeps the inner one.
     let c = rect(&mut s, 200.0, 0.0, 10.0, 10.0, None);
-    let inner = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
-    let outer = id(ex(&mut s, "object.group", json!({"ids": [inner, c]})));
-    ex(&mut s, "object.ungroup", json!({"ids": [outer]}));
+    let inner = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
+    let outer = id(ex(&mut s, "arrange.group", json!({"ids": [inner, c]})));
+    ex(&mut s, "arrange.ungroup", json!({"ids": [outer]}));
     assert_eq!(s.doc().unwrap().node(inner).unwrap().children, vec![a, b]);
     // Silent on what ungrouping does with the group's opacity: pinned (multiplied into the layers).
-    let g = id(ex(&mut s, "object.group", json!({"ids": [c]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [c]})));
     ex(&mut s, "node.set", json!({"id": g, "props": {"opacity": 0.5}}));
-    ex(&mut s, "object.ungroup", json!({"ids": [g]}));
+    ex(&mut s, "arrange.ungroup", json!({"ids": [g]}));
     assert_eq!(s.doc().unwrap().node(c).unwrap().opacity, 0.5);
 }
 
@@ -242,7 +242,7 @@ fn group_bounds_follow_their_layers_and_empty_groups_go() {
     let mut s = Session::new();
     let a = rect(&mut s, 0.0, 0.0, 20.0, 20.0, None);
     let b = rect(&mut s, 30.0, 0.0, 20.0, 20.0, None);
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "transform.move", json!({"ids": [b], "dx": 50, "dy": 10}));
     assert_eq!(wb(&s, g), (0.0, 0.0, 100.0, 30.0));
     ex(&mut s, "edit.delete", json!({"ids": [a, b]}));
@@ -256,7 +256,7 @@ fn group_opacity_applies_to_the_whole_group() {
     let mut s = Session::new();
     let a = rect(&mut s, 0.0, 0.0, 30.0, 10.0, None);
     let b = rect(&mut s, 20.0, 0.0, 30.0, 10.0, None);
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "node.set", json!({"id": g, "props": {"opacity": 0.5}}));
     let (alone, overlap) = (pixel(&s, g, 5, 5)[3], pixel(&s, g, 25, 5)[3]);
     assert!(alone.abs_diff(128) <= 1 && overlap == alone, "{alone} {overlap}");
@@ -273,7 +273,7 @@ fn x_and_y_are_relative_to_the_frame_not_the_group() {
     let f = frame(&mut s, 100.0, 100.0, 300.0, 300.0, None);
     let a = rect(&mut s, 30.0, 40.0, 20.0, 20.0, Some(f));
     let b = rect(&mut s, 80.0, 60.0, 20.0, 20.0, Some(f));
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let xy = |s: &mut Session, n: NodeId| {
         let v = ex(s, "node.get", json!({"id": n}));
         (v["x"].as_f64().unwrap(), v["y"].as_f64().unwrap())
@@ -296,7 +296,7 @@ fn x_and_y_are_relative_to_the_frame_not_the_group() {
     // A group on the canvas: page coordinates.
     let c = rect(&mut s, 500.0, 20.0, 10.0, 10.0, None);
     let d = rect(&mut s, 520.0, 50.0, 10.0, 10.0, None);
-    ex(&mut s, "object.group", json!({"ids": [c, d]}));
+    ex(&mut s, "arrange.group", json!({"ids": [c, d]}));
     assert_eq!(xy(&mut s, d), (520.0, 50.0));
     // A rotated group: its layers' X/Y are still in the frame's axes.
     ex(&mut s, "transform.rotate", json!({"ids": [g], "degrees": 90}));
@@ -314,7 +314,7 @@ fn clicks_pick_children_of_top_level_frames_and_whole_groups() {
     let f = frame(&mut s, 0.0, 0.0, 300.0, 200.0, None);
     let a = rect(&mut s, 10.0, 10.0, 20.0, 20.0, Some(f));
     let b = rect(&mut s, 40.0, 10.0, 20.0, 20.0, Some(f));
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let nested = frame(&mut s, 100.0, 100.0, 80.0, 80.0, Some(f));
     let deep = rect(&mut s, 10.0, 10.0, 20.0, 20.0, Some(nested));
     let loose = rect(&mut s, 200.0, 20.0, 20.0, 20.0, Some(f));
@@ -409,7 +409,7 @@ fn dropping_into_and_pulling_out_of_frames_follows_the_pointer() {
     // Layers of a group stay in it when dragged (the group follows).
     let a = rect(&mut s, 400.0, 0.0, 20.0, 20.0, None);
     let b = rect(&mut s, 430.0, 0.0, 20.0, 20.0, None);
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "select.set", json!({"ids": [a]}));
     drag(&mut s, (410.0, 10.0), (100.0, 100.0), false);
     assert_eq!(parent(&s, a), Some(g));
@@ -427,7 +427,7 @@ fn sections_go_on_the_page_or_in_sections() {
     let refused = [
         ("into a frame", json!({"ids": [sec], "parent": f})),
         ("into a group", {
-            let g = id(ex(&mut s, "object.group", json!({"ids": [r]})));
+            let g = id(ex(&mut s, "arrange.group", json!({"ids": [r]})));
             json!({"ids": [sec], "parent": g})
         }),
     ];
@@ -435,9 +435,9 @@ fn sections_go_on_the_page_or_in_sections() {
         assert!(s.execute("node.reparent", &p).is_err(), "{rule}");
         assert_eq!(parent(&s, sec), Some(page), "{rule}");
     }
-    assert!(s.execute("object.group", &json!({"ids": [sec]})).is_err(), "grouping a section");
+    assert!(s.execute("arrange.group", &json!({"ids": [sec]})).is_err(), "grouping a section");
     assert!(s.execute("object.frameSelection", &json!({"ids": [sec]})).is_err(), "framing a section");
-    assert!(s.execute("node.create", &json!({"type": "section", "parent": f})).is_err(), "a new section in a frame");
+    assert!(s.execute("node.add", &json!({"type": "section", "parent": f})).is_err(), "a new section in a frame");
     // Into a section: fine.
     ex(&mut s, "node.reparent", json!({"ids": [sec], "parent": outer}));
     assert_eq!(parent(&s, sec), Some(outer));
@@ -479,13 +479,13 @@ fn frames_and_groups_convert_through_frame_selection_and_remove_frame() {
     let mut s = Session::new();
     let a = rect(&mut s, 10.0, 10.0, 20.0, 20.0, None);
     let b = rect(&mut s, 50.0, 10.0, 20.0, 20.0, None);
-    let g = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     let f = id(ex(&mut s, "object.frameSelection", json!({"ids": [g]})));
-    ex(&mut s, "object.ungroup", json!({"ids": [g]}));
+    ex(&mut s, "arrange.ungroup", json!({"ids": [g]}));
     let doc = s.doc().unwrap();
     assert_eq!(doc.node(f).unwrap().children, vec![a, b]);
     assert_eq!((wb(&s, a), wb(&s, f)), ((10.0, 10.0, 20.0, 20.0), (10.0, 10.0, 60.0, 20.0)));
-    let g2 = id(ex(&mut s, "object.group", json!({"ids": [a, b]})));
+    let g2 = id(ex(&mut s, "arrange.group", json!({"ids": [a, b]})));
     ex(&mut s, "object.removeFrame", json!({"ids": [f]}));
     assert_eq!(parent(&s, g2), s.page().ok());
     assert_eq!(wb(&s, g2), (10.0, 10.0, 60.0, 20.0));

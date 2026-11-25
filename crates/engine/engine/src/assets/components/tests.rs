@@ -45,13 +45,13 @@ pub(crate) fn copy_of(s: &Session, inst: NodeId, src: NodeId) -> NodeId {
 
 /// Card: 200×100 component with "Bg" rectangle, "Title" text and "Dot" ellipse.
 pub(crate) fn card(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100, "name": "Card"})));
     let bg =
         idv(&ex(s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 200, "height": 100, "parent": f, "props": {"name": "Bg", "fill": "#eeeeee"}})));
-    let title = idv(&ex(s, "text.create", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
+    let title = idv(&ex(s, "text.add", json!({"text": "Hello", "x": 10, "y": 10, "parent": f, "props": {"name": "Title"}})));
     let dot =
         idv(&ex(s, "shape.ellipse", json!({"x": 170, "y": 10, "width": 20, "height": 20, "parent": f, "props": {"name": "Dot", "fill": "#ff0000"}})));
-    let c = idv(&ex(s, "component.create", json!({"ids": [f]})));
+    let c = idv(&ex(s, "component.add", json!({"ids": [f]})));
     (c, bg, title, dot)
 }
 
@@ -59,7 +59,7 @@ pub(crate) fn card(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
 fn overrides_survive_main_edits() {
     let mut s = Session::new();
     let (c, bg, title, dot) = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     healthy(&s);
     let (ibg, ititle, idot) = (copy_of(&s, i, bg), copy_of(&s, i, title), copy_of(&s, i, dot));
     // Overrides on the instance.
@@ -111,7 +111,7 @@ fn overrides_survive_main_edits() {
 fn main_structure_edits_propagate() {
     let mut s = Session::new();
     let (c, bg, title, dot) = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let idot = copy_of(&s, i, dot);
     ex(&mut s, "node.set", json!({"id": idot, "props": {"fill": "#000000"}}));
     // Add a layer.
@@ -139,7 +139,7 @@ fn main_structure_edits_propagate() {
 fn instances_refuse_structure_edits() {
     let mut s = Session::new();
     let (c, bg, _title, dot) = card(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let (ibg, idot) = (copy_of(&s, i, bg), copy_of(&s, i, dot));
     let before = s.doc().unwrap().clone();
     let undo = s.ds().unwrap().history.undo.len();
@@ -147,10 +147,10 @@ fn instances_refuse_structure_edits() {
         ("edit.delete", json!({"ids": [ibg]})),
         ("shape.rectangle", json!({"x": 0, "y": 0, "width": 5, "height": 5, "parent": i})),
         ("node.reorder", json!({"id": idot, "index": 0})),
-        ("object.group", json!({"ids": [ibg, idot]})),
+        ("arrange.group", json!({"ids": [ibg, idot]})),
         ("node.reparent", json!({"ids": [idot], "parent": s.page().unwrap()})),
         ("edit.duplicate", json!({"ids": [idot]})),
-        ("component.create", json!({"ids": [idot]})),
+        ("component.add", json!({"ids": [idot]})),
     ];
     for (cmd, p) in refused {
         let r = s.execute(cmd, &p);
@@ -165,17 +165,17 @@ fn instances_refuse_structure_edits() {
 
 /// Icon component (one "Shape" rectangle) and a Button component holding an Icon instance.
 pub(crate) fn button(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
-    let f = idv(&ex(s, "frame.create", json!({"x": 0, "y": 300, "width": 24, "height": 24, "name": "Icon"})));
+    let f = idv(&ex(s, "frame.add", json!({"x": 0, "y": 300, "width": 24, "height": 24, "name": "Icon"})));
     let shape = idv(&ex(
         s,
         "shape.rectangle",
         json!({"x": 2, "y": 2, "width": 20, "height": 20, "parent": f, "props": {"name": "Shape", "fill": "#111111"}}),
     ));
-    let icon = idv(&ex(s, "component.create", json!({"ids": [f]})));
-    let b = idv(&ex(s, "frame.create", json!({"x": 0, "y": 400, "width": 120, "height": 40, "name": "Button"})));
-    let nested = idv(&ex(s, "instance.create", json!({"component": icon, "x": 8, "y": 8, "parent": b})));
-    ex(s, "text.create", json!({"text": "Go", "x": 40, "y": 10, "parent": b, "props": {"name": "Label"}}));
-    let button = idv(&ex(s, "component.create", json!({"ids": [b]})));
+    let icon = idv(&ex(s, "component.add", json!({"ids": [f]})));
+    let b = idv(&ex(s, "frame.add", json!({"x": 0, "y": 400, "width": 120, "height": 40, "name": "Button"})));
+    let nested = idv(&ex(s, "instance.add", json!({"component": icon, "x": 8, "y": 8, "parent": b})));
+    ex(s, "text.add", json!({"text": "Go", "x": 40, "y": 10, "parent": b, "props": {"name": "Label"}}));
+    let button = idv(&ex(s, "component.add", json!({"ids": [b]})));
     (icon, shape, button, nested)
 }
 
@@ -183,7 +183,7 @@ pub(crate) fn button(s: &mut Session) -> (NodeId, NodeId, NodeId, NodeId) {
 fn nested_instances_and_swaps() {
     let mut s = Session::new();
     let (icon, shape, button, nested) = button(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     healthy(&s);
     // The button instance's icon copy mirrors the main's nested instance.
     let inested = copy_of(&s, i, nested);
@@ -202,10 +202,10 @@ fn nested_instances_and_swaps() {
     assert!(node(&s, nested_shape).overrides.contains("strokes"));
     assert_eq!(node(&s, ishape).stroke.weight, 3.0);
     // Swap the nested instance through an instance-swap property.
-    let f2 = idv(&ex(&mut s, "frame.create", json!({"x": 100, "y": 300, "width": 24, "height": 24, "name": "Star icon"})));
+    let f2 = idv(&ex(&mut s, "frame.add", json!({"x": 100, "y": 300, "width": 24, "height": 24, "name": "Star icon"})));
     ex(&mut s, "shape.star", json!({"x": 0, "y": 0, "width": 24, "height": 24, "parent": f2, "props": {"name": "Glyph"}}));
     ex(&mut s, "shape.ellipse", json!({"x": 0, "y": 0, "width": 4, "height": 4, "parent": f2, "props": {"name": "Spark"}}));
-    let icon2 = idv(&ex(&mut s, "component.create", json!({"ids": [f2]})));
+    let icon2 = idv(&ex(&mut s, "component.add", json!({"ids": [f2]})));
     ex(&mut s, "component.addProperty", json!({"id": button, "name": "Icon", "type": "instanceSwap", "default": icon, "layer": nested}));
     healthy(&s);
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Icon": icon2}}));
@@ -240,14 +240,13 @@ fn variant_switch_keeps_compatible_overrides() {
     let mut s = Session::new();
     let mut variants = Vec::new();
     for (k, (state, color)) in [("Default", "#ff0000"), ("Hover", "#0000ff")].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
         ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 40, "parent": f, "props": {"name": "Bg", "fill": color}}));
-        ex(&mut s, "text.create", json!({"text": *state, "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        ex(&mut s, "text.add", json!({"text": *state, "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 200})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 200})));
     assert_eq!(node(&s, i).name, node(&s, set).name, "instances of variants are named after the set");
     let label = kids(&s, i)[1];
     ex(&mut s, "text.set", json!({"id": label, "characters": "Buy"}));
@@ -282,7 +281,7 @@ fn variant_switch_keeps_compatible_overrides() {
 fn detach_keeps_the_look() {
     let mut s = Session::new();
     let (icon, shape, button, nested) = button(&mut s);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let inested = copy_of(&s, i, nested);
     let ishape = kids(&s, inested)[0];
     let ilabel = kids(&s, i)[1];
@@ -313,8 +312,8 @@ fn detach_keeps_the_look() {
 fn deleted_main_keeps_instances_and_restores() {
     let mut s = Session::new();
     let (c, bg, title, _dot) = card(&mut s);
-    let a = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
-    let b = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 600, "y": 0})));
+    let a = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
+    let b = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 600, "y": 0})));
     let atitle = copy_of(&s, a, title);
     ex(&mut s, "text.set", json!({"id": atitle, "characters": "Instance A"}));
     assert!(s.execute("component.restoreMain", &json!({"id": a})).is_err(), "main still exists");
@@ -348,7 +347,7 @@ fn resized_instances_follow_constraints_and_auto_layout() {
     let (c, bg, _title, dot) = card(&mut s);
     ex(&mut s, "node.set", json!({"id": dot, "props": {"constraints": {"horizontal": "right"}}}));
     ex(&mut s, "node.set", json!({"id": bg, "props": {"constraints": {"horizontal": "leftRight", "vertical": "topBottom"}}}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     ex(&mut s, "node.set", json!({"id": i, "props": {"width": 300, "height": 150}}));
     let (ibg, idot) = (copy_of(&s, i, bg), copy_of(&s, i, dot));
     assert_eq!(node(&s, idot).transform.as_coeffs()[4], 270.0);
@@ -361,16 +360,16 @@ fn resized_instances_follow_constraints_and_auto_layout() {
     assert_eq!(node(&s, idot).transform.as_coeffs()[4], 270.0);
     assert_eq!(node(&s, ibg).width, 300.0);
     // Main resized: instances without a size override follow it.
-    let j = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 700, "y": 0})));
+    let j = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 700, "y": 0})));
     ex(&mut s, "node.set", json!({"id": c, "props": {"width": 220}}));
     assert_eq!(node(&s, j).width, 220.0);
     assert_eq!(node(&s, i).width, 300.0);
     // Auto layout: a longer text override makes a hugging instance grow.
-    let row = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 600, "width": 50, "height": 30, "name": "Chip"})));
-    let t = idv(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 0, "y": 0, "parent": row})));
+    let row = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 600, "width": 50, "height": 30, "name": "Chip"})));
+    let t = idv(&ex(&mut s, "text.add", json!({"text": "Hi", "x": 0, "y": 0, "parent": row})));
     ex(&mut s, "layout.add", json!({"ids": [row]}));
-    let chip = idv(&ex(&mut s, "component.create", json!({"ids": [row]})));
-    let ci = idv(&ex(&mut s, "instance.create", json!({"component": chip, "x": 300, "y": 600})));
+    let chip = idv(&ex(&mut s, "component.add", json!({"ids": [row]})));
+    let ci = idv(&ex(&mut s, "instance.add", json!({"component": chip, "x": 300, "y": 600})));
     let w0 = node(&s, ci).width;
     let it = copy_of(&s, ci, t);
     let tw0 = node(&s, it).width;
@@ -391,7 +390,7 @@ fn component_properties_apply_to_instances() {
     ex(&mut s, "component.addProperty", json!({"id": dot, "name": "Show dot", "type": "boolean", "default": true}));
     assert_eq!(node(&s, dot).prop_refs.get("visible").map(String::as_str), Some("Show dot"));
     ex(&mut s, "component.addProperty", json!({"id": c, "name": "Title", "type": "text", "layer": title}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     let (ititle, idot) = (copy_of(&s, i, title), copy_of(&s, i, dot));
     assert_eq!(chars(&s, ititle), "Hello", "text property defaults to the layer's text");
     ex(&mut s, "instance.setProperties", json!({"ids": [i], "properties": {"Show dot": false, "Title": "From prop"}}));
@@ -407,7 +406,7 @@ fn component_properties_apply_to_instances() {
     assert_eq!(node(&s, title).prop_refs.get("characters").map(String::as_str), Some("Heading"));
     assert!(matches!(&node(&s, i).kind, NodeKind::Instance { props, .. } if props.get("Heading") == Some(&json!("From prop"))));
     assert_eq!(chars(&s, ititle), "From prop");
-    let j = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 600, "y": 0})));
+    let j = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 600, "y": 0})));
     assert_eq!(chars(&s, copy_of(&s, j, title)), "Default heading");
     // Wrong types and names are refused.
     assert!(s.execute("instance.setProperties", &json!({"ids": [i], "properties": {"Show dot": "maybe"}})).is_err());
@@ -447,7 +446,7 @@ fn boolean_property_default_is_the_mains_visibility() {
     // #993: a `false` default hides the bound layer in the main, not only in instances.
     ex(&mut s, "component.addProperty", json!({"id": c, "name": "Show dot", "type": "boolean", "default": false, "layer": dot}));
     assert!(!node(&s, dot).visible);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
     assert!(!node(&s, copy_of(&s, i, dot)).visible);
     // Without a default, the property takes the layer's visibility.
     ex(&mut s, "node.set", json!({"id": bg, "props": {"visible": false}}));
@@ -470,7 +469,7 @@ fn boolean_property_default_is_the_mains_visibility() {
     ex(&mut s, "node.set", json!({"id": dot, "props": {"visible": true}}));
     assert_eq!(bool_default(&s, c, "Dot"), Some(true));
     assert!(node(&s, title).visible);
-    let j = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 600, "y": 0})));
+    let j = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 600, "y": 0})));
     assert!(node(&s, copy_of(&s, j, dot)).visible && node(&s, copy_of(&s, j, title)).visible);
     assert!(!node(&s, copy_of(&s, i, dot)).visible, "existing instances keep their values");
     // Hiding a layer inside an instance is an override there, not a new default.
@@ -493,10 +492,9 @@ fn boolean_property_default_follows_across_variants() {
     let mut variants = Vec::new();
     let mut labels = Vec::new();
     for (k, state) in ["Default", "Hover"].iter().enumerate() {
-        let f =
-            idv(&ex(&mut s, "frame.create", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
-        labels.push(idv(&ex(&mut s, "text.create", json!({"text": *state, "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}))));
-        variants.push(idv(&ex(&mut s, "component.create", json!({"ids": [f]}))));
+        let f = idv(&ex(&mut s, "frame.add", json!({"x": k as f64 * 150.0, "y": 0, "width": 100, "height": 40, "name": format!("State={state}")})));
+        labels.push(idv(&ex(&mut s, "text.add", json!({"text": *state, "x": 10, "y": 10, "parent": f, "props": {"name": "Label"}}))));
+        variants.push(idv(&ex(&mut s, "component.add", json!({"ids": [f]}))));
     }
     let set = idv(&ex(&mut s, "component.combineVariants", json!({"ids": variants.clone()})));
     ex(&mut s, "component.addProperty", json!({"id": set, "name": "Show label", "type": "boolean", "default": false, "layer": labels[0]}));
@@ -508,7 +506,7 @@ fn boolean_property_default_follows_across_variants() {
     ex(&mut s, "node.set", json!({"id": labels[1], "props": {"visible": false}}));
     assert!(variants.iter().all(|v| bool_default(&s, *v, "Show label") == Some(false)));
     assert!(!node(&s, labels[0]).visible);
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": set, "x": 0, "y": 200})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": set, "x": 0, "y": 200})));
     assert!(!node(&s, kids(&s, i)[0]).visible);
     healthy(&s);
 }
@@ -517,8 +515,8 @@ fn boolean_property_default_follows_across_variants() {
 fn push_changes_to_main() {
     let mut s = Session::new();
     let (c, bg, _title, _dot) = card(&mut s);
-    let a = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 300, "y": 0})));
-    let b = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 600, "y": 0})));
+    let a = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 300, "y": 0})));
+    let b = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 600, "y": 0})));
     let abg = copy_of(&s, a, bg);
     ex(&mut s, "node.set", json!({"id": abg, "props": {"fill": "#445566"}}));
     ex(&mut s, "component.pushChanges", json!({"id": a}));
@@ -551,7 +549,7 @@ fn random_edit_sequences_keep_instances_consistent() {
         let comps = [icon, button, card_c];
         for c in comps {
             for k in 0..2 {
-                ex(&mut s, "instance.create", json!({"component": c, "x": 500 + k * 200, "y": c.0 * 10}));
+                ex(&mut s, "instance.add", json!({"component": c, "x": 500 + k * 200, "y": c.0 * 10}));
             }
         }
         for step in 0..60 {
@@ -632,11 +630,11 @@ fn random_edit_sequences_keep_instances_consistent() {
 #[test]
 fn place_instances_into_frames_and_auto_layout_slots() {
     let mut s = Session::new();
-    let c = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 40, "height": 20, "name": "Chip"})));
-    let c = idv(&ex(&mut s, "component.create", json!({"ids": [c]})));
+    let c = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 40, "height": 20, "name": "Chip"})));
+    let c = idv(&ex(&mut s, "component.add", json!({"ids": [c]})));
     // A component made from one shape is named after it.
     let star = idv(&ex(&mut s, "shape.star", json!({"x": 0, "y": 200, "width": 24, "height": 24, "name": "Icon / Star"})));
-    let sc = idv(&ex(&mut s, "component.create", json!({"ids": [star]})));
+    let sc = idv(&ex(&mut s, "component.add", json!({"ids": [star]})));
     assert_eq!(node(&s, sc).name, "Icon / Star");
     // On empty canvas: on the page, centred on the point.
     let a = idv(&ex(&mut s, "instance.place", json!({"component": c, "x": 500, "y": 500})));
@@ -644,13 +642,13 @@ fn place_instances_into_frames_and_auto_layout_slots() {
     assert_eq!((b.x0, b.y0), (480.0, 490.0));
     assert_eq!(node(&s, a).parent, s.ds().unwrap().doc.first_page());
     // Into a plain frame under the point (frame-relative position).
-    let f = idv(&ex(&mut s, "frame.create", json!({"x": 1000, "y": 0, "width": 300, "height": 300})));
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 1000, "y": 0, "width": 300, "height": 300})));
     let r = ex(&mut s, "instance.place", json!({"component": c, "x": 1100, "y": 100}));
     let i = idv(&r);
     assert_eq!(node(&s, i).parent, Some(f));
     assert_eq!(s.doc().unwrap().world_bounds(i).unwrap().x0, 1080.0);
     // Into a horizontal auto layout row between its two children.
-    let row = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 400, "width": 300, "height": 40})));
+    let row = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 400, "width": 300, "height": 40})));
     let k1 = idv(&ex(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 20, "parent": row})));
     let k2 = idv(&ex(&mut s, "shape.rectangle", json!({"x": 100, "y": 0, "width": 50, "height": 20, "parent": row})));
     ex(&mut s, "layout.add", json!({"ids": [row]}));
@@ -678,7 +676,7 @@ fn exposed_nested_instances_show_their_properties_on_instances() {
     let mut s = Session::new();
     let (icon, shape, button, nested) = button(&mut s);
     ex(&mut s, "component.addProperty", json!({"id": icon, "name": "Filled", "type": "boolean", "default": true, "layer": shape}));
-    let i = idv(&ex(&mut s, "instance.create", json!({"component": button, "x": 300, "y": 400})));
+    let i = idv(&ex(&mut s, "instance.add", json!({"component": button, "x": 300, "y": 400})));
     let exposed = |s: &mut Session| ex(s, "instance.exposed", json!({"id": i}))["instances"].as_array().unwrap().len();
     assert_eq!(exposed(&mut s), 0);
     ex(&mut s, "component.exposeInstance", json!({"id": nested}));

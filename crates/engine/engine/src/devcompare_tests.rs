@@ -16,15 +16,15 @@ struct Screen {
 }
 
 fn screen(s: &mut Session) -> Screen {
-    let frame = idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300, "name": "Screen"})));
-    let title = idv(&ex(s, "text.create", json!({"text": "Welcome", "x": 20, "y": 20, "parent": frame, "props": {"name": "Title"}})));
+    let frame = idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300, "name": "Screen"})));
+    let title = idv(&ex(s, "text.add", json!({"text": "Welcome", "x": 20, "y": 20, "parent": frame, "props": {"name": "Title"}})));
     let button = idv(&ex(
         s,
         "shape.rectangle",
         json!({"x": 20, "y": 200, "width": 120, "height": 40, "parent": frame, "props": {"name": "Button", "fill": "#FF0000"}}),
     ));
     let dot = idv(&ex(s, "shape.ellipse", json!({"x": 300, "y": 20, "width": 20, "height": 20, "parent": frame, "props": {"name": "Dot"}})));
-    let badge = idv(&ex(s, "object.group", json!({"ids": [dot], "name": "Badge"})));
+    let badge = idv(&ex(s, "arrange.group", json!({"ids": [dot], "name": "Badge"})));
     ex(s, "node.set", json!({"id": frame, "props": {"devStatus": "readyForDev"}}));
     Screen { frame, title, button, badge, dot }
 }
@@ -115,7 +115,7 @@ fn added_removed_moved_and_reordered_layers() {
     let mut s = Session::new();
     let sc = screen(&mut s);
     let extra = idv(&ex(&mut s, "shape.rectangle", json!({"x": 200, "y": 100, "width": 10, "height": 10, "parent": sc.frame})));
-    let wrap = idv(&ex(&mut s, "object.group", json!({"ids": [extra], "name": "New group"})));
+    let wrap = idv(&ex(&mut s, "arrange.group", json!({"ids": [extra], "name": "New group"})));
     ex(&mut s, "edit.delete", json!({"ids": [sc.title]}));
     // The dot leaves its group (the group, emptied, disappears) for the frame.
     ex(&mut s, "node.reparent", json!({"ids": [sc.dot], "parent": sc.frame}));
@@ -132,7 +132,7 @@ fn added_removed_moved_and_reordered_layers() {
     // Reordering among the layers both versions have.
     let mut s = Session::new();
     let sc = screen(&mut s);
-    ex(&mut s, "arrange.front", json!({"ids": [sc.title]}));
+    ex(&mut s, "arrange.bringToFront", json!({"ids": [sc.title]}));
     let c = compare(s.doc().unwrap(), sc.frame);
     assert!(texts(&c, sc.title).iter().any(|t| t.starts_with("order ") && t.ends_with("→ 1")), "{:?}", texts(&c, sc.title));
 }
@@ -141,11 +141,11 @@ fn added_removed_moved_and_reordered_layers() {
 fn nested_and_instance_changes_are_found() {
     let mut s = Session::new();
     let (c, bg, title, _dot) = card(&mut s);
-    let frame = idv(&ex(&mut s, "frame.create", json!({"x": 500, "y": 0, "width": 400, "height": 300, "name": "Screen"})));
-    let inst = idv(&ex(&mut s, "instance.create", json!({"component": c, "x": 10, "y": 10, "parent": frame})));
+    let frame = idv(&ex(&mut s, "frame.add", json!({"x": 500, "y": 0, "width": 400, "height": 300, "name": "Screen"})));
+    let inst = idv(&ex(&mut s, "instance.add", json!({"component": c, "x": 10, "y": 10, "parent": frame})));
     let group_child = idv(&ex(&mut s, "shape.rectangle", json!({"x": 10, "y": 200, "width": 10, "height": 10, "parent": frame})));
-    let outer = idv(&ex(&mut s, "object.group", json!({"ids": [group_child], "name": "Outer"})));
-    let _inner = idv(&ex(&mut s, "object.group", json!({"ids": [group_child], "name": "Inner"})));
+    let outer = idv(&ex(&mut s, "arrange.group", json!({"ids": [group_child], "name": "Outer"})));
+    let _inner = idv(&ex(&mut s, "arrange.group", json!({"ids": [group_child], "name": "Inner"})));
     ex(&mut s, "node.set", json!({"id": frame, "props": {"devStatus": "readyForDev"}}));
     // A main component edit reaches the instance in the ready frame.
     ex(&mut s, "node.set", json!({"id": bg, "props": {"fill": "#0000FF"}}));
@@ -190,7 +190,7 @@ fn the_compare_command_and_its_errors() {
     for p in [json!({"id": sc.button}), json!({"id": 987_654}), json!({"ids": []})] {
         assert!(s.execute("dev.compare", &p).is_err(), "{p}");
     }
-    let other = idv(&ex(&mut s, "frame.create", json!({"x": 900, "y": 0, "width": 10, "height": 10})));
+    let other = idv(&ex(&mut s, "frame.add", json!({"x": 900, "y": 0, "width": 10, "height": 10})));
     assert!(s.execute("dev.compare", &json!({"id": other})).is_err(), "no status");
     // Changed before snapshots were kept: compared as unknown, not as unchanged.
     let doc = s.doc_mut().unwrap();

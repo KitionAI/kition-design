@@ -18,11 +18,11 @@ fn scene(s: &mut Session) -> (NodeId, NodeId) {
     // The text is measured with a font: without kition-fonts that is a system one, scanned here
     // rather than by whichever test happens to run first (#333).
     kition_design_text::scan_system_fonts();
-    let f = id_of(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300}))["id"]).unwrap();
+    let f = id_of(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300}))["id"]).unwrap();
     let r = id_of(&ex(s, "shape.rectangle", json!({"x": 40, "y": 40, "width": 200, "height": 60, "parent": f}))["id"]).unwrap();
-    let t = id_of(&ex(s, "text.create", json!({"text": "Hi there", "x": 60, "y": 60, "parent": f, "props": {"fontSize": 16}}))["id"]).unwrap();
-    let g = id_of(&ex(s, "object.group", json!({"ids": [r, t]}))["id"]).unwrap();
-    ex(s, "select.none", json!({}));
+    let t = id_of(&ex(s, "text.add", json!({"text": "Hi there", "x": 60, "y": 60, "parent": f, "props": {"fontSize": 16}}))["id"]).unwrap();
+    let g = id_of(&ex(s, "arrange.group", json!({"ids": [r, t]}))["id"]).unwrap();
+    ex(s, "edit.deselectAll", json!({}));
     (g, t)
 }
 
@@ -82,7 +82,7 @@ fn editing_text_keeps_other_document_changes_since_open() {
     let mut s = Session::new();
     let first = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 20, "y": 20, "width": 80, "height": 40}))["id"]).unwrap();
     let deleted = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 120, "y": 20, "width": 80, "height": 40}))["id"]).unwrap();
-    let text = id_of(&ex(&mut s, "text.create", json!({"text": "A", "x": 20, "y": 100}))["id"]).unwrap();
+    let text = id_of(&ex(&mut s, "text.add", json!({"text": "A", "x": 20, "y": 100}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [first], "props": {"x": 650}}));
     ex(&mut s, "edit.delete", json!({"ids": [deleted]}));
 

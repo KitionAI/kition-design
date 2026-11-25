@@ -41,7 +41,7 @@ fn every_template_builds_a_valid_document_the_same_every_time() {
         assert!(doc.ids().any(|id| doc.node(id).is_some_and(|n| n.layout.is_some())), "{}", t.id);
         // Nothing waits to be normalised: opening it changes nothing.
         let mut s = Session::with_document(doc.clone());
-        s.execute("select.none", &json!({})).unwrap();
+        s.execute("edit.deselectAll", &json!({})).unwrap();
         assert_eq!(json_of(s.doc().unwrap()), json_of(&doc), "{}", t.id);
     }
 }

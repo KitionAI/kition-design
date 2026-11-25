@@ -126,7 +126,7 @@ fn undo_doesnt_let_a_new_layer_take_a_remembered_step() {
 #[test]
 fn the_step_is_measured_in_page_space_inside_a_rotated_frame() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 600, "height": 600}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 600, "height": 600}))["id"]).unwrap();
     ex(&mut s, "node.set", json!({"ids": [f], "props": {"rotation": 30}}));
     let a = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 50, "y": 50, "width": 40, "height": 40, "parent": f}))["id"]).unwrap();
     ex(&mut s, "select.set", json!({"ids": [a]}));
@@ -142,12 +142,12 @@ fn the_step_is_measured_in_page_space_inside_a_rotated_frame() {
 #[test]
 fn an_alt_drag_into_auto_layout_sets_no_step() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 100}))["id"]).unwrap();
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 100}))["id"]).unwrap();
     for i in 0..2 {
         ex(&mut s, "shape.rectangle", json!({"x": i * 60, "y": 0, "width": 50, "height": 30, "parent": f}));
     }
     ex(&mut s, "layout.add", json!({"ids": [f]}));
-    ex(&mut s, "select.none", json!({}));
+    ex(&mut s, "edit.deselectAll", json!({}));
     let kids = s.doc().unwrap().node(f).unwrap().children.clone();
     let b = s.doc().unwrap().world_bounds(kids[0]).unwrap();
     let from = (b.center().x, b.center().y);

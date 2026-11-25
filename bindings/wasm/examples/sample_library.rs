@@ -28,15 +28,12 @@ fn id(answer: &Value) -> u64 {
 /// A frame named `name` at (`x`, `y`) with a fill, a corner radius and a centred label, made a
 /// component; answers its id.
 fn component(doc: &mut DesignDocument, name: &str, (x, y, w, h): (f64, f64, f64, f64), fill: &str, label: (&str, &str)) -> u64 {
-    let frame = id(&run(doc, "frame.create", json!({ "x": x, "y": y, "width": w, "height": h, "name": name })));
+    let frame = id(&run(doc, "frame.add", json!({ "x": x, "y": y, "width": w, "height": h, "name": name })));
     run(doc, "node.set", json!({ "id": frame, "props": { "fill": fill, "cornerRadius": 8 } }));
-    let text = id(&run(
-        doc,
-        "text.create",
-        json!({ "text": label.0, "x": x + 16.0, "y": y + h / 2.0 - 8.0, "parent": frame, "props": { "name": "Label" } }),
-    ));
+    let text =
+        id(&run(doc, "text.add", json!({ "text": label.0, "x": x + 16.0, "y": y + h / 2.0 - 8.0, "parent": frame, "props": { "name": "Label" } })));
     run(doc, "node.set", json!({ "id": text, "props": { "fill": label.1 } }));
-    id(&run(doc, "component.create", json!({ "ids": [frame] })))
+    id(&run(doc, "component.add", json!({ "ids": [frame] })))
 }
 
 fn main() {
@@ -48,17 +45,17 @@ fn main() {
     let primary = component(&mut doc, "Button/Primary", (0.0, 0.0, 160.0, 44.0), "#5645d4", ("Continue", "#ffffff"));
     component(&mut doc, "Button/Secondary", (0.0, 80.0, 160.0, 44.0), "#ece9fb", ("Cancel", "#2a2380"));
     let badge = component(&mut doc, "Badge", (220.0, 0.0, 96.0, 28.0), "#00875f", ("New", "#ffffff"));
-    run(&mut doc, "style.create", json!({ "type": "paint", "name": "Brand/Primary", "from": primary }));
-    run(&mut doc, "style.create", json!({ "type": "paint", "name": "Brand/Success", "from": badge }));
-    let theme = run(&mut doc, "variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }))["id"].clone();
+    run(&mut doc, "style.add", json!({ "type": "paint", "name": "Brand/Primary", "from": primary }));
+    run(&mut doc, "style.add", json!({ "type": "paint", "name": "Brand/Success", "from": badge }));
+    let theme = run(&mut doc, "variable.addCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] }))["id"].clone();
     run(
         &mut doc,
-        "variable.create",
+        "variable.add",
         json!({ "collection": theme, "name": "Surface", "type": "color", "values": { "Light": "#ffffff", "Dark": "#1b1e23" } }),
     );
     run(
         &mut doc,
-        "variable.create",
+        "variable.add",
         json!({ "collection": theme, "name": "Text", "type": "color", "values": { "Light": "#1a1a1a", "Dark": "#eceff1" } }),
     );
     run(&mut doc, "library.publish", json!({ "description": "Buttons, a badge, brand colours and a light and dark theme." }));

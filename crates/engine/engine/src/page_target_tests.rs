@@ -36,7 +36,7 @@ fn page_commands_reject_a_rectangle() {
 #[test]
 fn page_delete_keeps_a_frame_and_its_child() {
     let mut s = Session::new();
-    let f = id_of(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
+    let f = id_of(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 100})));
     let c = id_of(&ex(&mut s, "shape.rectangle", json!({"x": 5, "y": 5, "width": 10, "height": 10, "parent": f})));
     assert_eq!(s.doc().unwrap().get(c).unwrap().parent, Some(f));
     assert!(s.execute("page.delete", &json!({"id": f})).is_err());

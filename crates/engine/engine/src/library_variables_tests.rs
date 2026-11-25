@@ -43,15 +43,15 @@ fn path_str(p: &std::path::Path) -> String {
 /// A library file's variables: "Theme" (Light/Dark) with `primary` (blue/white), `radius` (4),
 /// `accent` aliasing `base` (hidden from publishing), and a private "_Scratch" collection.
 fn theme(s: &mut Session) {
-    ex(s, "variable.createCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "primary", "type": "color", "values": {"Light": "#0000ff", "Dark": "#ffffff"}}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "base", "type": "color", "value": "#00ff00"}));
+    ex(s, "variable.addCollection", json!({"name": "Theme", "modes": ["Light", "Dark"]}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "primary", "type": "color", "values": {"Light": "#0000ff", "Dark": "#ffffff"}}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "radius", "type": "number", "value": 4}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "base", "type": "color", "value": "#00ff00"}));
     ex(s, "variable.update", json!({"variable": "base", "hiddenFromPublishing": true}));
-    ex(s, "variable.create", json!({"collection": "Theme", "name": "accent", "type": "color", "value": "#000000"}));
+    ex(s, "variable.add", json!({"collection": "Theme", "name": "accent", "type": "color", "value": "#000000"}));
     ex(s, "variable.set", json!({"variable": "accent", "value": {"alias": "base"}}));
-    ex(s, "variable.createCollection", json!({"name": "_Scratch"}));
-    ex(s, "variable.create", json!({"collection": "_Scratch", "name": "tmp", "type": "number", "value": 1}));
+    ex(s, "variable.addCollection", json!({"name": "_Scratch"}));
+    ex(s, "variable.add", json!({"collection": "_Scratch", "name": "tmp", "type": "number", "value": 1}));
 }
 
 /// Publish the active document and save it to `path`; returns the library id.
@@ -134,7 +134,7 @@ fn bind_alias_mode_read_only_and_updates() {
     let added = ex(&mut s, "library.add", json!({"path": lib_path}));
     assert_eq!(added["variables"].as_array().map(Vec::len), Some(3), "{added}");
     assert_eq!(added["collections"][0]["modes"].as_array().map(Vec::len), Some(2));
-    let frame = idv(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 200})));
+    let frame = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 200})));
     let inner = idv(&ex(&mut s, "shape.rectangle", json!({"x": 10, "y": 10, "width": 20, "height": 20, "parent": frame})));
     let outer = idv(&ex(&mut s, "shape.rectangle", json!({"x": 300, "y": 0, "width": 20, "height": 20})));
 
@@ -170,9 +170,9 @@ fn bind_alias_mode_read_only_and_updates() {
     assert!(s.execute("library.setVariableMode", &json!({"library": lid, "collection": "_Scratch", "mode": "Mode 1"})).is_err());
 
     // A local variable aliases a library one (copied in with the hidden variable it aliases).
-    ex(&mut s, "variable.createCollection", json!({"name": "App"}));
-    ex(&mut s, "variable.create", json!({"collection": "App", "name": "brand", "type": "color", "value": "#123456"}));
-    ex(&mut s, "variable.create", json!({"collection": "App", "name": "gap", "type": "number", "value": 2}));
+    ex(&mut s, "variable.addCollection", json!({"name": "App"}));
+    ex(&mut s, "variable.add", json!({"collection": "App", "name": "brand", "type": "color", "value": "#123456"}));
+    ex(&mut s, "variable.add", json!({"collection": "App", "name": "gap", "type": "number", "value": 2}));
     ex(&mut s, "library.aliasVariable", json!({"library": lid, "alias": "accent", "variable": "brand"}));
     let modes = Default::default();
     assert!(matches!(s.doc().unwrap().variables.resolve("brand", &modes), Some(VariableValue::Color(c)) if c.to_hex() == "00FF00"));
@@ -186,7 +186,7 @@ fn bind_alias_mode_read_only_and_updates() {
         ("variable.update", json!({"variable": local, "name": "mine"})),
         ("variable.delete", json!({"variable": local})),
         ("variable.duplicate", json!({"variable": local})),
-        ("variable.create", json!({"collection": coll, "name": "extra", "type": "number", "value": 1})),
+        ("variable.add", json!({"collection": coll, "name": "extra", "type": "number", "value": 1})),
         ("variable.addMode", json!({"collection": coll, "name": "Mine"})),
         ("variable.renameMode", json!({"collection": coll, "mode": "Dark", "name": "Night"})),
         ("variable.renameCollection", json!({"collection": coll, "name": "Mine"})),
@@ -250,11 +250,11 @@ fn library_components_keep_their_variable_bindings() {
     let lib_path = path_str(&d.join("kit.kdesign"));
     let mut lib = Session::new();
     theme(&mut lib);
-    let f = idv(&ex(&mut lib, "frame.create", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Chip"})));
+    let f = idv(&ex(&mut lib, "frame.add", json!({"x": 0, "y": 0, "width": 100, "height": 40, "name": "Chip"})));
     ex(&mut lib, "variable.bind", json!({"ids": [f], "field": "fill", "variable": "primary"}));
     ex(&mut lib, "variable.bind", json!({"ids": [f], "field": "cornerRadius", "variable": "tmp"}));
     ex(&mut lib, "variable.setMode", json!({"ids": [f], "collection": "Theme", "mode": "Dark"}));
-    let chip = idv(&ex(&mut lib, "component.create", json!({"ids": [f]})));
+    let chip = idv(&ex(&mut lib, "component.add", json!({"ids": [f]})));
     let lid = publish_to(&mut lib, &lib_path);
     // The private collection's variable comes along (not offered) for the component.
     let m = lib.doc().unwrap().published.clone().unwrap().manifest.clone();
@@ -320,15 +320,15 @@ fn library_style_bindings_ignore_unrelated_local_variables() {
     let d = dir("style-bound");
     let path = path_str(&d.join("lib.kdesign"));
     let mut lib = Session::new();
-    ex(&mut lib, "variable.createCollection", json!({"name": "Tokens"}));
-    let var = ex(&mut lib, "variable.create", json!({"collection": "Tokens", "name": "Brand", "type": "color", "value": "#0000ff"}))["id"].clone();
-    let style = ex(&mut lib, "style.create", json!({"type": "paint", "name": "Brand", "value": "#0000ff"}))["id"].clone();
+    ex(&mut lib, "variable.addCollection", json!({"name": "Tokens"}));
+    let var = ex(&mut lib, "variable.add", json!({"collection": "Tokens", "name": "Brand", "type": "color", "value": "#0000ff"}))["id"].clone();
+    let style = ex(&mut lib, "style.add", json!({"type": "paint", "name": "Brand", "value": "#0000ff"}))["id"].clone();
     ex(&mut lib, "style.bind", json!({"style": style, "field": "fill", "variable": var}));
     let lid = publish_to(&mut lib, &path);
 
     let mut s = Session::new();
-    ex(&mut s, "variable.createCollection", json!({"name": "Local"}));
-    let local = ex(&mut s, "variable.create", json!({"collection": "Local", "name": "Unrelated", "type": "color", "value": "#ff0000"}))["id"].clone();
+    ex(&mut s, "variable.addCollection", json!({"name": "Local"}));
+    let local = ex(&mut s, "variable.add", json!({"collection": "Local", "name": "Unrelated", "type": "color", "value": "#ff0000"}))["id"].clone();
     assert_eq!(local, var, "the ids must collide for this test");
     let r = idv(&ex(&mut s, "shape.rectangle", json!({"width": 40, "height": 40})));
     ex(&mut s, "library.add", json!({"path": path}));
@@ -349,17 +349,17 @@ fn library_style_bindings_ignore_unrelated_local_variables() {
 /// the icon copy in Modal).
 fn nested_mode_kit(lib: &mut Session) -> (NodeId, NodeId) {
     theme(lib);
-    let f = idv(&ex(lib, "frame.create", json!({"x": 0, "y": 0, "width": 20, "height": 20, "name": "Icon"})));
+    let f = idv(&ex(lib, "frame.add", json!({"x": 0, "y": 0, "width": 20, "height": 20, "name": "Icon"})));
     ex(lib, "variable.bind", json!({"ids": [f], "field": "fill", "variable": "primary"}));
-    let icon = idv(&ex(lib, "component.create", json!({"ids": [f]})));
-    let b = idv(&ex(lib, "frame.create", json!({"x": 100, "y": 0, "width": 60, "height": 40, "name": "Button"})));
-    ex(lib, "instance.create", json!({"component": icon, "x": 10, "y": 10, "parent": b}));
-    let button = idv(&ex(lib, "component.create", json!({"ids": [b]})));
-    let m = idv(&ex(lib, "frame.create", json!({"x": 300, "y": 0, "width": 200, "height": 100, "name": "Modal"})));
-    let close = idv(&ex(lib, "instance.create", json!({"component": button, "x": 10, "y": 10, "parent": m})));
+    let icon = idv(&ex(lib, "component.add", json!({"ids": [f]})));
+    let b = idv(&ex(lib, "frame.add", json!({"x": 100, "y": 0, "width": 60, "height": 40, "name": "Button"})));
+    ex(lib, "instance.add", json!({"component": icon, "x": 10, "y": 10, "parent": b}));
+    let button = idv(&ex(lib, "component.add", json!({"ids": [b]})));
+    let m = idv(&ex(lib, "frame.add", json!({"x": 300, "y": 0, "width": 200, "height": 100, "name": "Modal"})));
+    let close = idv(&ex(lib, "instance.add", json!({"component": button, "x": 10, "y": 10, "parent": m})));
     let nested = lib.doc().unwrap().node(close).unwrap().children[0];
     ex(lib, "variable.setMode", json!({"ids": [nested], "collection": "Theme", "mode": "Dark"}));
-    ex(lib, "component.create", json!({"ids": [m]}));
+    ex(lib, "component.add", json!({"ids": [m]}));
     (button, nested)
 }
 

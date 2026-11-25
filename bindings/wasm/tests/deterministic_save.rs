@@ -19,9 +19,9 @@ fn build() -> Vec<u8> {
     let mut doc = DesignDocument::create("cards.kdesign", 400, 300).unwrap();
     let page = doc.inspect().unwrap()["page"].clone();
     let card =
-        doc.execute("frame.create", json!({ "x": 0, "y": 0, "width": 200, "height": 120, "parent": page, "name": "Card" })).unwrap()["id"].clone();
-    doc.execute("text.create", json!({ "text": "Hello", "x": 16, "y": 16, "parent": card })).unwrap();
-    doc.execute("variable.createCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] })).unwrap();
+        doc.execute("frame.add", json!({ "x": 0, "y": 0, "width": 200, "height": 120, "parent": page, "name": "Card" })).unwrap()["id"].clone();
+    doc.execute("text.add", json!({ "text": "Hello", "x": 16, "y": 16, "parent": card })).unwrap();
+    doc.execute("variable.addCollection", json!({ "name": "Theme", "modes": ["Light", "Dark"] })).unwrap();
     doc.save_file(Some("cards.kdesign")).unwrap()
 }
 

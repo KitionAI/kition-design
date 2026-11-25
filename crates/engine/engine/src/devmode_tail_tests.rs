@@ -11,16 +11,16 @@ fn code(s: &mut Session, id: NodeId, lang: &str) -> String {
 
 /// A component named `name` (an empty frame) at `x`.
 fn component(s: &mut Session, name: &str, x: f64) -> NodeId {
-    let f = idv(&ex(s, "frame.create", json!({"x": x, "y": 1000, "width": 40, "height": 20, "name": name})));
-    idv(&ex(s, "component.create", json!({"ids": [f]})))
+    let f = idv(&ex(s, "frame.add", json!({"x": x, "y": 1000, "width": 40, "height": 20, "name": name})));
+    idv(&ex(s, "component.add", json!({"ids": [f]})))
 }
 
 fn instance(s: &mut Session, c: NodeId, parent: NodeId) -> NodeId {
-    idv(&ex(s, "instance.create", json!({"component": c, "x": 0, "y": 0, "parent": parent})))
+    idv(&ex(s, "instance.add", json!({"component": c, "x": 0, "y": 0, "parent": parent})))
 }
 
 fn frame(s: &mut Session, name: &str, parent: Option<NodeId>) -> NodeId {
-    idv(&ex(s, "frame.create", json!({"x": 0, "y": 0, "width": 400, "height": 300, "name": name, "parent": parent})))
+    idv(&ex(s, "frame.add", json!({"x": 0, "y": 0, "width": 400, "height": 300, "name": name, "parent": parent})))
 }
 
 fn count(code: &str, line: &str) -> usize {
@@ -68,7 +68,7 @@ fn layer_trees_import_the_connected_components_they_call_once_at_the_top() {
     // A component's definition, and an instance of it (its call, then the definition).
     let card_frame = frame(&mut s, "Card", None);
     instance(&mut s, badge, card_frame);
-    let card = idv(&ex(&mut s, "component.create", json!({"ids": [card_frame]})));
+    let card = idv(&ex(&mut s, "component.add", json!({"ids": [card_frame]})));
     assert!(
         code(&mut s, card, "react").starts_with("import { Badge } from \"@acme/ui\";\nimport \"./card.css\";"),
         "{}",
@@ -88,7 +88,7 @@ fn slots_and_instance_swaps_bring_their_connected_imports() {
     // A panel whose slot an instance fills with a badge.
     let f = frame(&mut s, "Panel", None);
     let content = frame(&mut s, "Content", Some(f));
-    let panel = idv(&ex(&mut s, "component.create", json!({"ids": [f]})));
+    let panel = idv(&ex(&mut s, "component.add", json!({"ids": [f]})));
     ex(&mut s, "component.makeSlot", json!({"id": content}));
     let screen = frame(&mut s, "Screen", None);
     let p = instance(&mut s, panel, screen);
@@ -101,7 +101,7 @@ fn slots_and_instance_swaps_bring_their_connected_imports() {
     let heart = component(&mut s, "Heart", 300.0);
     let chip_frame = frame(&mut s, "Chip", None);
     let nested = instance(&mut s, heart, chip_frame);
-    let chip = idv(&ex(&mut s, "component.create", json!({"ids": [chip_frame]})));
+    let chip = idv(&ex(&mut s, "component.add", json!({"ids": [chip_frame]})));
     ex(&mut s, "component.addProperty", json!({"id": chip, "name": "Icon", "type": "instanceSwap", "default": heart, "layer": nested}));
     ex(&mut s, "codeConnect.set", json!({"id": chip, "importPath": "@acme/chip", "template": "<Chip icon={Icon} />"}));
     let c = instance(&mut s, chip, screen);
@@ -124,7 +124,7 @@ fn compare_changes_takes_any_saved_version_as_the_before() {
     let v1 = crate::cmd::file::saved_version(&mut s);
     ex(&mut s, "node.set", json!({"id": button, "props": {"width": 136}}));
     ex(&mut s, "edit.delete", json!({"ids": [old]}));
-    let added = idv(&ex(&mut s, "text.create", json!({"text": "Hi", "x": 20, "y": 100, "parent": screen, "props": {"name": "Note"}})));
+    let added = idv(&ex(&mut s, "text.add", json!({"text": "Hi", "x": 20, "y": 100, "parent": screen, "props": {"name": "Note"}})));
     let v2 = crate::cmd::file::saved_version(&mut s);
     ex(&mut s, "node.set", json!({"id": button, "props": {"width": 150}}));
 

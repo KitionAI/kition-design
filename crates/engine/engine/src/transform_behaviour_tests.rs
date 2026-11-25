@@ -250,13 +250,13 @@ fn command_resize_leaves_fills_when_text_or_auto_layout_recomputes_the_box() {
         let layer = match case {
             "text" => id(&ex(
                 &mut s,
-                "text.create",
+                "text.add",
                 json!({"text": "hello world hello world hello world", "props": {
                     "width": 200, "height": 100, "fontSize": 24, "textAutoResize": "none", "fills": fills
                 }}),
             )),
             _ => {
-                let frame = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100})));
+                let frame = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100})));
                 set(&mut s, &[frame], json!({"layout": "horizontal", "padding": 20}));
                 if case == "child" {
                     ex(&mut s, "node.reparent", json!({"ids": [image], "parent": frame}));
@@ -293,8 +293,8 @@ fn image_crop_detaches_a_bound_size_and_crops() {
         for mods in [CMD, NONE] {
             let mut s = session();
             let layer = image_layer(&mut s);
-            ex(&mut s, "variable.createCollection", json!({"name": "Tokens"}));
-            ex(&mut s, "variable.create", json!({"collection": "Tokens", "name": "bound", "type": "number", "value": value}));
+            ex(&mut s, "variable.addCollection", json!({"name": "Tokens"}));
+            ex(&mut s, "variable.add", json!({"collection": "Tokens", "name": "bound", "type": "number", "value": value}));
             ex(&mut s, "variable.bind", json!({"ids": [layer], "field": field, "variable": "bound"}));
             let before = s.doc().unwrap().clone();
             let pixels = kition_design_render::render_node(&before, layer, 1.0).unwrap();
@@ -378,7 +378,7 @@ fn groups_scale_children_keeping_their_rotation_and_flip() {
     set(&mut s, &[bar], json!({"rotation": 90}));
     let sq = rect(&mut s, 100.0, 0.0, 50.0, 50.0, None);
     ex(&mut s, "object.flipH", json!({"ids": [sq]}));
-    let g = id(&ex(&mut s, "object.group", json!({"ids": [bar, sq]})));
+    let g = id(&ex(&mut s, "arrange.group", json!({"ids": [bar, sq]})));
     assert!(near_rect(bounds(&s, g), Rect::new(40.0, -40.0, 150.0, 60.0)));
     ex(&mut s, "select.set", json!({"ids": [g]}));
     drag(&mut s, Point::new(150.0, 10.0), Point::new(260.0, 10.0), NONE);
@@ -396,10 +396,10 @@ fn nested_turned_groups_and_constraints_scale_along_each_layers_axes() {
     // A group turned 90° holding a 100×20 bar, inside an outer group with a square: stretching the
     // outer group twice as wide makes the bar's page width (its own height) twice as large.
     let bar = rect(&mut s, 0.0, 0.0, 100.0, 20.0, None);
-    let inner = id(&ex(&mut s, "object.group", json!({"ids": [bar]})));
+    let inner = id(&ex(&mut s, "arrange.group", json!({"ids": [bar]})));
     set(&mut s, &[inner], json!({"rotation": 90}));
     let sq = rect(&mut s, 100.0, 0.0, 50.0, 50.0, None);
-    let outer = id(&ex(&mut s, "object.group", json!({"ids": [inner, sq]})));
+    let outer = id(&ex(&mut s, "arrange.group", json!({"ids": [inner, sq]})));
     let (b0, o0) = (bounds(&s, bar), bounds(&s, outer));
     set(&mut s, &[outer], json!({"width": o0.width() * 2.0}));
     let b1 = bounds(&s, bar);
@@ -407,7 +407,7 @@ fn nested_turned_groups_and_constraints_scale_along_each_layers_axes() {
     assert!(near(size(&s, bar).0, 100.0) && near(size(&s, bar).1, 40.0));
     // A frame's child turned 90° with Scale constraints: the frame twice as wide makes the child's
     // page width (its own height) twice as large, not its length.
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 300, "width": 200, "height": 200})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 300, "width": 200, "height": 200})));
     let c = rect(&mut s, 50.0, 50.0, 100.0, 20.0, Some(f));
     set(&mut s, &[c], json!({"rotation": 90, "constraints": {"horizontal": "scale", "vertical": "scale"}}));
     let before = bounds(&s, c);
@@ -527,7 +527,7 @@ fn a_press_anywhere_on_a_corner_handle_resizes() {
 #[test]
 fn frames_resize_with_constraints_and_cmd_ignores_them() {
     let mut s = session();
-    let f = id(&ex(&mut s, "frame.create", json!({"x": 0, "y": 0, "width": 200, "height": 100})));
+    let f = id(&ex(&mut s, "frame.add", json!({"x": 0, "y": 0, "width": 200, "height": 100})));
     let c = rect(&mut s, 150.0, 10.0, 40.0, 40.0, Some(f));
     set(&mut s, &[c], json!({"constraints": {"horizontal": "right"}}));
     ex(&mut s, "select.set", json!({"ids": [f]}));
@@ -555,7 +555,7 @@ fn lines_and_text() {
     assert!(near(rotation(&s, l).abs(), 45.0), "{}", rotation(&s, l));
     // Text: a side handle makes auto-width text fixed width (auto height); another handle a fixed
     // box.
-    let t = id(&ex(&mut s, "text.create", json!({"text": "Hello world", "x": 0, "y": 200})));
+    let t = id(&ex(&mut s, "text.add", json!({"text": "Hello world", "x": 0, "y": 200})));
     let auto = |s: &Session| s.doc().unwrap().node(t).unwrap().kind.text().map(|d| d.auto_resize);
     // Large type, so the box is big enough for side handles whatever font the machine falls back to.
     set(&mut s, &[t], json!({"fontSize": 48}));
@@ -581,7 +581,7 @@ fn nudging_and_the_pixel_grid() {
     ex(&mut s, "transform.nudge", json!({"dx": 1, "dy": 0}));
     ex(&mut s, "transform.nudge", json!({"dx": 0, "dy": 1, "big": true}));
     assert_eq!(bounds(&s, r).origin(), Point::new(1.0, 10.0));
-    ex(&mut s, "pref.nudge", json!({"big": 8}));
+    ex(&mut s, "prefs.nudge", json!({"big": 8}));
     ex(&mut s, "transform.nudge", json!({"dx": -1, "dy": 0, "big": true}));
     assert_eq!(bounds(&s, r).origin(), Point::new(-7.0, 10.0));
     // With the pixel grid on, moves, resizes and new shapes land on whole pixels.

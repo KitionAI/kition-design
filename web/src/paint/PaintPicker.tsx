@@ -88,7 +88,7 @@ function writeCommand(target: PickerTarget, paint: Paint, effect: Record<string,
       return ['effect.set', { ids: target.ids, index: target.index, effect: { ...effect, [key]: { r: c.r, g: c.g, b: c.b, a: c.a } } }]
     }
     case 'selectionColor':
-      return ['selection.setPaint', { targets: target.targets, paint: json }]
+      return ['select.setPaint', { targets: target.targets, paint: json }]
     case 'textRange':
       return ['text.style', { id: target.id, start: target.start, end: target.end, textFills: [json] }]
     case 'page':
@@ -196,7 +196,7 @@ export function TargetColorPicker() {
           const style = list.find((s) => s.id === target.id)
           const paints = readPaints(style?.paints ?? style?.value).map(paintJson)
           paints[target.index] = paintJson(next)
-          write('style.update', { style: target.id, value: paints }, phase, next.type === 'solid' ? editColor(next) : null)
+          write('style.set', { style: target.id, value: paints }, phase, next.type === 'solid' ? editColor(next) : null)
         })
         return
       }
