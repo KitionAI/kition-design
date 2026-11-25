@@ -207,7 +207,7 @@ fn text_commands_apply_to_edited_range() {
     s.execute("text.listStyle", &json!({"style": "numbered"})).unwrap();
     assert_eq!(data(&s, id).list, ListStyle::Numbered);
     // Every Text-menu command runs while editing.
-    for item in crate::catalog::MENU.iter().filter(|i| i.id.starts_with("text.")) {
+    for item in crate::catalog::MENU.iter().filter(|i| i.id.starts_with("text.") || i.id.starts_with("format.")) {
         let p = if item.id == "text.link" { json!({"url": "u"}) } else { json!({}) };
         if crate::find_command(item.id).is_some() {
             s.execute(item.id, &p).unwrap_or_else(|e| panic!("{}: {e}", item.id));
@@ -359,7 +359,8 @@ fn text_commands_survive_junk_while_editing() {
         json!({"variations": {"wght": 1e300, "opsz": -1e300}, "replace": "yes", "text": "日本語", "cursor": -1}),
     ];
     // `text.rescanFonts` takes no params and walks the font folders: one walk per junk is slow.
-    for spec in crate::cmd::all_commands().iter().filter(|c| c.id.starts_with("text.") && c.id != "text.rescanFonts") {
+    for spec in crate::cmd::all_commands().iter().filter(|c| (c.id.starts_with("text.") || c.id.starts_with("format.")) && c.id != "text.rescanFonts")
+    {
         for j in &junk {
             let (mut s, id) = setup("Hi there\nyou");
             begin(&mut s, id, Some(2), false).unwrap();

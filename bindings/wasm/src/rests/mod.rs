@@ -273,9 +273,10 @@ pub(crate) fn under(design: &DesignDocument, command: &str, params: &Value) -> R
     let mut rest = Rest::new(design, doc, command, params, earlier.unwrap_or_default());
     let family = command.split('.').next().unwrap_or_default();
     match family {
+        _ if matches!(command, "arrange.group" | "arrange.ungroup") => edit::rest(&mut rest),
         "edit" | "object" | "command" | "data" | "page" | "file" | "version" | "comment" | "board" | "tool" | "widget" => edit::rest(&mut rest),
         "arrange" | "align" | "distribute" | "transform" | "node" | "frame" | "shape" | "layout" | "section" | "guide" => layout::rest(&mut rest),
-        "text" => text::rest(&mut rest),
+        "text" | "format" => text::rest(&mut rest),
         "vector" | "bool" | "shapeBuilder" => vector::rest(&mut rest),
         "component" | "instance" | "library" | "proto" | "dev" | "codeConnect" | "annotation" | "devResource" | "devMode" => {
             structure::rest(&mut rest)

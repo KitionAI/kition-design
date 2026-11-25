@@ -110,8 +110,11 @@ fn fingerprint(state: &EditorState) -> String {
 /// Commands whose work is moving the editor (the selection, the current page, the view, the tool
 /// and the edit modes): they keep their effect for an agent too.
 pub(crate) fn moves_the_editor(command: &str) -> bool {
-    ["select.", "view.", "tool.", "text.edit.", "vector.edit."].iter().any(|prefix| command.starts_with(prefix))
-        || matches!(command, "page.select" | "page.go")
+    // The selection's colours (`select.colors` and the commands beside it) act on the document.
+    const COLORS: [&str; 6] =
+        ["select.colors", "select.setPaint", "select.applyColorStyle", "select.bindColorVariable", "select.detachColor", "select.selectColor"];
+    (["select.", "view.", "tool.", "text.edit.", "vector.edit."].iter().any(|prefix| command.starts_with(prefix)) && !COLORS.contains(&command))
+        || matches!(command, "edit.selectAll" | "edit.deselectAll" | "page.select" | "page.go")
 }
 
 /// The parameters that name what a command acts on: layers, a parent, a page, a frame.

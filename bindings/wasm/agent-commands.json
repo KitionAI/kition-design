@@ -99,17 +99,14 @@
  "annotation.removeCategory": {
   "description": "Deletes an annotation category; its annotations stay uncategorised."
  },
- "arrange.sendToBack": {
-  "description": "Sends the selected or given layers to the back of their parent."
- },
- "arrange.sendBackward": {
-  "description": "Sends the selected or given layers one step backward."
- },
  "arrange.bringForward": {
   "description": "Brings the selected or given layers one step forward."
  },
  "arrange.bringToFront": {
   "description": "Brings the selected or given layers to the front of their parent."
+ },
+ "arrange.group": {
+  "description": "Groups the selected or given layers, optionally naming the group."
  },
  "arrange.packH": {
   "description": "Packs the selected layers side by side horizontally with no gaps."
@@ -153,6 +150,12 @@
  "arrange.roundToPixels": {
   "description": "Rounds the position and size of the selected or given layers to whole pixels."
  },
+ "arrange.sendBackward": {
+  "description": "Sends the selected or given layers one step backward."
+ },
+ "arrange.sendToBack": {
+  "description": "Sends the selected or given layers to the back of their parent."
+ },
  "arrange.spacing": {
   "description": "Sets the horizontal and/or vertical spacing between the selected or given layers.",
   "params": {
@@ -169,6 +172,9 @@
  },
  "arrange.tidy": {
   "description": "Tidies the selected layers into an evenly spaced grid, or by a fixed spacing."
+ },
+ "arrange.ungroup": {
+  "description": "Ungroups the selected or given groups, keeping their children in place."
  },
  "board.connector": {
   "description": "Connects two layers or page points with a straight, elbow or curved connector with caps.",
@@ -769,6 +775,12 @@
    "type": "json"
   }
  },
+ "component.add": {
+  "description": "Makes the selected frame or group a component, or wraps several layers in one."
+ },
+ "component.addMultiple": {
+  "description": "Makes each selected layer its own component."
+ },
  "component.addProperty": {
   "description": "Adds a boolean, text, instance-swap, variant or slot property to a component or set, optionally binding a layer.",
   "params": {
@@ -821,12 +833,6 @@
  },
  "component.combineVariants": {
   "description": "Combines main components into a component set of variants."
- },
- "component.add": {
-  "description": "Makes the selected frame or group a component, or wraps several layers in one."
- },
- "component.addMultiple": {
-  "description": "Makes each selected layer its own component."
  },
  "component.deleteProperty": {
   "description": "Deletes a component property from a component or set."
@@ -1224,6 +1230,18 @@
  "edit.delete": {
   "description": "Deletes the selected or given layers."
  },
+ "edit.deselectAll": {
+  "description": "Clears the selection, deselecting every layer.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
  "edit.duplicate": {
   "description": "Duplicates the selected or given layers, offset by dx, dy (or repeating the last duplicate's offset); answers the copies."
  },
@@ -1313,6 +1331,21 @@
  },
  "edit.repeat": {
   "description": "Repeats the last command on the current selection."
+ },
+ "edit.selectAll": {
+  "description": "Selects every layer on the current page (or in the current frame).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
  },
  "edit.setDefaultProperties": {
   "description": "Makes a layer's properties the defaults for new layers of its kind.",
@@ -1801,6 +1834,36 @@
     "type": "string"
    }
   }
+ },
+ "format.alignCenter": {
+  "description": "Centres the text of the selected or given text layers."
+ },
+ "format.alignLeft": {
+  "description": "Aligns the text of the selected or given text layers to the left."
+ },
+ "format.alignRight": {
+  "description": "Aligns the text of the selected or given text layers to the right."
+ },
+ "format.bold": {
+  "description": "Toggles bold on the selected or given text layers (or the selected text range)."
+ },
+ "format.decreaseFontSize": {
+  "description": "Decreases the font size of the selected or given text layers by one step."
+ },
+ "format.increaseFontSize": {
+  "description": "Increases the font size of the selected or given text layers by one step."
+ },
+ "format.italic": {
+  "description": "Toggles italic on the selected or given text layers (or the selected text range)."
+ },
+ "format.justify": {
+  "description": "Justifies the text of the selected or given text layers."
+ },
+ "format.strikethrough": {
+  "description": "Toggles strikethrough on the selected or given text layers (or the selected text range)."
+ },
+ "format.underline": {
+  "description": "Toggles underline on the selected or given text layers (or the selected text range)."
  },
  "frame.add": {
   "description": "Creates a frame from a device preset or a size, in a parent, with a name and properties; answers its id.",
@@ -2774,9 +2837,6 @@
  "object.frameSelection": {
   "description": "Wraps the selected or given layers in a new frame, optionally named."
  },
- "arrange.group": {
-  "description": "Groups the selected or given layers, optionally naming the group."
- },
  "object.hideOthers": {
   "description": "Hides every layer on the page except the selected ones."
  },
@@ -2835,9 +2895,6 @@
  },
  "object.toggleVisible": {
   "description": "Shows, hides or toggles the visibility of the selected or given layers."
- },
- "arrange.ungroup": {
-  "description": "Ungroups the selected or given groups, keeping their children in place."
  },
  "object.wrapInSection": {
   "description": "Wraps the selected or given top-level layers in a new section with some room around them."
@@ -3282,19 +3339,16 @@
    "type": "object"
   }
  },
- "edit.selectAll": {
-  "description": "Selects every layer on the current page (or in the current frame).",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "selection": {
-     "items": {
-      "type": "number"
-     },
-     "type": "array"
-    }
-   },
-   "type": "object"
+ "select.applyColorStyle": {
+  "description": "Applies a colour style to the given fill or stroke slots (from select.colors).",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
   }
  },
  "select.area": {
@@ -3336,6 +3390,29 @@
    }
   }
  },
+ "select.bindColorVariable": {
+  "description": "Binds a colour variable to the given solid fill or stroke slots (from select.colors).",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
  "select.byName": {
   "description": "Selects the layers whose names match a query on the current page or every page.",
   "output": {
@@ -3360,6 +3437,49 @@
     }
    },
    "type": "object"
+  }
+ },
+ "select.colors": {
+  "description": "Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "colors": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "paint": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "style": {
+        "type": "json"
+       },
+       "targets": {
+        "type": "array"
+       },
+       "variable": {
+        "type": "json"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "select.detachColor": {
+  "description": "Unlinks the colour style or variable of the given paint slots, keeping their colour values.",
+  "params": {
+   "targets": {
+    "items": {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    "type": "array"
+   }
   }
  },
  "select.inverse": {
@@ -3411,18 +3531,6 @@
       "type": "number"
      },
      "type": "array"
-    }
-   },
-   "type": "object"
-  }
- },
- "edit.deselectAll": {
-  "description": "Clears the selection, deselecting every layer.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "ok": {
-     "type": "boolean"
     }
    },
    "type": "object"
@@ -3563,96 +3671,6 @@
    "type": "object"
   }
  },
- "select.set": {
-  "description": "Replaces the selection with the layers ids.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "selection": {
-     "type": "array"
-    }
-   },
-   "type": "object"
-  }
- },
- "select.applyColorStyle": {
-  "description": "Applies a colour style to the given fill or stroke slots (from select.colors).",
-  "params": {
-   "targets": {
-    "items": {
-     "additionalProperties": true,
-     "type": "object"
-    },
-    "type": "array"
-   }
-  }
- },
- "select.bindColorVariable": {
-  "description": "Binds a colour variable to the given solid fill or stroke slots (from select.colors).",
-  "params": {
-   "targets": {
-    "items": {
-     "additionalProperties": true,
-     "type": "object"
-    },
-    "type": "array"
-   },
-   "variable": {
-    "description": "an id (a number, or its digits as text)",
-    "oneOf": [
-     {
-      "type": "integer"
-     },
-     {
-      "type": "string"
-     }
-    ]
-   }
-  }
- },
- "select.colors": {
-  "description": "Answers the colours used by the selection (descendants and text ranges included) with the paint slots that use each.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "colors": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "paint": {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       "style": {
-        "type": "json"
-       },
-       "targets": {
-        "type": "array"
-       },
-       "variable": {
-        "type": "json"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    }
-   },
-   "type": "object"
-  }
- },
- "select.detachColor": {
-  "description": "Unlinks the colour style or variable of the given paint slots, keeping their colour values.",
-  "params": {
-   "targets": {
-    "items": {
-     "additionalProperties": true,
-     "type": "object"
-    },
-    "type": "array"
-   }
-  }
- },
  "select.selectColor": {
   "description": "Selects the layers that own the given paint slots; answers their ids.",
   "output": {
@@ -3672,6 +3690,18 @@
     },
     "type": "array"
    }
+  }
+ },
+ "select.set": {
+  "description": "Replaces the selection with the layers ids.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "array"
+    }
+   },
+   "type": "object"
   }
  },
  "select.setPaint": {
@@ -3905,37 +3935,6 @@
    }
   }
  },
- "style.apply": {
-  "description": "Applies a style by id or name to the selected or given layers (fill or stroke for paint styles, a range for text styles).",
-  "params": {
-   "target": {
-    "enum": [
-     "fill",
-     "stroke"
-    ],
-    "type": "string"
-   }
-  }
- },
- "style.bind": {
-  "description": "Binds a variable to a field of a style's value (or unbinds it).",
-  "params": {
-   "field": {
-    "type": "string"
-   },
-   "variable": {
-    "description": "an id (a number, or its digits as text)",
-    "oneOf": [
-     {
-      "type": "integer"
-     },
-     {
-      "type": "string"
-     }
-    ]
-   }
-  }
- },
  "style.add": {
   "description": "Creates a paint, text, effect or grid style from a layer (default the first selected) or a value; answers its id.",
   "params": {
@@ -3964,6 +3963,37 @@
    },
    "value": {
     "type": "json"
+   }
+  }
+ },
+ "style.apply": {
+  "description": "Applies a style by id or name to the selected or given layers (fill or stroke for paint styles, a range for text styles).",
+  "params": {
+   "target": {
+    "enum": [
+     "fill",
+     "stroke"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "style.bind": {
+  "description": "Binds a variable to a field of a style's value (or unbinds it).",
+  "params": {
+   "field": {
+    "type": "string"
+   },
+   "variable": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
    }
   }
  },
@@ -4054,20 +4084,25 @@
    }
   }
  },
- "format.alignCenter": {
-  "description": "Centres the text of the selected or given text layers."
- },
- "format.justify": {
-  "description": "Justifies the text of the selected or given text layers."
- },
- "format.alignLeft": {
-  "description": "Aligns the text of the selected or given text layers to the left."
- },
- "format.alignRight": {
-  "description": "Aligns the text of the selected or given text layers to the right."
- },
- "format.bold": {
-  "description": "Toggles bold on the selected or given text layers (or the selected text range)."
+ "text.add": {
+  "description": "Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.",
+  "params": {
+   "parent": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "props": {
+    "additionalProperties": true,
+    "type": "object"
+   }
+  }
  },
  "text.bulletList": {
   "description": "Turns the selected or given text's paragraphs into a bulleted list (or back to plain text)."
@@ -4089,26 +4124,6 @@
  },
  "text.caseUpper": {
   "description": "Displays the selected or given text in uppercase."
- },
- "text.add": {
-  "description": "Creates a text layer at x, y in a parent with optional fixed width and text properties (font, size and more); answers its id.",
-  "params": {
-   "parent": {
-    "description": "an id (a number, or its digits as text)",
-    "oneOf": [
-     {
-      "type": "integer"
-     },
-     {
-      "type": "string"
-     }
-    ]
-   },
-   "props": {
-    "additionalProperties": true,
-    "type": "object"
-   }
-  }
  },
  "text.decoration": {
   "description": "Sets the text decoration (none, underline, strikethrough) of the selected or given text."
@@ -4235,9 +4250,6 @@
     "type": "boolean"
    }
   }
- },
- "format.italic": {
-  "description": "Toggles italic on the selected or given text layers (or the selected text range)."
  },
  "text.lineHeightDown": {
   "description": "Decreases the line height of the selected or given text layers by one step."
@@ -4374,15 +4386,6 @@
    }
   }
  },
- "format.decreaseFontSize": {
-  "description": "Decreases the font size of the selected or given text layers by one step."
- },
- "format.increaseFontSize": {
-  "description": "Increases the font size of the selected or given text layers by one step."
- },
- "format.strikethrough": {
-  "description": "Toggles strikethrough on the selected or given text layers (or the selected text range)."
- },
  "text.style": {
   "description": "Styles a character range of a text layer: font family, style, weight, size, line height, letter spacing, decoration, case, link and fills.",
   "params": {
@@ -4466,9 +4469,6 @@
  },
  "text.trackingUp": {
   "description": "Increases the letter spacing of the selected or given text layers by one step."
- },
- "format.underline": {
-  "description": "Toggles underline on the selected or given text layers (or the selected text range)."
  },
  "text.weightDown": {
   "description": "Moves the selected or given text to the next lighter font weight available."
@@ -4888,6 +4888,40 @@
    }
   }
  },
+ "variable.add": {
+  "description": "Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.",
+  "params": {
+   "collection": {
+    "description": "an id (a number, or its digits as text)",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "description": {
+    "type": "string"
+   },
+   "type": {
+    "enum": [
+     "color",
+     "number",
+     "string",
+     "boolean"
+    ],
+    "type": "string"
+   },
+   "value": {
+    "type": "json"
+   }
+  }
+ },
+ "variable.addCollection": {
+  "description": "Creates a variable collection with mode names; answers its id."
+ },
  "variable.addMode": {
   "description": "Adds a mode to a variable collection, optionally duplicating another mode's values.",
   "params": {
@@ -4933,40 +4967,6 @@
     ]
    }
   }
- },
- "variable.add": {
-  "description": "Creates a colour, number, string or boolean variable in a collection with values per mode; answers its id.",
-  "params": {
-   "collection": {
-    "description": "an id (a number, or its digits as text)",
-    "oneOf": [
-     {
-      "type": "integer"
-     },
-     {
-      "type": "string"
-     }
-    ]
-   },
-   "description": {
-    "type": "string"
-   },
-   "type": {
-    "enum": [
-     "color",
-     "number",
-     "string",
-     "boolean"
-    ],
-    "type": "string"
-   },
-   "value": {
-    "type": "json"
-   }
-  }
- },
- "variable.addCollection": {
-  "description": "Creates a variable collection with mode names; answers its id."
  },
  "variable.delete": {
   "description": "Deletes a variable; bound layers keep their values.",

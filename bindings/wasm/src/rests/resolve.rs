@@ -600,7 +600,7 @@ fn traversed_inputs(
             }
         }
     }
-    if command.starts_with("text.") && !matches!(command, "text.add" | "text.onPath") {
+    if (command.starts_with("text.") || command.starts_with("format.")) && !matches!(command, "text.add" | "text.onPath") {
         let global_refit = command == "text.refit" && params.get("ids").is_none_or(Value::is_null);
         let roots = if global_refit { doc.pages.clone() } else { ds.text_edit.as_ref().map_or_else(|| ids.to_vec(), |edit| vec![edit.id]) };
         if global_refit {

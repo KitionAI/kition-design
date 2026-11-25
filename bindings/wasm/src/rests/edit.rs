@@ -67,7 +67,7 @@ pub(super) fn rest(rest: &mut Rest<'_>) {
             tool_switch(rest);
         }
         _ if command.starts_with("tool.") => tool_switch(rest),
-        _ if command.starts_with("object.") => object(rest),
+        _ if command.starts_with("object.") || matches!(command, "arrange.group" | "arrange.ungroup") => object(rest),
         _ if command.starts_with("page.") => page(rest),
         _ if command.starts_with("comment.") => comment(rest),
         _ if command.starts_with("file.") || command.starts_with("version.") => file(rest),

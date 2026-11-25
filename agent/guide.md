@@ -66,9 +66,11 @@ the call. A command that falls back to those inputs needs the corresponding cont
 - A command given what it acts on (`id`, `ids`, `parent`, `page`, `frame`) acts there and leaves
   the person's page, selection, view, tool and edit modes as they were, also when it fails. What
   it creates on the step's page becomes the selection, so the next step of the same run can act on
-  it without an id. Only commands whose work is moving the editor (`select.*`, `page.select`,
-  `page.go`, `view.*`, `tool.*`, `text.edit.*`, `vector.edit.*`) move it, and the editor is put
-  back after the call: a later call starts again from the person's page.
+  it without an id. Only commands whose work is moving the editor (`edit.selectAll`,
+  `edit.deselectAll`, `select.*` except the selection's colors (`select.colors`, `select.setPaint`,
+  `select.applyColorStyle`, `select.bindColorVariable`, `select.detachColor`, `select.selectColor`),
+  `page.select`, `page.go`, `view.*`, `tool.*`, `text.edit.*`, `vector.edit.*`) move it, and the
+  editor is put back after the call: a later call starts again from the person's page.
 - Some commands read an edit mode (text or vector editing, the tool): set it with the kit's own
   command (`text.edit.begin`, `vector.edit.begin`) in an earlier step of the same run.
 - The file saves the person's page, never where the run worked.
@@ -307,7 +309,7 @@ The check then finds nothing wrong, and the export answers the new file it wrote
 
 ## Pitfalls
 
-- **Navigation is for the person.** `select.*`, `page.select`, `page.go` and `view.*` move the
+- **Navigation is for the person.** `edit.selectAll`, `select.*`, `page.select`, `page.go` and `view.*` move the
   editor; an agent names pages with `target`/`at` and layers with `on` or `ids` instead.
 - **Auto layout arranges the children.** After [`layout.add`](/kits/design/commands/layout.add/), set
   padding and gap on the frame ([`node.set`](/kits/design/commands/node.set/)

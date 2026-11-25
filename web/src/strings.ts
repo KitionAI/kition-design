@@ -5,6 +5,7 @@
  * the upstream catalogs lack are translated by `PHRASES`.
  */
 import { KIT_UI_CATALOGS, catalogNames, type Catalog, type Phrases } from '@kition/sdk/editor'
+import { catalogCommandId } from './i18n/command-ids-upstream'
 
 /** The editor's own strings (`en-US` is required; others fall back to it). */
 const enUS: Catalog = {
@@ -130,7 +131,8 @@ export type Values = Record<string, string | number>
 export type DesignStrings = {
   locale: string
   t: (key: string, values?: Values) => string
-  /** An engine command's label by id (the upstream `[commands]` catalog), else `english`. */
+  /** An engine command's label by id (the upstream `[commands]` catalog, which lists a renamed
+   * command under its earlier id: `i18n/command-ids-upstream.ts`), else `english`. */
   command: (id: string, english: string) => string
   /** A main-menu item's label by command id (the upstream `[menu]` catalog), else the command's. */
   menuLabel: (id: string, english: string) => string
@@ -192,11 +194,11 @@ export function makeStrings(locale: string, english: TomlCatalog | null, upstrea
     return fill(upstreamText(key, values) ?? key, values)
   }
   const command = (id: string, fallback: string) => {
-    const entry = commands?.get(id)
+    const entry = commands?.get(catalogCommandId(id))
     return typeof entry === 'string' ? entry : t(fallback)
   }
   const menuLabel = (id: string, fallback: string) => {
-    const entry = menu?.get(id)
+    const entry = menu?.get(catalogCommandId(id))
     return typeof entry === 'string' ? entry : command(id, fallback)
   }
   const phrase: Phrases = (text) => {

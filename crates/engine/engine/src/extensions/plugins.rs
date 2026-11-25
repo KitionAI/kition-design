@@ -101,7 +101,7 @@ const DENIED: &[&str] = &[
     "doc.",
     "version.",
     "app.",
-    "pref.",
+    "prefs.",
     "help.",
     "plugin.",
     "plugins.",

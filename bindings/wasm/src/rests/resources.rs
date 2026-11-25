@@ -525,7 +525,7 @@ fn family(h: &mut Hold<'_, '_>, command: &str, params: &Value, targets: &[NodeId
             }
         }
         ("image", _) => image(h, verb, params, targets),
-        ("selection", _) => selection(h, verb, params),
+        ("select", "colors" | "setPaint" | "applyColorStyle" | "bindColorVariable" | "detachColor" | "selectColor") => selection(h, verb, params),
         ("style", _) => style(h, verb, params, targets),
         ("variable", _) => variable(h, verb, params, targets),
         _ => {}
@@ -688,7 +688,7 @@ fn style(h: &mut Hold<'_, '_>, verb: &str, params: &Value, targets: &[NodeId]) {
     let style = given.and_then(|s| doc.style(s));
     match verb {
         // :325: from `value`, else from `from` (the first selected layer), which is linked to it.
-        "create" => {
+        "add" => {
             if params.get("value").is_some() {
                 return;
             }
@@ -746,7 +746,7 @@ fn style(h: &mut Hold<'_, '_>, verb: &str, params: &Value, targets: &[NodeId]) {
         }
         // :516: name, description, value (from a layer's list); a new value goes to every
         // linked layer (:672 `propagate_style`).
-        "update" => {
+        "set" => {
             let Some(style) = style else { return };
             let mut fields = Vec::new();
             if params.get("name").is_some() {
@@ -867,7 +867,7 @@ fn variable(h: &mut Hold<'_, '_>, verb: &str, params: &Value, targets: &[NodeId]
             }
         }
         // styles.rs:899: values per mode of the collection; aliases name a variable of the type.
-        "create" => {
+        "add" => {
             let Some(c) = coll else { return };
             h.resource(cgiven, &c.id, &["modes"]);
             let values = params.get("values").and_then(Value::as_object).into_iter().flat_map(|m| m.values()).chain(params.get("value"));

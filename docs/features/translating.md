@@ -36,6 +36,9 @@ reviewed by a native speaker, and Swedish (`sv`) translates every UI string, com
 - **`es.toml`** and other languages translate the same keys under `[ui]`, plus command labels by
   command id under `[commands]` (`strings.command(id, english)`) and, under `[menu]`, the few main
   menu items worded differently from their command (`strings.menuLabel(id, english)`).
+  The catalogs keep the command ids they were written with; a command renamed since is listed
+  under its earlier id, and the editor finds it through `web/src/i18n/command-ids-upstream.ts`
+  (earlier id → the command's id today).
 - `[meta] name` is the language's own name and `[meta] status` marks a draft or a review; the
   editor does not read `[meta]`.
 - A **regional overlay** (`es-419.toml`) lists only the entries worded differently there. The
