@@ -34,12 +34,15 @@ fn preview_shows_the_version_read_only_and_goes_back() {
     let (mut s, [one, two], r) = setup();
     let three = count(&s);
     let undo_depth = s.ds().unwrap().history.undo.len();
-    let v = s.execute("version.preview", &json!({"version": one, "id": "checkpoint-1", "name": "One", "time": 7})).unwrap();
+    let v = s.execute("version.preview", &json!({"snapshot": one, "id": "checkpoint-1", "name": "One", "time": 7})).unwrap();
     assert_eq!(v["name"], "One");
     assert_eq!(count(&s), three - 2);
     assert!(s.selection().is_empty());
     let shown = s.ds().unwrap().preview.clone().unwrap();
-    assert_eq!((shown.id.as_str(), shown.name.as_str(), shown.time, shown.version.as_str()), ("checkpoint-1", "One", 7, one.as_str()));
+    assert_eq!(
+        (shown.id.as_str(), shown.name.as_str(), shown.time, shown.version.as_str()),
+        ("checkpoint-1", "One", 7, crate::cmd::file::snapshot_version("test", &one).unwrap().as_str())
+    );
     // Edits are refused and leave it as it was; so do undo and gestures.
     let err = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).unwrap_err();
     assert!(matches!(err, EngineError::Disabled(..)), "{err:?}");
@@ -52,7 +55,7 @@ fn preview_shows_the_version_read_only_and_goes_back() {
     let _ = s.pointer(&PointerEvent::at(PointerKind::Up, 50.0, 50.0, 1.0));
     assert_eq!(count(&s), three - 2);
     // Switching to another version, then back to the current one.
-    s.execute("version.preview", &json!({"version": two})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": two})).unwrap();
     assert_eq!(count(&s), three - 1);
     assert_eq!(s.execute("version.exitPreview", &json!({})).unwrap()["ended"], true);
     assert_eq!(count(&s), three);
@@ -67,8 +70,8 @@ fn preview_shows_the_version_read_only_and_goes_back() {
 fn restore_from_a_preview_is_one_undo_step() {
     let (mut s, [one, _], _) = setup();
     let three = count(&s);
-    s.execute("version.preview", &json!({"version": one})).unwrap();
-    s.execute("version.restore", &json!({"version": one})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": one})).unwrap();
+    s.execute("version.restore", &json!({"snapshot": one})).unwrap();
     assert!(s.ds().unwrap().preview.is_none());
     assert_eq!(count(&s), three - 2);
     s.execute("edit.undo", &json!({})).unwrap();
@@ -83,7 +86,7 @@ fn preview_keeps_the_unsaved_state_and_saving_saves_the_document() {
     let (mut s, [one, _], _) = setup();
     let three = count(&s);
     s.execute("file.save", &json!({"path": path})).unwrap();
-    s.execute("version.preview", &json!({"version": one})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": one})).unwrap();
     assert!(!s.ds().unwrap().is_dirty(), "looking at a version isn't a change");
     // Saving ends the preview and saves the document itself.
     s.execute("file.save", &json!({})).unwrap();
@@ -105,7 +108,7 @@ fn a_refused_cut_leaves_the_clipboard_as_it_was() {
     assert_eq!(roots(&s), vec![b]);
     let source = s.clipboard.source.clone().unwrap();
     let depth = s.undo_depth();
-    s.execute("version.preview", &json!({"version": one})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": one})).unwrap();
     let err = s.execute("edit.cut", &json!({"ids": [a]})).unwrap_err();
     assert!(matches!(err, EngineError::Disabled(..)), "{err:?}");
     assert_eq!(roots(&s), vec![b], "failed edit.cut changed the clipboard");

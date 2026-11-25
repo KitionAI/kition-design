@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 fn fixture() -> Vec<u8> {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     doc.execute("shape.rectangle", json!({ "x": 40, "y": 40, "width": 120, "height": 80 })).unwrap();
-    doc.seal_and_save(None).unwrap()
+    doc.save_file(None).unwrap()
 }
 
 fn layers(doc: &DesignDocument) -> u64 {
@@ -41,13 +41,12 @@ fn the_kdesign_keeps_the_documents_identity() {
     let mut a = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
     let id = a.doc_id().unwrap();
     rect(&mut a, 200.0);
-    let bytes = a.seal_and_save(None).unwrap();
+    let bytes = a.save_file(None).unwrap();
     a.mark_saved();
     let mut b = DesignDocument::open("Design.kdesign", &bytes).unwrap();
     assert_eq!(b.doc_id(), Some(id.clone()));
-    // The same version (its encoding lists the actors in no fixed order).
-    let decoded = |bytes: Vec<u8>| kition_kit::kdm::Version::decode(&bytes).unwrap();
-    assert_eq!(decoded(b.version().unwrap()), decoded(a.version().unwrap()));
+    // The same objects under the same ids (the file holds no version: it opens on a new line).
+    assert_eq!(b.state_json().unwrap(), a.state_json().unwrap());
     assert!(!b.dirty());
     // A host's stored replica does not override the file's own.
     let other = DesignDocument::create("Other.kdesign", 100, 100).unwrap().snapshot_of();
@@ -66,24 +65,25 @@ impl SnapshotOf for DesignDocument {
 }
 
 #[test]
-fn a_replica_opens_without_a_file_and_converges() {
+fn a_replica_opens_without_a_file_and_takes_changes_in_order() {
     let mut a = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
     rect(&mut a, 200.0);
     let changes = a.export_changes(&[]).unwrap();
     let mut b = DesignDocument::open_with_replica("Shared.kdesign", &[], &changes, &a.blobs().unwrap()).unwrap();
     assert_eq!(b.doc_id(), a.doc_id());
     assert_eq!(b.state_json().unwrap(), a.state_json().unwrap());
-    assert!(DesignDocument::open("Shared.kdesign", &b.seal_and_save(None).unwrap()).is_ok());
+    assert!(DesignDocument::open("Shared.kdesign", &b.save_file(None).unwrap()).is_ok());
     assert!(DesignDocument::open_with_replica("Shared.kdesign", &[], b"not a replica", &[]).is_err());
 
-    // Edits on both sides, exchanged both ways.
+    // Edits on both sides, one after the other, each taken by the other side.
     rect(&mut a, 260.0);
-    b.execute("shape.ellipse", json!({ "x": 320, "y": 150, "width": 30, "height": 30 })).unwrap();
-    let (va, vb) = (a.version().unwrap(), b.version().unwrap());
+    let vb = b.version().unwrap();
     let to_b = a.export_changes(&vb).unwrap();
-    let to_a = b.export_changes(&va).unwrap();
     b.add_blobs(&a.blobs_since(&vb).unwrap()).unwrap();
     b.import_changes(&to_b).unwrap();
+    b.execute("shape.ellipse", json!({ "x": 320, "y": 150, "width": 30, "height": 30 })).unwrap();
+    let va = a.version().unwrap();
+    let to_a = b.export_changes(&va).unwrap();
     a.import_changes(&to_a).unwrap();
     assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
     assert_eq!(layers(&a), layers(&b));
@@ -146,7 +146,7 @@ fn images_travel_as_blobs() {
     b.import_changes(&changes).unwrap();
     b.add_blobs(&a.blobs_since(&since).unwrap()).unwrap();
     assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    let saved = b.seal_and_save(None).unwrap();
+    let saved = b.save_file(None).unwrap();
     assert!(DesignDocument::open("Design.kdesign", &saved).is_ok());
 }
 
@@ -374,4 +374,24 @@ fn an_undo_in_a_batch_abandons_the_open_interaction() {
     assert!(!doc.commit_interaction().unwrap(), "the interaction is gone");
     assert!(doc.undo().unwrap().0);
     assert_eq!(x_of(&doc, &rect), 10.0, "undoing the batch brings back the step, not the abandoned scrub");
+}
+
+/// `replica/restore` (`restoreState`): a host's checkpoint snapshot written over the design as one
+/// step of the person, which undo takes back; another document's snapshot is refused.
+#[test]
+fn a_checkpoints_snapshot_restores_as_one_undo_step() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    let saved = doc.snapshot().unwrap();
+    let before = layers(&doc);
+    rect(&mut doc, 200.0);
+    rect(&mut doc, 260.0);
+    assert_eq!(layers(&doc), before + 2);
+    let person = kition_design_engine::kdm::local_person();
+    doc.restore_state(&saved, &person).unwrap();
+    assert_eq!(layers(&doc), before, "the design the checkpoint holds");
+    assert!(doc.undo().unwrap().0);
+    assert_eq!(layers(&doc), before + 2, "one undo step takes the restore back");
+    let other = DesignDocument::create("Other.kdesign", 100, 100).unwrap().snapshot_of();
+    assert!(doc.restore_state(&other, &person).is_err(), "another document's snapshot");
+    assert_eq!(layers(&doc), before + 2);
 }

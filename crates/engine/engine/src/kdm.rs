@@ -414,9 +414,8 @@ impl DocState {
         self.revision += 1;
     }
 
-    /// The replica entries a save writes into the file: the replica's sealed content (none
-    /// without a replica), remembered until [`DocState::mark_saved`]. The replica must be sealed
-    /// for the save ([`DocState::prepare_save`]); one that is not is refused (`not-sealed`).
+    /// The replica entries a save writes into the file: the replica's content (none without a
+    /// replica), remembered until [`DocState::mark_saved`].
     pub fn replica_entries(&self) -> Result<Entries> {
         let Some(kdm) = self.link.kdm.as_ref() else { return Ok(Vec::new()) };
         let saved = file::save(kdm).map_err(kdm_error)?;
@@ -424,17 +423,6 @@ impl DocState {
             *pending = Some(saved.base);
         }
         Ok(saved.entries)
-    }
-
-    /// Gets the document ready for a save (engine contract E4): what is committed is written, and
-    /// the replica is sealed, so the save writes its content snapshot and the seal is in the
-    /// replica the host stores. No edit, no undo step, no revision.
-    pub fn prepare_save(&mut self, origin: &Origin) -> Result<()> {
-        self.sync_kdm(origin);
-        if let Some(kdm) = self.link.kdm.as_mut() {
-            kdm.seal().map_err(kdm_error)?;
-        }
-        Ok(())
     }
 
     /// The last save's replica entries are now what the file holds.

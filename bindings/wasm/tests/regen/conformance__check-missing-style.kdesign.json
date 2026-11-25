@@ -1,0 +1,8 @@
+{"kdm":1,"kit":"kit.design","docId":"01a206f1-02ce-71a0-852e-def2d4ad90f4","schemaVersion":1,"objects":{
+"01a206f1-02cf-70bb-a979-98c1f478e1c3":{"$type":"Node","frame":{"height":0,"width":0},"key":1,"kind":{"background":{"a":1,"b":0.9607843160629272,"g":0.9607843160629272,"r":0.9607843160629272},"flows":[],"guides":[],"prototype":{"background":{"a":1,"b":0.11764705926179886,"g":0.11764705926179886,"r":0.11764705926179886},"device":"None","rotation":"portrait"},"type":"page"},"name":"Page 1"},
+"01a206f1-02cf-70bb-a979-98c29a431d4b":{"$type":"Node","fills":["01a206f1-02cf-70bb-a979-98c340b8e219"],"frame":{"height":300,"width":400},"key":2,"kind":{"type":"frame"},"name":"Frame 1","props":{"clip":true}},
+"01a206f1-02cf-70bb-a979-98c340b8e219":{"$type":"Paint","paint":{"blend":"normal","color":{"a":1,"b":1,"g":1,"r":1},"opacity":1,"type":"solid","visible":true}},
+"01a206f1-02cf-70bb-a979-98c457b9439b":{"$type":"Node","bindings":{"styles":{"effect":null,"fill":"S:1","grid":null,"stroke":null,"text":null}},"fills":["01a206f1-02cf-70bb-a979-98c5db26d361"],"frame":{"height":80,"transform":[1,0,0,1,40,40],"width":120},"key":3,"kind":{"type":"rectangle"},"name":"Rectangle","props":{"blend":"normal"}},
+"01a206f1-02cf-70bb-a979-98c5db26d361":{"$type":"Paint","paint":{"blend":"normal","color":{"a":1,"b":0.8313725590705872,"g":0.2705882489681244,"r":0.33725491166114807},"opacity":1,"type":"solid","visible":true}},
+"design":{"$type":"Design","nodes":[[0,"01a206f1-02cf-70bb-a979-98c1f478e1c3"],[1,"01a206f1-02cf-70bb-a979-98c29a431d4b"],[2,"01a206f1-02cf-70bb-a979-98c457b9439b"]],"settings":{"document_colors":[],"name":"missing-style"}}
+}}

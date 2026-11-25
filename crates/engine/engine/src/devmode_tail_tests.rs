@@ -129,8 +129,8 @@ fn compare_changes_takes_any_saved_version_as_the_before() {
     ex(&mut s, "node.set", json!({"id": button, "props": {"width": 150}}));
 
     // Any frame, ready for dev or not.
-    let c = ex(&mut s, "dev.compare", json!({"id": screen, "version": v1}));
-    assert_eq!(c["version"], json!(v1));
+    let c = ex(&mut s, "dev.compare", json!({"id": screen, "snapshot": v1}));
+    assert_eq!(c["version"], json!(crate::cmd::file::snapshot_version("test", &v1).unwrap()), "the replica version of the snapshot");
     assert_eq!(
         (c["changed"].as_bool(), c["added"].as_u64(), c["removed"].as_u64(), c["modified"].as_u64()),
         (Some(true), Some(1), Some(1), Some(1)),
@@ -142,22 +142,22 @@ fn compare_changes_takes_any_saved_version_as_the_before() {
     assert_eq!(change(&c, old)["change"], "removed");
     assert_eq!(change(&c, added)["change"], "added");
     // A later version: only what changed since then.
-    let c = ex(&mut s, "dev.compare", json!({"id": screen, "version": v2}));
+    let c = ex(&mut s, "dev.compare", json!({"id": screen, "snapshot": v2}));
     assert_eq!(c["changes"].as_array().map(Vec::len), Some(1), "{c}");
     assert_eq!(change(&c, button)["properties"][0]["text"], "width 136 → 150");
     // A frame the version doesn't have was added as a whole.
     let fresh = frame(&mut s, "Settings", None);
-    let c = ex(&mut s, "dev.compare", json!({"id": fresh, "version": v1}));
+    let c = ex(&mut s, "dev.compare", json!({"id": fresh, "snapshot": v1}));
     assert_eq!(c["changes"][0]["change"], "added");
     // The snapshot from when it was marked stays the default, for ready-for-dev layers only.
     assert!(s.execute("dev.compare", &json!({"id": screen})).is_err(), "not ready for dev");
     ex(&mut s, "node.set", json!({"id": screen, "props": {"devStatus": "readyForDev"}}));
     let c = ex(&mut s, "dev.compare", json!({"id": screen}));
     assert_eq!((c["changed"].as_bool(), c["version"].is_null()), (Some(false), true), "{c}");
-    for bad in [json!({"id": screen, "version": "nope"}), json!({"id": screen, "version": 5}), json!({"id": button, "version": v1})] {
+    for bad in [json!({"id": screen, "snapshot": "nope"}), json!({"id": screen, "snapshot": 5}), json!({"id": button, "snapshot": v1})] {
         assert!(s.execute("dev.compare", &bad).is_err(), "{bad}");
     }
     // The app opens on the version asked for.
-    ex(&mut s, "dev.compare", json!({"id": screen, "version": v2, "show": true}));
-    assert!(s.ui_requests.iter().any(|u| u.kind == "view.devCompare" && u.data["version"] == json!(v2)));
+    ex(&mut s, "dev.compare", json!({"id": screen, "snapshot": v2, "show": true}));
+    assert!(s.ui_requests.iter().any(|u| u.kind == "view.devCompare" && u.data["snapshot"] == json!(v2)));
 }

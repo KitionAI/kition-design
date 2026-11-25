@@ -5709,13 +5709,13 @@
   }
  },
  "version.preview": {
-  "description": "Shows the design as it was at a saved version (its replica version) on the canvas read-only in place of the document; version.exitPreview goes back.",
+  "description": "Shows the design a saved version holds (the snapshot its checkpoint carries) on the canvas read-only in place of the document; version.exitPreview goes back.",
   "output": {
    "type": "json"
   }
  },
  "version.restore": {
-  "description": "Gives the design the content it had at a saved version (its replica version, as the host's checkpoint names it) as one undoable edit; the file name, what it published and the comments stay."
+  "description": "Gives the design the content a saved version holds (the snapshot the host's checkpoint carries) as one undoable edit; the file name, what it published and the comments stay."
  },
  "view.comments": {
   "description": "Shows, hides or toggles comment pins; view state only.",

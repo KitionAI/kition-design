@@ -16,7 +16,7 @@ const ALLOW: &[(&str, &str, &str)] = &[
     ("select.previous", "id", "select_sibling reads the selection, not this extra schema member"),
     ("select.layersAt", "id", "layersAt picks at a point; this extra schema member is unused"),
     ("dev.unfocus", "id", "unfocus clears the editor focus; this extra schema member is unused"),
-    ("version.preview", "id", "the host's checkpoint id, shown in the banner; the content comes from `version`"),
+    ("version.preview", "id", "the host's checkpoint id, shown in the banner; the content comes from `snapshot`"),
     ("guide.move", "id", "guides are addressed by index and owner; this extra schema member is unused"),
     ("guide.clear", "id", "guides are addressed by owner; this extra schema member is unused"),
     ("text.edit.selectWord", "id", "uses the active text editor; this extra schema member is unused"),
@@ -89,8 +89,8 @@ fn saved_version_ids_are_strings_not_node_targets() {
     let doc = DesignDocument::create("Records.kdesign", 320, 240).unwrap();
     for command in doc.commands().into_iter().filter(|c| matches!(c.id.as_str(), "version.restore" | "version.preview")) {
         assert!(command.targets.is_none(), "{}: saved version, not a layer: {:?}", command.id, command.targets);
-        assert!(command.schema.as_ref().unwrap().get("version").is_some(), "{}: names the replica version", command.id);
-        assert!(!command.objects.contains(&"version"), "{}: a replica version, not an object", command.id);
+        assert!(command.schema.as_ref().unwrap().get("snapshot").is_some(), "{}: carries the saved version's snapshot", command.id);
+        assert!(!command.objects.contains(&"snapshot"), "{}: a snapshot, not an object", command.id);
     }
     let preview = doc.commands().into_iter().find(|c| c.id == "version.preview").unwrap();
     assert_eq!(preview.schema.as_ref().unwrap()["id"]["type"], "string", "the host's checkpoint id");
@@ -155,7 +155,7 @@ fn resources_keep_their_command_ids_in_the_model_after_reopen() {
         doc.execute("variable.create", serde_json::json!({"collection":collection, "name":"Spacing", "type":"number", "value":8})).unwrap()["id"]
             .clone();
     let thread = doc.execute("comment.add", serde_json::json!({"text":"Review", "x":5, "y":5})).unwrap()["id"].clone();
-    let bytes = doc.seal_and_save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     for mut doc in [doc, DesignDocument::open("Ids.kdesign", &bytes).unwrap()] {
         let mut exchange = Exchange::new();
         let loaded = exchange

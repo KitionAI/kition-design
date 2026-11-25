@@ -77,7 +77,7 @@ fn library_bytes() -> &'static [u8] {
         let col = ex("variable.createCollection", json!({ "name": "Lib Tokens", "modes": ["Base"] }))["id"].clone();
         ex("variable.create", json!({ "collection": col, "name": "space", "type": "number", "value": 8 }));
         ex("library.publish", json!({}));
-        lib.seal_and_save(None).unwrap()
+        lib.save_file(None).unwrap()
     })
 }
 
@@ -98,7 +98,7 @@ fn other_bytes() -> &'static [u8] {
         ex("component.create", json!({ "ids": [f] }));
         ex("style.create", json!({ "type": "paint", "name": "Lib Blue", "value": [{ "type": "solid", "color": "#0000aa" }] }));
         ex("library.publish", json!({}));
-        lib.seal_and_save(None).unwrap()
+        lib.save_file(None).unwrap()
     })
 }
 
@@ -184,7 +184,7 @@ fn build() -> Fixture {
     let p2 = id(&ex("page.add", json!({ "name": "Page 2" })));
     ex("page.select", json!({ "index": 0 }));
     ex("select.set", json!({ "ids": [] }));
-    let bytes = d.seal_and_save(None).unwrap();
+    let bytes = d.save_file(None).unwrap();
     let doc = open(&bytes);
     let ds = doc.session().ds().unwrap();
     let node = |id: &Value| ds.doc.node(kition_design_doc::NodeId(id.as_u64().unwrap())).unwrap();
@@ -229,19 +229,18 @@ fn build() -> Fixture {
         ("$LibBlue", lib_blue),
         ("$LibTokens", lib_tokens),
         ("$Img", img),
-        // The version the file's content holds (a saved version every opening of the file reaches).
+        // The file's content, as a checkpoint of it carries it (a saved version every opening reads).
         ("$Ver", json!(file_version(&bytes))),
     ];
     (bytes, roles)
 }
 
-/// The version a `.kdesign`'s content holds (its seal), base64: where the history of every opening
-/// of the file starts.
+/// A `.kdesign`'s content, base64: the snapshot a saved version of the file carries (a content
+/// opens as a snapshot).
 fn file_version(bytes: &[u8]) -> String {
     let file = kition_design_format::load_with_replica(bytes).unwrap();
     let content = &file.replica.iter().find(|(name, _)| name == kition_design_kdm::file::CONTENT).unwrap().1;
-    let replica = kition_kit::kdm::Replica::load(kition_design_kdm::schema().unwrap(), content, kition_kit::kdm::ActorId::random()).unwrap();
-    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, replica.version().encode())
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, content)
 }
 
 /// `@FIG` in a row: base64 of a `.fig` file of one rectangle (copied design layers).
@@ -4387,7 +4386,7 @@ const ROWS: &[Row] = &[
     s(
         r##"[["node.set", {"id": "$R", "props": {"opacity": 0.5}}]]"##,
         "version.restore",
-        r##"{"version": "$Ver"}"##,
+        r##"{"snapshot": "$Ver"}"##,
         &[],
         "",
         &[("design", "settings,nodes,libraryStore,styles,collections,variables,libraries,libraryCopies,images", false)],
@@ -6561,7 +6560,7 @@ pub fn board() -> &'static Fixture {
         let ink = id(&ex("board.ink", json!({ "path": "M0 600 L100 650" })));
         let stamp = id(&ex("board.stamp", json!({ "x": 400, "y": 400, "stamp": "heart" })));
         ex("select.set", json!({ "ids": [] }));
-        let bytes = d.seal_and_save(None).unwrap();
+        let bytes = d.save_file(None).unwrap();
         let doc = d.session().doc().unwrap();
         let shape_text = doc
             .get(kition_design_doc::NodeId(shape.as_u64().unwrap()))
@@ -6639,7 +6638,7 @@ fn review_noop_text_paths_do_not_reflow_the_parent() {
         if command == "text.fit" {
             doc.execute("node.set", json!({"id":text.0,"props":{"width":200}})).unwrap();
         }
-        let mut file = kition_design_format::load_with_replica(&doc.seal_and_save(None).unwrap()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&doc.save_file(None).unwrap()).unwrap();
         let width = file.doc.node(parent).unwrap().width;
         file.doc.get_mut(parent).unwrap().child_layout.min_w = Some(width + 100.0);
         let bytes = kition_design_format::save_edited(&file).unwrap();

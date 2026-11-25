@@ -4,7 +4,7 @@ use super::*;
 fn rewrite(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let out = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.save_file(None).unwrap()).unwrap();
     out
 }
 
@@ -41,7 +41,7 @@ fn library(f: &Fixture) -> Value {
     let component = lib.inspect().unwrap()["tree"][0]["id"].clone();
     lib.execute("component.create", json!({"ids":[component]})).unwrap();
     lib.execute("library.publish", json!({})).unwrap();
-    let bytes = lib.seal_and_save(None).unwrap();
+    let bytes = lib.save_file(None).unwrap();
     std::fs::write(f.workspace.path().join("Library.kdesign"), &bytes).unwrap();
     rewrite(f, |d| {
         d.lend_library("Library.kdesign", Some(&bytes)).unwrap();
@@ -514,17 +514,16 @@ async fn pinned_sdk_root_position_hold_also_conflicts_with_parent_size() {
     f.shutdown().await;
 }
 
-/// The version the file's content holds (its seal): a saved version every server that opens the
-/// file reaches, since its replica's history starts there.
+/// The saved version a checkpoint of the file would carry: the file's content (a KDM content
+/// opens as a snapshot), base64.
 fn file_version(f: &Fixture) -> String {
     let file = kition_design_format::load_with_replica(&f.bytes()).unwrap();
     let content = &file.replica.iter().find(|(name, _)| name == kition_design_kdm::file::CONTENT).unwrap().1;
-    let replica = kition_kit::kdm::Replica::load(kition_design_kdm::schema().unwrap(), content, kition_kit::kdm::ActorId::random()).unwrap();
-    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, replica.version().encode())
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, content)
 }
 
-// A restore names its version (the content at a replica version, which never changes), never a
-// label, and writes the whole design: the version's content is what it holds, so a colleague's
+// A restore names its version by the snapshot its checkpoint carries (which never changes), never
+// a label, and writes the whole design: the version's content is what it holds, so a colleague's
 // change of a layer it replaces refuses it, and a conversation beside it (kept by the restore)
 // does not.
 #[tokio::test(flavor = "multi_thread")]
@@ -539,7 +538,7 @@ async fn restoring_a_version_holds_its_snapshot_not_just_its_label() {
         } else {
             f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
         }
-        outcome(&f, &basis, "version.restore", json!({"version":version}), necessary).await;
+        outcome(&f, &basis, "version.restore", json!({"snapshot":version}), necessary).await;
         if !necessary {
             assert_eq!(f.node(f.a)["name"], "Original", "the restore wrote the version's content");
         }
@@ -558,7 +557,7 @@ async fn restoring_a_version_holds_the_styles_it_replaces() {
         } else {
             f.colleague(&[("comment.add", json!({"text":"Unrelated conversation","x":1,"y":1}))]);
         }
-        outcome(&f, &basis, "version.restore", json!({"version":version}), necessary).await;
+        outcome(&f, &basis, "version.restore", json!({"snapshot":version}), necessary).await;
         f.shutdown().await;
     }
 }

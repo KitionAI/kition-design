@@ -476,7 +476,7 @@ fn shift_click_takes_a_layer_out_where_nothing_can_move() {
     let k = scene(&mut s);
     // A version being viewed is read-only: the press can't start a move.
     let v = crate::cmd::file::saved_version(&mut s);
-    ex(&mut s, "version.preview", json!({"version": v}));
+    ex(&mut s, "version.preview", json!({"snapshot": v}));
     ex(&mut s, "select.set", json!({"ids": [k.r, k.empty]}));
     assert!(s.pointer(&ev(PointerKind::Down, 520.0, 20.0, SHIFT)).is_err(), "a version being viewed can't be edited");
     s.pointer(&ev(PointerKind::Up, 520.0, 20.0, SHIFT)).unwrap();

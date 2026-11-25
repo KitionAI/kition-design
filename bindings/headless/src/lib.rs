@@ -7,7 +7,7 @@ use kition_kit::kdm::Schema;
 use kition_kit_server::{ErrorReason, RpcError};
 
 /// Where a `.kdesign` file keeps the design's replica (`docs/features/kdm.md` section 3): its
-/// `kdm/` entries, `content.bin` (the sealed content snapshot: no history) and `meta.json` naming
+/// `kdm/` entries, `content.json` (the replica's content: no history) and `meta.json` naming
 /// the document. A fork's file holds the copy's content, with `meta.json`'s docId the copy's
 /// (`kition_design_kdm::file::fork_entries`), no branches, and only the images its state and its
 /// published library use (`kition_design_format::replace_replica`).

@@ -84,21 +84,21 @@ features:
     cases: [design.platform.document-identity/fork, design.platform.document-identity/no-replica]
     since: "2026-11-20"
   - id: design.file.content-only
-    title: "A .kdesign holds the design's content, not its history: the replica's sealed content snapshot and the images it uses; no document.json, change log, saved versions, branches or thumbnail (kition-sdk M16b)"
+    title: "A .kdesign holds the design's content, not its history: the replica's content.json and the images it uses; no document.json, change log, saved versions, branches or thumbnail (kition-sdk data model 7.4)"
     dimension: [platform, data-safety]
     priority: P0
     status: has
-    paths: [crates/kdm/kdm-model/src/file.rs, crates/formats/format/src/lib.rs, crates/engine/engine/src/kdm.rs, crates/engine/engine/src/cmd/file/save.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/identity.rs]
+    paths: [crates/kdm/kdm-model/src/file.rs, crates/formats/format/src/lib.rs, crates/engine/engine/src/kdm.rs, crates/engine/engine/src/cmd/file/save.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/wasm/tests/content_file.rs, bindings/wasm/tests/samples.rs, bindings/headless/tests/identity.rs]
     gap: "The page the editor shows is not kept."
     cases: [design.file.content-only/no-history, design.file.content-only/agent-saves-sealed]
     since: "2026-11-22"
   - id: design.collab.containers
-    title: "Two people edit one text layer, one paint or effect list or one vote at once and both edits stay (schema 1: Node.text with marks, Paint and Effect objects with their bindings, one ballot key per voter)"
+    title: "A design's containers (schema 1: Node.text with marks, Paint and Effect objects with their bindings, one ballot key per voter); who has read a thread is not replicated"
     dimension: [collab, data-safety]
     priority: P0
     status: has
-    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/**, crates/kdm/kdm-model/tests/containers.rs, bindings/wasm/tests/convergence.rs, bindings/wasm/tests/common/mod.rs]
-    cases: [design.collab.containers/merge-both, design.collab.containers/convergence-text]
+    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/**, crates/kdm/kdm-model/tests/containers.rs]
+    cases: [design.collab.containers/merge-both]
     since: "2026-11-22"
   - id: design.file.import-export
     title: "Import, place, export and save to version history"

@@ -34,7 +34,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "dev.compare",
             "Compare changes",
-            "{id? (default the first selected layer), version? (a saved version's replica version, base64, as the host's checkpoint names it: compare with the design as it was there instead; any top-level frame or section), show? (open the compare view in the app)} → {id, name, changed, snapshot, added, removed, modified, truncated, version: the version compared with | null, changes: [{id, name, type, change: added|removed|changed, depth, layers, properties?: [{section, property, before, after, text}]}]}  what changed in a ready-for-dev frame or section since it was marked, or since the version (`snapshot` is false when that isn't known: a file from before snapshots were kept)",
+            "{id? (default the first selected layer), snapshot? (a saved version's KDM snapshot, base64, as the host's checkpoint carries it: compare with the design it holds instead; any top-level frame or section), show? (open the compare view in the app)} → {id, name, changed, snapshot, added, removed, modified, truncated, version: the replica version of the snapshot compared with | null, changes: [{id, name, type, change: added|removed|changed, depth, layers, properties?: [{section, property, before, after, text}]}]}  what changed in a ready-for-dev frame or section since it was marked, or since the version (`snapshot` is false when that isn't known: a file from before snapshots were kept)",
             false,
             compare
         ),
@@ -104,10 +104,10 @@ fn resolve_change(s: &mut Session, p: &Value) -> Result<Value> {
 fn compare(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "dev.compare";
     let id = targets(s, p).first().copied().ok_or_else(|| bad(cmd, "select a frame or section or pass `id`"))?;
-    let version = match get(p, "version") {
+    let snapshot = match get(p, "snapshot") {
         None | Some(Value::Null) => None,
         Some(Value::String(v)) => Some(v.clone()),
-        Some(_) => return Err(bad(cmd, "version: a saved version's replica version (base64, as the host's checkpoint names it)")),
+        Some(_) => return Err(bad(cmd, "snapshot: a saved version's KDM snapshot (base64, as the host's checkpoint carries it)")),
     };
     let ds = s.ds()?;
     let doc = &ds.doc;
@@ -115,18 +115,20 @@ fn compare(s: &mut Session, p: &Value) -> Result<Value> {
     if !has_status(doc, id) {
         return Err(bad(cmd, "compare a top-level frame or a section"));
     }
-    let (cmp, against) = match &version {
+    let (cmp, against) = match &snapshot {
         Some(v) => {
             let before = crate::cmd::file::content_at(cmd, ds, v)?;
-            (crate::devcompare::compare_with(&before, doc, id), json!(v))
+            (crate::devcompare::compare_with(&before, doc, id), json!(crate::cmd::file::snapshot_version(cmd, v)?))
         }
-        None if n.dev_status != DevStatus::ReadyForDev => return Err(bad(cmd, "compare a frame or section marked ready for dev, or pass `version`")),
+        None if n.dev_status != DevStatus::ReadyForDev => {
+            return Err(bad(cmd, "compare a frame or section marked ready for dev, or pass `snapshot`"));
+        }
         None => (crate::devcompare::compare(doc, id), Value::Null),
     };
     let mut v = serde_json::to_value(cmp).unwrap_or(Value::Null);
     v["version"] = against;
     if boolean(p, "show") == Some(true) {
-        s.request_ui("view.devCompare", json!({"id": id, "version": version}));
+        s.request_ui("view.devCompare", json!({"id": id, "snapshot": snapshot}));
     }
     Ok(v)
 }

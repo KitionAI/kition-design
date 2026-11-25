@@ -1,6 +1,6 @@
 //! `document.identity` and `document.fork` (Kit Process Protocol section 5.6, KitModel M7a)
 //! through the real `kition-design` process: a `.kdesign` embeds its replica's content (its `kdm/`
-//! entries: `meta.json` and `content.bin`, `docs/features/kdm.md` section 3), so a byte copy of a
+//! entries: `meta.json` and `content.json`, `docs/features/kdm.md` section 3), so a byte copy of a
 //! file is the same document. A host reads the identity a file carries without parsing the design,
 //! and forks a file into a new document: a new docId (in the content and in `meta.json`), the same
 //! layers, ids and values, no history, only the images it uses, and the thumbnail as it was.
@@ -59,7 +59,7 @@ fn meta(bytes: &[u8]) -> Value {
     serde_json::from_slice(&entry(bytes, "kdm/meta.json").expect("kdm/meta.json")).unwrap()
 }
 
-/// A design saved twice as a host saves it (`prepare_save`, then `save`): first with three
+/// A design saved twice as a host saves it (`save`): first with three
 /// rectangles (one named [`SECRET`], one with a picture), then with the secret one deleted.
 fn design() -> Vec<u8> {
     let mut doc = DesignDocument::create("Plan.kdesign", 800, 600).unwrap();
@@ -74,16 +74,14 @@ fn design() -> Vec<u8> {
     rect("Also kept", 100);
     let secret = rect(SECRET, 180);
     doc.execute("image.place", json!({ "data": PNG, "target": kept })).unwrap();
-    doc.prepare_save().unwrap();
     let first = doc.save(None).unwrap();
-    assert!(holds(&entry(&first, "kdm/content.bin").unwrap(), SECRET), "the layer is content before it is deleted");
+    assert!(holds(&entry(&first, "kdm/content.json").unwrap(), SECRET), "the layer is content before it is deleted");
     let mut doc = DesignDocument::open("Plan.kdesign", &first).unwrap();
     doc.execute("edit.delete", json!({ "ids": [secret] })).unwrap();
-    doc.prepare_save().unwrap();
     let saved = doc.save(None).unwrap();
     assert_eq!(
         names(&saved).iter().filter(|name| name.starts_with("kdm/")).cloned().collect::<Vec<_>>(),
-        ["kdm/content.bin", "kdm/meta.json"],
+        ["kdm/content.json", "kdm/meta.json"],
         "the content and what names it, no change log"
     );
     saved
@@ -156,7 +154,7 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     let fork_meta = meta(&fork_bytes);
     assert_eq!(fork_meta["docId"], json!(fork_id), "meta.json's copy of the docId is the fork's");
     let fork_names = names(&fork_bytes);
-    assert!(fork_names.iter().filter(|name| name.starts_with("kdm/")).eq(["kdm/content.bin", "kdm/meta.json"].iter()), "{fork_names:?}");
+    assert!(fork_names.iter().filter(|name| name.starts_with("kdm/")).eq(["kdm/content.json", "kdm/meta.json"].iter()), "{fork_names:?}");
     assert!(!fork_names.iter().any(|name| name.starts_with("versions/") || name.starts_with("branches/")), "{fork_names:?}");
     let forked = kition_design_format::load_with_replica(&fork_bytes).unwrap();
     let used: BTreeSet<String> = forked.doc.images.keys().cloned().collect();
@@ -172,14 +170,14 @@ async fn a_design_tells_its_identity_and_forks_into_a_new_document_without_histo
     opened
         .execute("node.create", json!({ "type": "rectangle", "parent": frame, "name": "New", "x": 20, "y": 200, "width": 40, "height": 40 }))
         .unwrap();
-    let edited = opened.seal_and_save(None).unwrap();
+    let edited = opened.save_file(None).unwrap();
     let reopened = DesignDocument::open("Fork.kdesign", &edited).unwrap();
     assert_eq!(reopened.doc_id().as_deref(), Some(fork_id.as_str()));
     assert_eq!(reopened.inspect().unwrap()["tree"], opened.inspect().unwrap()["tree"]);
 
     // No history: the deleted layer's name is in neither file.
-    assert!(!holds(&entry(&source_bytes, "kdm/content.bin").unwrap(), SECRET), "a file holds no deleted content");
-    assert!(!holds(&entry(&fork_bytes, "kdm/content.bin").unwrap(), SECRET), "deleted content does not travel");
+    assert!(!holds(&entry(&source_bytes, "kdm/content.json").unwrap(), SECRET), "a file holds no deleted content");
+    assert!(!holds(&entry(&fork_bytes, "kdm/content.json").unwrap(), SECRET), "deleted content does not travel");
 
     // A fork of a fork is a third document with the same content.
     let again = kit.fork("Fork.kdesign", "Again.kdesign", LIMIT).await.unwrap().doc_id.expect("the second fork's identity");
@@ -200,7 +198,7 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
     let kit = launch(&dir).await;
     // An empty `.kdesign` (a file made for the kit before it saved one) and bytes that are no
     // archive hold no replica: no identity, and their forks are the same bytes.
-    let doc = kition_design_format::load_bytes(&DesignDocument::create("Plain.kdesign", 800, 600).unwrap().seal_and_save(None).unwrap()).unwrap().0;
+    let doc = kition_design_format::load_bytes(&DesignDocument::create("Plain.kdesign", 800, 600).unwrap().save_file(None).unwrap()).unwrap().0;
     let mut json = Vec::new();
     kition_design_format::write_json(&doc, &mut json).unwrap();
     for (name, bytes) in [("New.kdesign", Vec::new()), ("Bare.kdesign", json)] {
@@ -214,16 +212,16 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
 
     // A replica that does not load, and replica entries that are not a design's, are refused,
     // never answered with no identity.
-    let saved = DesignDocument::create("Plan.kdesign", 800, 600).unwrap().seal_and_save(None).unwrap();
+    let saved = DesignDocument::create("Plan.kdesign", 800, 600).unwrap().save_file(None).unwrap();
     let loaded = kition_design_format::load_with_replica(&saved).unwrap();
     let rewrite = |replica: Vec<(String, Vec<u8>)>| kition_design_format::save_bytes_with_replica(&loaded.doc, &replica).unwrap();
     let with = |name: &str, bytes: &[u8]| -> Vec<(String, Vec<u8>)> {
         loaded.replica.iter().map(|(entry, data)| (entry.clone(), if entry == name { bytes.to_vec() } else { data.clone() })).collect()
     };
     let damaged = [
-        ("Content.kdesign", rewrite(with("kdm/content.bin", b"not a replica"))),
+        ("Content.kdesign", rewrite(with("kdm/content.json", b"not a replica"))),
         ("Meta.kdesign", rewrite(with("kdm/meta.json", br#"{"format": "something else"}"#))),
-        ("Missing.kdesign", rewrite(loaded.replica.iter().filter(|(name, _)| name != "kdm/content.bin").cloned().collect())),
+        ("Missing.kdesign", rewrite(loaded.replica.iter().filter(|(name, _)| name != "kdm/content.json").cloned().collect())),
     ];
     for (name, bytes) in damaged {
         std::fs::write(dir.join(name), bytes).unwrap();
@@ -240,11 +238,10 @@ async fn a_design_without_a_replica_has_no_identity_and_a_damaged_replica_is_ref
 /// Written once by an agent's batch, overwritten by the next: in no file.
 const OVERWRITTEN: &str = "Ug5Le1Fo0Dw4";
 
-/// The headless `kition-design` saves on the direct path (feature `design.file.content-only`): it
-/// seals the document (`prepare_save`) before every save, so the file an agent's batches write
-/// holds the design's content and, of its history, only that seal.
+/// The headless `kition-design` saves on the direct path (feature `design.file.content-only`): the
+/// file an agent's batches write holds the design's content and none of its history.
 #[tokio::test]
-async fn an_agents_batches_save_sealed_content() {
+async fn an_agents_batches_save_content_alone() {
     let dir = workspace("batches");
     let bytes = design();
     let kept =
@@ -266,12 +263,11 @@ async fn an_agents_batches_save_sealed_content() {
     }
     kit.request("document.save", json!({ "documentId": document }), LIMIT).await.unwrap();
     let saved = std::fs::read(dir.join("Plan.kdesign")).unwrap();
-    let content = entry(&saved, "kdm/content.bin").unwrap();
-    assert_eq!(
-        kition_kit::kdm::Replica::snapshot_origins(&content).unwrap(),
-        vec![Some(kition_kit::kdm::Origin::system("content-seal"))],
-        "of the history, the file holds the seal"
-    );
+    let content = entry(&saved, "kdm/content.json").unwrap();
+    let value: Value = serde_json::from_slice(&content).unwrap();
+    for key in ["version", "changes", "lineage", "actor", "origin"] {
+        assert!(value.get(key).is_none(), "of the history, the file holds nothing ({key}): {value}");
+    }
     assert!(!holds(&content, OVERWRITTEN), "the overwritten name is in no file");
     let reopened = DesignDocument::open("Plan.kdesign", &saved).unwrap();
     assert!(reopened.session().ds().unwrap().doc.nodes().any(|n| n.id.0 == kept && n.name == "Renamed by the agent"));

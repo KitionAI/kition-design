@@ -48,25 +48,25 @@ fn the_kit_installs_no_network_link() {
 #[test]
 fn a_team_library_link_reaches_no_server() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
-    let (revision, saved) = (doc.revision(), doc.seal_and_save(None).unwrap());
+    let (revision, saved) = (doc.revision(), doc.save_file(None).unwrap());
     for link in ["kition-design://example.com/file/abc?token=x", "wss://example.com/file/abc"] {
         assert!(doc.execute("library.add", json!({ "path": link })).is_err(), "{link} must fail without a network link");
     }
     assert_eq!(doc.revision(), revision, "nothing was added");
-    assert_eq!(doc.seal_and_save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
 }
 
 #[test]
 fn a_batch_cannot_run_what_the_kit_leaves_out() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
-    let (revision, saved) = (doc.revision(), doc.seal_and_save(None).unwrap());
+    let (revision, saved) = (doc.revision(), doc.save_file(None).unwrap());
     for step in ["collab.share", "collab.publish", "library.enable", "plugin.run", "file.open"] {
         let batch = json!({ "commands": [{ "command": "shape.rectangle", "params": { "x": 0, "y": 0, "width": 10, "height": 10 } }, { "command": step, "params": {} }] });
         let error = doc.execute("command.batch", batch).unwrap_err();
         assert!(error.starts_with("invalid-params:") && error.contains(step), "{step}: {error}");
         assert_eq!(doc.revision(), revision, "{step}: nothing ran");
     }
-    assert_eq!(doc.seal_and_save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
     let ok = json!({ "commands": [{ "command": "shape.rectangle", "params": { "x": 0, "y": 0, "width": 10, "height": 10 } }] });
     doc.execute("command.batch", ok).unwrap();
     assert_ne!(doc.revision(), revision);
@@ -76,7 +76,7 @@ fn a_batch_cannot_run_what_the_kit_leaves_out() {
 #[test]
 fn a_nested_batch_cannot_run_what_the_kit_leaves_out() {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
-    let (revision, saved) = (doc.revision(), doc.seal_and_save(None).unwrap());
+    let (revision, saved) = (doc.revision(), doc.save_file(None).unwrap());
     let nest = |inner: serde_json::Value| json!({ "commands": [{ "command": "command.batch", "params": inner }] });
     for step in ["file.new", "file.close", "plugin.run", "collab.share"] {
         let leaf = json!({ "commands": [{ "command": step, "params": {} }] });
@@ -86,7 +86,7 @@ fn a_nested_batch_cannot_run_what_the_kit_leaves_out() {
             assert_eq!(doc.revision(), revision, "{step}: nothing ran");
         }
     }
-    assert_eq!(doc.seal_and_save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
     assert_eq!(doc.inspect().unwrap()["layers"], json!(1), "the design is still the one open");
     let ok = nest(json!({ "commands": [{ "command": "shape.rectangle", "params": { "x": 0, "y": 0, "width": 10, "height": 10 } }] }));
     doc.execute("command.batch", ok).unwrap();

@@ -2,7 +2,7 @@ format: 1
 id: design.collab.containers/merge-both
 feature: design.collab.containers
 intent: >-
-  Two people edit one container of a design at once and both edits stay, the replicas ending identical: typing in one text layer, styling overlapping ranges, splitting a paragraph while typing, recolouring a paint while adding one, binding a paint while reordering the paints (the binding follows its paint), adding strokes, editing an effect while adding one, and voting. A paint added to a layer deleted at once goes with it, and who has read a comment thread is never replicated.
+  A design's containers on one line of changes: a text layer is a text field with marks; one person recolours a paint, another then adds one, and both stay (one Paint object per paint); each voter's ballot is its own key; and who has read a comment thread is never replicated. The replicas end identical and each reads what it holds.
 layer: gate
 source:
   kind: synthetic

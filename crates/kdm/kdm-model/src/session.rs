@@ -100,28 +100,17 @@ impl DesignSession {
         Ok(Self { replica, view: Arc::new(doc), ids, blobs, blob_log: Vec::new() })
     }
 
-    /// Seals the replica (rule M16b) so its content snapshot holds no history: a `system` change
-    /// labelled `content-seal`, no edit, never an undo step (an undo after it takes back the last
-    /// person's or agent's step as before). Answers whether it committed one (none when the last
-    /// change already is a seal).
-    pub fn seal(&mut self) -> Result<bool> {
-        let sealed = self.replica.seal().map_err(kit_err)?;
-        self.replica.take_changed();
-        Ok(sealed)
-    }
-
-    /// Whether the replica's last change is a seal (its content snapshot is ready to save).
-    pub fn is_sealed(&self) -> bool {
-        self.replica.is_sealed()
-    }
-
-    /// The document as it was at `version` of this replica (a saved version, Kit UI protocol 7m),
-    /// read from a fork of the replica there, with this session's blobs. Errs when the replica
-    /// does not reach `version` (`HistoryMissing`: before a shallow replica's root, or changes it
-    /// never had). Never changes this session.
-    pub fn document_at(&self, version: &Version) -> Result<Document> {
-        let fork = self.replica.fork_at(version, ActorId::random()).map_err(kit_err)?;
-        let (doc, _) = read_document(&fork, &self.blobs).map_err(kit_err)?;
+    /// The document a saved version holds (Kit UI protocol 7m: the host's checkpoint carries its
+    /// own `snapshot`), read from those bytes (a KDM snapshot or a file's content) with this
+    /// session's blobs. Refuses bytes that are not this document's (another docId) or do not load.
+    /// Never changes this session.
+    pub fn document_at(&self, snapshot: &[u8]) -> Result<Document> {
+        let mut replica = Replica::load(schema()?, snapshot, ActorId::random()).map_err(kit_err)?;
+        if replica.doc_id() != self.replica.doc_id() {
+            return Err(KitError::new(format!("not-this-document: the version is of document {}, not {}", replica.doc_id(), self.replica.doc_id())));
+        }
+        repair(&mut replica)?;
+        let (doc, _) = read_document(&replica, &self.blobs).map_err(kit_err)?;
         Ok(doc)
     }
 

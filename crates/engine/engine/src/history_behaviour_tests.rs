@@ -421,7 +421,7 @@ fn restoring_a_version() {
     ex(&mut s, "comment.reply", json!({"id": c, "text": "Yes", "author": "Ada"}));
     ex(&mut s, "file.rename", json!({"name": "Shop v2"}));
 
-    ex(&mut s, "version.restore", json!({"version": v1}));
+    ex(&mut s, "version.restore", json!({"snapshot": v1}));
     let doc = s.doc().unwrap();
     // (holds, derivation)
     let rows: Vec<(bool, &str)> = vec![
@@ -435,7 +435,7 @@ fn restoring_a_version() {
     }
     assert_eq!(at(&s, c), (120.0, 20.0), "where it was");
     // Restoring never loses work: it is one undo step (twice here).
-    ex(&mut s, "version.restore", json!({"version": v1}));
+    ex(&mut s, "version.restore", json!({"snapshot": v1}));
     assert!(s.undo().unwrap() && s.undo().unwrap());
     assert!(s.doc().unwrap().contains(b));
 }
@@ -448,7 +448,7 @@ fn viewing_versions() {
     let v = crate::cmd::file::saved_version(&mut s);
     let b = rect(&mut s, 100.0, 0.0, None);
     // Viewing a version shows it read-only.
-    ex(&mut s, "version.preview", json!({"version": v}));
+    ex(&mut s, "version.preview", json!({"snapshot": v}));
     assert!(!s.doc().unwrap().contains(b), "viewing a version shows the file as it was then");
     assert!(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).is_err(), "a version being viewed can't be edited");
     ex(&mut s, "version.exitPreview", json!({}));
@@ -485,7 +485,7 @@ fn comments_and_restores_in_a_live_session() {
     let d = ex(room.s(1), "comment.add", json!({"x": 900, "y": 900, "text": "Later", "author": "Sam"}))["id"].as_u64().unwrap();
     room.settle();
     // Restoring in a session changes the design for everyone and keeps everyone's comments.
-    ex(room.s(0), "version.restore", json!({"version": v}));
+    ex(room.s(0), "version.restore", json!({"snapshot": v}));
     room.settle();
     room.check();
     let doc = room.s(1).doc().unwrap();

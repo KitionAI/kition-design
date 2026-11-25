@@ -1,13 +1,14 @@
 /**
- * Saved versions are the host's checkpoints (Kit UI protocol section 7m): labelled versions of the
+ * Saved versions are the host's checkpoints (Kit UI protocol section 7m): labelled snapshots of the
  * design's replica the host keeps beside the file. Nothing about them is in the `.kdesign` or the
  * replica. The editor lists, names and deletes them with the host, and shows or restores one by
- * handing the engine its blobs and its replica version (`version.preview`, `version.restore`), from
- * which the engine derives the design as it was there.
+ * handing the engine its blobs and the snapshot the checkpoint carries (`version.preview`,
+ * `version.restore`), from which the engine reads the design it holds.
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { deleteCheckpoint, historyErrorReason, listCheckpoints, readCheckpoint, updateCheckpoint, type KitCheckpoint } from '@kition/sdk/editor'
 import { useDesignKit } from '../kit/hooks'
+import { toBase64 } from '../menus/invoke'
 import type { DesignKit } from '../kit/context'
 
 export type { KitCheckpoint }
@@ -26,13 +27,11 @@ export const ownCheckpoint = (checkpoint: KitCheckpoint) => checkpoint.origin ==
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
-/** A host refusal in words: its reason (`not-found`, `history-missing`, `too-long`, `read-only`, `conflict`), else the message. */
+/** A host refusal in words: its reason (`not-found`, `too-long`, `read-only`, `conflict`), else the message. */
 export function refusal(t: DesignKit['t'], error: unknown): string {
   switch (historyErrorReason(error)) {
     case 'not-found':
       return t('This version is no longer kept')
-    case 'history-missing':
-      return t("This version is no longer in the design's history here")
     case 'too-long':
       return t('The title or description is too long')
     case 'read-only':
@@ -98,15 +97,18 @@ export function useCheckpoints(enabled: boolean) {
   return { ...state, available, older: () => setPages((now) => now + 1) }
 }
 
+/** A checkpoint as the host has it now, with the snapshot it carries (base64, as the engine's commands take it). */
+export type LoadedCheckpoint = { checkpoint: KitCheckpoint; snapshot: string }
+
 /**
- * Reads `checkpoint` from the host and gives the engine the blobs its version needs; answers the
- * checkpoint as the host has it now (its replica `version`). Throws the host's refusal.
+ * Reads checkpoint `id` from the host and gives the engine the blobs its snapshot needs; answers
+ * the checkpoint as the host has it now and its snapshot. Throws the host's refusal.
  */
-export async function loadCheckpoint(designKit: DesignKit, checkpoint: KitCheckpoint): Promise<KitCheckpoint> {
-  const read = await readCheckpoint(designKit.editor.host.files, designKit.editor.session.path, checkpoint.id)
+export async function loadCheckpoint(designKit: DesignKit, id: string): Promise<LoadedCheckpoint> {
+  const read = await readCheckpoint(designKit.editor.host.files, designKit.editor.session.path, id)
   if (!read) throw new Error(designKit.t('This host keeps no saved versions'))
   if (read.blobs.byteLength > 0) await designKit.invoke('addBlobs', new Uint8Array(read.blobs))
-  return read.checkpoint
+  return { checkpoint: read.checkpoint, snapshot: toBase64(new Uint8Array(read.snapshot)) }
 }
 
 /** Saves the design and records a saved version of it with the host (`saveCheckpoint`). */
@@ -134,12 +136,12 @@ export async function deleteVersion(designKit: DesignKit, checkpoint: KitCheckpo
 
 /** Shows saved version `checkpoint` on the canvas (read-only). */
 export async function previewVersion(designKit: DesignKit, checkpoint: KitCheckpoint) {
-  const now = await loadCheckpoint(designKit, checkpoint)
-  return designKit.run('version.preview', { version: now.version, id: now.id, name: now.label ?? '', time: now.time })
+  const { checkpoint: now, snapshot } = await loadCheckpoint(designKit, checkpoint.id)
+  return designKit.run('version.preview', { snapshot, id: now.id, name: now.label ?? '', time: now.time })
 }
 
-/** Gives the design the content it had at saved version `checkpoint`, as one undoable edit. */
-export async function restoreVersion(designKit: DesignKit, checkpoint: KitCheckpoint) {
-  const now = await loadCheckpoint(designKit, checkpoint)
-  return designKit.run('version.restore', { version: now.version })
+/** Gives the design the content saved version `id` (a checkpoint's id) holds, as one undoable edit. */
+export async function restoreVersion(designKit: DesignKit, id: string) {
+  const { snapshot } = await loadCheckpoint(designKit, id)
+  return designKit.run('version.restore', { snapshot })
 }

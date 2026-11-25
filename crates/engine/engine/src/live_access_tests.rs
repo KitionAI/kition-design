@@ -245,7 +245,7 @@ fn revert_refusal_preserves_previews() {
     let main_uid = s.ds().unwrap().uid;
     revert_refused_unchanged(&mut s, &script);
     assert_eq!(s.live_of(main_uid).doc_uid, Some(main_uid));
-    s.execute("version.preview", &json!({"version": version})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": version})).unwrap();
     assert!(s.ds().unwrap().preview.is_some());
     revert_refused_unchanged(&mut s, &script);
     s.execute("version.exitPreview", &json!({})).unwrap();

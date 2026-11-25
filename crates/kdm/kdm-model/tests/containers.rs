@@ -1,13 +1,13 @@
 //! The containers of schema 1 (task schema-freeze): a text layer's `text`, a layer's `fills`,
 //! `strokes` and `effects` objects with their bindings, the ballots' keys and the read state kept
-//! out of the replica. Each container has a convergence test: two replicas edit it at once, both
-//! edits survive and the replicas end identical.
+//! out of the replica. Edits of a container made one after the other on two replicas of one line
+//! of changes all stay, and the replicas end identical.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
 use std::sync::Arc;
 
 use kition_design_doc::color::{Color, Paint};
-use kition_design_doc::{Comment, Document, Effect, ListStyle, Message, NodeId, NodeKind, TextData};
+use kition_design_doc::{Comment, Document, ListStyle, Message, NodeId, NodeKind, TextData};
 use kition_design_kdm::{DesignSession, read_document, same_content};
 use kition_kit::kdm::{ObjectId, Origin, Version};
 use serde_json::json;
@@ -50,23 +50,17 @@ fn text_of(d: &mut Document, id: NodeId) -> &mut TextData {
     }
 }
 
-/// Both ways, then the replicas hold one state and one view, which is what they read.
-fn merged(a: &mut DesignSession, b: &mut DesignSession) {
-    let (va, vb) = (a.version(), b.version());
-    a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-    b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
+/// `from`'s changes taken into `to` (which has every change before them), then the replicas hold
+/// one state and one view, which is what they read.
+fn relayed(from: &mut DesignSession, to: &mut DesignSession) {
+    let since = to.version();
+    to.import_changes(&from.export_changes(&since).unwrap()).unwrap();
+    let (a, b) = (from, to);
     assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
     assert!(same_content(a.document(), b.document()));
     for s in [&*a, &*b] {
         let (back, _) = read_document(s.replica(), s.blobs()).unwrap();
         assert!(same_content(&back, s.document()), "the view is what the replica holds");
-    }
-}
-
-fn characters(s: &DesignSession, id: NodeId) -> String {
-    match &s.document().node(id).unwrap().kind {
-        NodeKind::Text(t) => t.characters.clone(),
-        _ => panic!("not a text"),
     }
 }
 
@@ -90,53 +84,15 @@ fn a_text_layer_is_a_text_field_with_marks() {
 }
 
 #[test]
-fn typing_at_once_in_one_text_layer_keeps_both() {
-    let (doc, title, _) = doc();
-    let (mut a, mut b) = pair(doc);
-    edit(&mut a, |d| text_of(d, title).replace_range(5, 5, ", dear"));
-    edit(&mut b, |d| text_of(d, title).replace_range(11, 11, "!"));
-    merged(&mut a, &mut b);
-    assert_eq!(characters(&a, title), "Hello, dear world!");
-}
-
-#[test]
-fn styling_overlapping_ranges_at_once_applies_both() {
-    let (doc, title, _) = doc();
-    let (mut a, mut b) = pair(doc);
-    edit(&mut a, |d| text_of(d, title).restyle(0, 5, |s| s.font_style = "Bold".into()));
-    edit(&mut b, |d| text_of(d, title).restyle(3, 8, |s| s.font_size = 30.0));
-    merged(&mut a, &mut b);
-    let NodeKind::Text(t) = &a.document().node(title).unwrap().kind else { panic!() };
-    assert_eq!((t.style_at(1).font_style.as_str(), t.style_at(1).font_size), ("Bold", 12.0));
-    assert_eq!((t.style_at(4).font_style.as_str(), t.style_at(4).font_size), ("Bold", 30.0), "both on the overlap");
-    assert_eq!((t.style_at(6).font_style.as_str(), t.style_at(6).font_size), ("Regular", 30.0));
-}
-
-#[test]
-fn a_paragraph_split_and_typing_at_once_keep_both() {
-    let (doc, title, _) = doc();
-    let (mut a, mut b) = pair(doc);
-    edit(&mut a, |d| {
-        let t = text_of(d, title);
-        t.replace_range(5, 6, "\n");
-        t.set_para_lists(6, 6, |p| p.list = ListStyle::Numbered);
-    });
-    edit(&mut b, |d| text_of(d, title).replace_range(2, 2, "QQ"));
-    merged(&mut a, &mut b);
-    assert_eq!(characters(&a, title), "HeQQllo\nworld");
-    let NodeKind::Text(t) = &a.document().node(title).unwrap().kind else { panic!() };
-    assert_eq!((t.para_list(0).list, t.para_list(1).list), (ListStyle::None, ListStyle::Numbered));
-}
-
-#[test]
-fn recolouring_a_paint_and_adding_one_at_once_keep_both() {
+fn recolouring_a_paint_and_adding_one_keep_both() {
     let (doc, _, rect) = doc();
     let (mut a, mut b) = pair(doc);
     let green = Paint::solid(Color::new(0.0, 1.0, 0.0, 1.0));
     let blue = Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0));
     edit(&mut a, |d| d.get_mut(rect).unwrap().fills[0] = green.clone());
+    relayed(&mut a, &mut b);
     edit(&mut b, |d| d.get_mut(rect).unwrap().fills.push(blue.clone()));
-    merged(&mut a, &mut b);
+    relayed(&mut b, &mut a);
     assert_eq!(a.document().node(rect).unwrap().fills, vec![green, blue]);
     let object = a.ids().node_object(rect).unwrap().clone();
     let items = a.replica().list(&object, "fills").unwrap();
@@ -145,84 +101,17 @@ fn recolouring_a_paint_and_adding_one_at_once_keep_both() {
 }
 
 #[test]
-fn a_binding_moves_with_its_paint_when_another_person_reorders() {
-    let (mut doc, _, rect) = doc();
-    doc.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0)));
-    let (mut a, mut b) = pair(doc);
-    let blue = a.document().node(rect).unwrap().fills[1].clone();
-    // A binds the blue paint's colour (`fills/1/color`) while B moves the blue paint to the bottom.
-    edit(&mut a, |d| {
-        d.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:brand".into());
-    });
-    edit(&mut b, |d| d.get_mut(rect).unwrap().fills.swap(0, 1));
-    merged(&mut a, &mut b);
-    let n = a.document().node(rect).unwrap();
-    assert_eq!(n.fills[0], blue, "B's reorder");
-    assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:brand"), "the binding followed its paint: {:?}", n.bound);
-    assert!(!n.bound.contains_key("fills/1/color"));
-    let object = a.ids().node_object(rect).unwrap().clone();
-    let bindings = a.replica().get(&object, "bindings").unwrap();
-    assert!(bindings.get("bound").is_none(), "a paint's binding is the paint object's: {bindings}");
-}
-
-#[test]
-fn adding_strokes_at_once_keeps_both() {
-    let (doc, _, rect) = doc();
-    let (mut a, mut b) = pair(doc);
-    let black = Paint::solid(Color::new(0.0, 0.0, 0.0, 1.0));
-    let white = Paint::solid(Color::new(1.0, 1.0, 1.0, 1.0));
-    edit(&mut a, |d| d.get_mut(rect).unwrap().strokes.push(black.clone()));
-    edit(&mut b, |d| d.get_mut(rect).unwrap().strokes.push(white.clone()));
-    merged(&mut a, &mut b);
-    let strokes = &a.document().node(rect).unwrap().strokes;
-    assert_eq!(strokes.len(), 2, "{strokes:?}");
-    assert!(strokes.contains(&black) && strokes.contains(&white));
-}
-
-#[test]
-fn editing_an_effect_and_adding_one_at_once_keep_both() {
-    let (mut doc, _, rect) = doc();
-    doc.get_mut(rect).unwrap().effects = vec![Effect::drop_shadow()];
-    let (mut a, mut b) = pair(doc);
-    edit(&mut a, |d| d.get_mut(rect).unwrap().effects[0].visible = false);
-    edit(&mut b, |d| d.get_mut(rect).unwrap().effects.push(Effect::layer_blur()));
-    merged(&mut a, &mut b);
-    let effects = &a.document().node(rect).unwrap().effects;
-    assert_eq!(effects.len(), 2, "{effects:?}");
-    assert!(!effects[0].visible, "A's edit");
-    assert_eq!(effects[1], Effect::layer_blur(), "B's effect");
-}
-
-#[test]
-fn a_paint_added_to_a_layer_deleted_at_once_goes_with_it() {
-    let (doc, _, rect) = doc();
-    let (mut a, mut b) = pair(doc);
-    edit(&mut a, |d| {
-        d.remove(rect).unwrap();
-    });
-    edit(&mut b, |d| d.get_mut(rect).unwrap().fills.push(Paint::solid(Color::new(0.0, 0.0, 1.0, 1.0))));
-    merged(&mut a, &mut b);
-    assert!(a.document().node(rect).is_none());
-    // Every paint left is one a live layer lists (the text layer's own fill): B's paint went with
-    // the box (V13).
-    let r = a.replica();
-    let listed: Vec<ObjectId> = r.objects_of_type("Node").iter().flat_map(|n| r.list(n, "fills").unwrap()).collect();
-    let paints = r.objects_of_type("Paint");
-    assert!(paints.iter().all(|p| listed.contains(p)), "V13 deletes the paints no live layer lists: {paints:?}, listed {listed:?}");
-    assert_eq!(paints.len(), listed.len());
-}
-
-#[test]
-fn voting_at_once_keeps_every_ballot() {
+fn every_ballot_is_its_own_key() {
     let (doc, title, rect) = doc();
     let (mut a, mut b) = pair(doc);
     edit(&mut a, |d| {
         d.votes.insert("Ann".into(), vec![title]);
     });
+    relayed(&mut a, &mut b);
     edit(&mut b, |d| {
         d.votes.insert("Bo".into(), vec![rect]);
     });
-    merged(&mut a, &mut b);
+    relayed(&mut b, &mut a);
     let votes = &a.document().votes;
     assert_eq!((votes.get("Ann"), votes.get("Bo")), (Some(&vec![title]), Some(&vec![rect])));
     let settings = a.replica().map_entries(&root_id(), "settings").unwrap();

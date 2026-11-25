@@ -1,5 +1,5 @@
-//! The KDM bridge ([`crate::kdm`]): commands become transactions, undo works per scope, replicas
-//! converge, and a `.kdesign` carries its replica.
+//! The KDM bridge ([`crate::kdm`]): commands become transactions, undo works per scope, another
+//! session takes the changes in order, and a `.kdesign` carries its replica's content.
 
 use super::*;
 use kition_design_kdm::kition_kit::kdm::{Origin, UndoScope, Version};
@@ -33,12 +33,11 @@ fn peer(s: &mut Session) -> Session {
     b
 }
 
-fn exchange(a: &mut Session, b: &mut Session) {
-    let (va, vb) = (a.version().unwrap(), b.version().unwrap());
-    let to_b = a.export_changes(&vb).unwrap();
-    let to_a = b.export_changes(&va).unwrap();
-    b.import_changes(&to_b).unwrap();
-    a.import_changes(&to_a).unwrap();
+/// `from`'s changes taken into `to`, which has every change before them (one line of changes).
+fn relay(from: &mut Session, to: &mut Session) {
+    let since = to.version().unwrap();
+    let changes = from.export_changes(&since).unwrap();
+    to.import_changes(&changes).unwrap();
 }
 
 #[test]
@@ -90,15 +89,16 @@ fn the_agents_undo_takes_back_only_its_own_steps() {
 }
 
 #[test]
-fn two_sessions_converge_and_keep_each_others_edits() {
+fn two_sessions_on_one_line_keep_each_others_edits() {
     let mut a = session();
     let one = rect(&mut a, 0.0, "One");
     let mut b = peer(&mut a);
     assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
-    b.execute("object.rename", &json!({ "ids": [one.0], "name": "From B" })).unwrap();
     let two = rect(&mut a, 200.0, "Two");
+    relay(&mut a, &mut b);
+    b.execute("object.rename", &json!({ "ids": [one.0], "name": "From B" })).unwrap();
     let three = rect(&mut b, 400.0, "Three");
-    exchange(&mut a, &mut b);
+    relay(&mut b, &mut a);
     assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
     for s in [&mut a, &mut b] {
         let doc = s.doc().unwrap();
@@ -110,16 +110,14 @@ fn two_sessions_converge_and_keep_each_others_edits() {
     // B's undo of its rectangle keeps A's.
     assert!(b.undo().unwrap());
     assert!(b.undo().unwrap());
-    exchange(&mut a, &mut b);
+    relay(&mut b, &mut a);
     assert!(a.doc().unwrap().node(three).is_none());
     assert!(a.doc().unwrap().node(two).is_some());
     assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
 }
 
-/// The file of `s`'s document as a host saves it: sealed first (`prepare_save`), then the bytes.
-fn sealed_bytes(s: &mut Session) -> Vec<u8> {
-    let origin = s.origin();
-    s.ds_mut().unwrap().prepare_save(&origin).unwrap();
+/// The file of `s`'s document as a host saves it.
+fn file_bytes(s: &mut Session) -> Vec<u8> {
     cmd::file::file_bytes(s.ds().unwrap()).unwrap()
 }
 
@@ -128,9 +126,9 @@ fn a_kdesign_carries_its_replicas_content() {
     let mut s = session();
     rect(&mut s, 0.0, "Saved");
     let id = s.doc_id().unwrap();
-    let bytes = sealed_bytes(&mut s);
+    let bytes = file_bytes(&mut s);
     s.ds_mut().unwrap().mark_saved();
-    let version = s.version().unwrap();
+    let state = s.state_hash().unwrap();
 
     let mut t = Session::empty();
     t.enable_kdm();
@@ -138,12 +136,12 @@ fn a_kdesign_carries_its_replicas_content() {
     // Opened under its own name (another name renames the document, an import of one change).
     t.execute("file.open", &json!({ "name": "Untitled.kdesign", "data": data })).unwrap();
     assert_eq!(t.doc_id(), Some(id.clone()), "the file's replica keeps the document's identity");
-    assert_eq!(t.version().unwrap(), version);
+    assert_eq!(t.state_hash().unwrap(), state, "the same objects under the same ids");
     view_matches(&mut t);
 
     // A second save holds the content as it is now, and still no history.
     rect(&mut s, 100.0, "Later");
-    let again = sealed_bytes(&mut s);
+    let again = file_bytes(&mut s);
     let loaded = kition_design_format::load_with_replica(&again).unwrap();
     let names: Vec<&str> = loaded.replica.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, [kition_design_kdm::file::META, kition_design_kdm::file::CONTENT]);

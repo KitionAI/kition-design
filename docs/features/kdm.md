@@ -205,7 +205,7 @@ than Node typing, and remote references belong to another file's namespace.
 | `library.{place,swapAt,import}.component` | 3 | Remote published component id/name through the shared library resolver. |
 | `library.{importVariable,bindVariable}.variable`; `library.aliasVariable.alias` | 3 | Remote published variable lookup. The separate local variable/link references remain local. |
 | `library.setVariableMode.{collection,mode}`; `library.extendCollection.collection` | 3 | Remote collection/mode lookup. |
-| `version.preview.id` | 1 | The host's checkpoint id, shown in the banner; the content comes from `version`. |
+| `version.preview.id` | 1 | The host's checkpoint id, shown in the banner; the content comes from `snapshot`. |
 | `annotation.{editCategory,removeCategory}.id` | 2 | Category settings token, held through settings. |
 | `widget.click.target` | 1 | Widget callback token, not a layer id. |
 
@@ -317,21 +317,19 @@ A text layer's characters are its `Node.text`, a KDM `text` with marks
 - `kind` keeps the box settings (resize, alignment, spacing, truncation, features, text on a
   path), the base style new and empty text takes, and the default list style.
 
-Two people typing in one text layer at once keep both texts; formatting overlapping ranges with
-different fields both apply; a paragraph split or merge concurrent with typing keeps the typing.
 
 ## 3. The `.kdesign` file under the KDM
 
 A `.kdesign` holds the design's **content**, not its history (kition-sdk data model 7.3, rule
-M16b; task schema-freeze section 4): the replica's sealed content snapshot is the one authority
-for what the design holds. The history (every change, deleted content, who did what) is the
+M16b, 7.4; task schema-freeze section 4): the replica's content (`Replica::content_snapshot`) is
+the one authority for what the design holds. The history (every change, deleted content, who did what) is the
 replica the host stores (`.kition/docs/<docId>/`, the Kit UI protocol's `host/replicaRead` and
 `host/replicaWrite`), never the file. Inside its zip:
 
 | Entry | Content |
 | --- | --- |
 | `kdm/meta.json` | `{ "format": "kition.design-content", "formatVersion": 1, "kit": "kit.design", "kdm": 1, "schemaVersion": 1, "docId" }`: what identifies the content, nothing else |
-| `kdm/content.bin` | the replica's sealed content snapshot (`Replica::sealed_content_snapshot`): its state, and of its history one `system` change labelled `content-seal` |
+| `kdm/content.json` | the replica's content (`Replica::content_snapshot`, kition-sdk data model 7.4): its state as canonical JSON, one object per line, no version and no change; DEFLATE at level 6 |
 | `images/<sha256>` | the blobs the content's `Image` objects name (and those the published library uses) |
 | `library/` | the published library (manifest, snapshot, images), when the file was published |
 
@@ -339,28 +337,25 @@ There is no `document.json`, no change log, no compaction, no `versions/`, no `b
 `thumbnail.png` (owner, 2026-11-23: branches are cut, a person saves a copy of the file instead;
 a host draws its own pictures). Saved versions are the host's checkpoints (Kit UI protocol 7m):
 the editor saves one with `saveCheckpoint`, lists, renames and deletes them with the host, and
-shows or restores one by giving the engine the checkpoint's blobs and its replica `version`
-(`version.preview`, `version.restore`), from which the engine derives the design as it was there
-(`DesignSession::document_at`, a fork of the replica at that version). A restore is one undoable
-change of the replica, so it reaches everyone editing the design. Files with `branches/` or
+shows or restores one by giving the engine the checkpoint's blobs and the snapshot it carries
+(`version.preview`, `version.restore`, `dev.compare` take `snapshot`, base64), from which the
+engine reads the design it holds (`DesignSession::document_at`; another design's snapshot is
+refused). A restore is one undoable change of the replica; a host's `replica/restore` runs it
+too (`restoreState`). Files with `branches/` or
 `thumbnail.png` from before are not read for them.
 
-- **Open**: load `content.bin` (refused as damaged when it is missing or `meta.json` names
+- **Open**: load `content.json` (refused as damaged when it is missing or `meta.json` names
   another docId), repair once, read the document from it. The engine's bridge opens the same
-  content as the document's replica: the same docId and object ids, of the history only the seal.
-- **Save**: hosts call `prepareSave` first (engine contract E4): the session's committed edits are
-  written and the replica is sealed, a `system` change that is no undo step (an undo after it takes
-  back the last person's or agent's step). The save writes the replica's sealed content snapshot,
-  the same bytes while the design is at the file's version. A save the replica was not sealed for
-  is refused (`not-sealed`, `kition_design_kdm::file::save`); the engine's own `file.save` seals
-  first, and code that holds a document saves with `DesignDocument::seal_and_save`. A document the
-  bridge never held (the engine's own tests, `kition_design_format::save_bytes`) is written as a
-  new replica of it, sealed.
+  content as the document's replica: the same docId and object ids, on a new line of changes.
+- **Save**: the save writes the replica's content, the same bytes while the state is unchanged
+  (`kition_design_kdm::file::save`); the session's committed edits are in the replica after every
+  command and event. Code that holds a document saves with `DesignDocument::save_file`. A document
+  the bridge never held (the engine's own tests, `kition_design_format::save_bytes`) is written as
+  a new replica of it.
 - `openWithReplica(name, bytes, snapshot, blobs)`: a `.kdesign` of the same document as the
   host's stored replica is taken into it (`kition_kit::session::take_file`): nothing when the
-  replica has the file's version, the file's changes when its history starts at a version the
-  replica has, else its state as one `system` transaction keyed by object id. The stored history
-  stays. A `.kdesign` of another document opens with its own content; a file that does not open
+  replica holds the file's state, else its state as one change keyed by object id. The stored
+  line of changes continues. A `.kdesign` of another document opens with its own content; a file that does not open
   gives way to the stored replica; any other file opens on the stored replica, recorded on top as
   one `import` transaction; empty `bytes` open the replica alone (a sync room's snapshot).
 - **Identity and forks** (Kit Process Protocol 5.6, KitModel M7a; `kition_design_kdm::file::embedded_replica`
@@ -425,12 +420,15 @@ component, so peers receive the propagated instance layers as ordinary changes.
 
 ## 5. Validation and repair (E14)
 
+Since the plain model (kition-sdk 91cf510) replicas take changes in order and nothing merges: the
+rules stay as the check of what a file, an import or an agent's batch holds, and the concurrent
+edits the table names are how such a state arose before.
+
 Run after open, every import, undo and redo, in one `system` transaction labelled `repair`,
 only when something is wrong. Every rule depends on the state alone. A repair drops, clears,
-renames or moves; it inserts only under an object id derived from the state (V8, V12), so
-replicas that repair one state concurrently make the same object, which the KDM keeps once (and
-V7 its tree node), rather than one copy each, and it sets a setting only to values derived from
-the state (V10). The tree rules (V3, V4, V5, V7) hold for both trees, `Design.nodes` and
+renames or moves; it inserts only under an object id derived from the state (V8, V12), and it
+sets a setting only to values derived from the state (V10). The tree rules (V3, V4, V5) hold for
+both trees, `Design.nodes` and
 `Design.libraryStore`.
 
 | # | State | Repair |
@@ -441,7 +439,7 @@ the state (V10). The tree rules (V3, V4, V5, V7) hold for both trees, `Design.no
 | V4 | A layer whose parent is not a container (a concurrent type change), or a root of `Design.nodes` that is no page (a layer with no container ancestor, or one a peer wrote there) | move it to the nearest container ancestor, last; a root that is no page (after V8) moves into the first page that is not a divider (else the first page), last, in tree order |
 | V5 | A `Node` object no tree node names (created under a page deleted concurrently) | delete it (delete wins over edit) |
 | V6 | A `CommentThread` with no comments | delete it |
-| V7 | One layer named by two tree nodes (a redo made the layer a new node while another replica's concurrent move kept the old one alive) | the KDM's `tree_dedupe` (kition-sdk KitModel M10b), run first: the least node by engine id among those with no ancestor naming the layer stays, the others' children move under it, the others are deleted |
+| V7 | (gone with the plain model: a tree holds an object once, `Tx::tree_create` refuses a second node) | — |
 | V8 | No page left that is not a divider (two people deleted the last two pages at once; the engine refuses deleting the last one locally) | add an empty page (the engine's new page, "Page 1") as the last root, object id `page-` plus a 64-bit FNV-1a hash of the sorted object ids of the tree's roots (the deleted pages included), key in the repair space (probed past live keys, as V3); nothing when that id is taken |
 | V9 | Two `Library` objects with one key (two people added the same library file at once) | the object whose id sorts first stays; the others are deleted and their list entries dropped |
 | V10 | Layers in `Design.libraryStore` but no store root in the `libraries` setting (the person who made the store undid it after another added a copy to it) | the setting names the root under the key `2^21 - 1` (the repair space) `<< 32` plus the 32-bit FNV-1a hash of `libraryStore`, and a missing `libraryStore` setting gets the engine's new store's registers; the reader reads the same store before the repair |
@@ -496,31 +494,12 @@ tree operation reads only the object, field, reference and insertion window it n
 runs no auto layout, text fit or propagation after a merge, section 4.1), so the guard's ordinary
 holds describe it. `LibraryCopy` is read-only and declares none.
 
-## 8. Convergence scenarios (L6)
+## 8. Performance
 
-`bindings/wasm/tests/convergence.rs` drives two to five `DesignDocument`s through
-kition-sdk's `kition-convergence` (`KitAdapter`): a document of two frames with shapes and a
-text layer; `SetField` sets a probe rectangle's `opacity` and `name` (two fields of one object);
-`Create` adds a rectangle; `Delete`, `Duplicate`; `Reorder` sends a layer backward or forward;
-`Reparent` moves one frame into the other (and the other way for `which` 1, so the tree must
-refuse the cycle); `InsertBlob` places an image; random edits pick from create, move, resize,
-recolour, rename, hide, lock, group, ungroup, auto layout, delete, duplicate, text change, style
-creation and variable creation, adding and removing library links (every replica is lent
-the same two synthetic library files) and placing an instance of an enabled library's
-component (`library.place`, which makes the store and copies). `bindings/wasm/tests/libraries.rs`
-holds the deterministic two-replica regressions: two people placing the same library component
-and binding the same library variable at once in a design without copies (one store, no page,
-one component copy and record, one style, collection and variable copy, and one acceptance of an
-update reaching every instance), the store's maker undoing it after another person added a copy
-(V10), and V12's: one copy for a component placed at once, with an instance override kept and
-the update counted once; either person undoing (and redoing) their placement after the merge; a
-reference to a merged copy made before hearing of the merge (a duplicated instance); and an edit
-of a mirrored layer crossing the merge, then undone. The text scripts (`InsertText`,
-`DeleteText`, `SplitParagraph`, `MergeParagraph`) type into the text layer `Title` through
-`text.set`, whose characters the bridge writes as text edits. Every scenario must pass, the four
-text scenarios included; `level6()` must hold, the report is saved with `save_if_requested()`, and the
-WebAssembly parity check runs when `KITION_WASM_ENGINE` is set. `bindings/wasm/tests/perf.rs`
-measures the collaboration budgets on the largest example design
+Replicas take changes in order only (kition-sdk 91cf510, the plain model): the convergence
+scenarios and the two-replica merge regressions are gone. `bindings/wasm/tests/perf.rs` measures
+the collaboration budgets through kition-sdk's `kition-convergence` performance mode
+(`KitAdapter`, `bindings/wasm/tests/common/mod.rs`) on the largest example design
 (`examples/ridgeline-studio-dashboard.kdesign`), a keystroke being one edit and the repaint of a
 1440 × 900 view.
 
@@ -530,14 +509,7 @@ Measured on an Apple M-series machine (release build, other builds running):
 | --- | --- | --- | --- | --- |
 | 285, 160 KB | 9.2 ms (budget 50) | 2.4 s (budget 10 s) | 4.4 / 6.0 ms (budget p95 50) | 3.4 MB (budget 16) |
 
-The suite passes L6 with the four text scenarios (schema 1); before schema 1 (13 scenarios
-passing, the text scenarios skipping) it also passed long fuzz runs:
-fifteen runs of 100 seeds × 200 steps on 2, 3 and 5 replicas
-(`KITION_CONVERGENCE_SEEDS=100 KITION_CONVERGENCE_STEPS=200`, `KITION_CONVERGENCE_SEED_BASE` 0 to
-1400 in steps of 100), with library links and `library.place` among the random edits (a run
-merges copies about 200 times), all pass, and so does the WebAssembly parity check. V7 is what
-keeps a layer from being in the tree twice in those runs. The engine's ids come from each
-session's random id space, so the layers a seed picks differ from run to run.
+(Measured on the CRDT model, before the plain model.)
 
 ## 9. Decisions taken
 
@@ -548,13 +520,13 @@ session's random id space, so the layers a seed picks differ from run to run.
 | F3 | A text layer's characters are `Node.text`, a KDM `text` with one mark per style field (absolute values) and the list mark on each paragraph's break, the final break included (section 2.4); `kind` keeps the box settings. Superseded: the characters, runs and paragraphs in the `kind` register (two people typing kept one text) | kition-layout (`Story.text` with marks, the final break) |
 | F4 | Engine ids are data, minted in a per-session id space; no translation of references | deviation from kition-vector (which translates ids); the engine's own collaboration ids (`set_client_id`) make it safe, and a missed reference site cannot point at the wrong layer on another replica |
 | F5 | Comments on M23's reserved types | M23, kition-layout (comments declared up front) |
-| F6 | The `.kdesign` file holds the replica's sealed content snapshot under `kdm/` (no `document.json`, no history), sharing `images/` as blobs; the history is the host's stored replica. Superseded: the full snapshot and a change log beside `document.json` | kition-board `.kboard` (content file, 4a37af5), kition-sdk data model 7.3 (M16b) |
+| F6 | The `.kdesign` file holds the replica's content (`kdm/content.json`) under `kdm/` (no `document.json`, no history), sharing `images/` as blobs; the history is the host's stored replica. Superseded: the full snapshot and a change log beside `document.json`, then the sealed content snapshot (`content.bin`) | kition-board `.kboard` (content file, 4a37af5), kition-sdk data model 7.3 (M16b) |
 | F7 | Derived edits (auto layout, text fit, group fit, instance propagation, bindings) only in local commands | design note 4.4 (autoflow never after a merge) |
 | F8 | Undo steps carry their scope; an undo of one scope keeps the other's later work | M12a |
 | F9 | The bridge is off in the engine's own tests and on in the bindings | kition-vector (replica made by the binding's calls) |
 | F10 | Leave the replica on a refused write (`kdmResets`) | kition-vector |
 | F11 | `collaboration.merge` `structured`, `rich-text` (comment bodies), `binary`; no leases | kition-vector, kition-layout |
-| F12 | kition-sdk is pinned by one commit for all its crates (it has `Tx::tree_dedupe`, KitModel M10b, which V7 needs, undo scopes, `history_scope`, `kition-convergence` and `run_manifest_model`) | Cargo.toml |
+| F12 | kition-sdk is pinned by one commit for all its crates (the plain model, undo scopes, `history_scope`, `kition-convergence`'s performance mode and `run_manifest_model`) | Cargo.toml |
 | F13 | `contractVersion()` stays 1: kition-sdk's export macro answers `CONTRACT_VERSION` 1 and `@kition/sdk/editor` and Kition refuse a higher number; the kit is contract 2 by its manifest and its session members, as platform `kits/engine.md` allows | kition-vector, kition-layout |
 | F14 | When concurrent deletes leave no page, the repair adds one empty page (V8) under an object id derived from the state, instead of leaving a design the engine cannot show | KitModel M22 (conflict objects under ids derived from what they are about, kept once when recorded concurrently) and M8 (ids a host chooses) |
 | F15 | Library links are `Library` objects keyed by library id; a library file is named by a workspace path relative to the document (KitLinks HC-P2, E5) and read through lent files | kition-film (clips as relative lent paths), M5 (a container field means a new schema version) |
@@ -572,8 +544,6 @@ session's random id space, so the layers a seed picks differ from run to run.
 - A saved version's replica version is the one the host asks for after the file write
   (`replica/version`): an edit the person makes while that write is on its way is in the version
   saved. The fix belongs in kition-sdk (the version taken with the saved bytes).
-- A design opened without its stored history (the file alone) reaches none of its earlier saved
-  versions: they are listed as unavailable.
 - `current_page` (the page the editor shows) is not in the file either: a reopened design opens on
   its first page (the host has no place for a kit's view state yet).
 - The blob store keeps every image added in the session (no collection of blobs only old undo

@@ -36,9 +36,9 @@ use open::{import, open, open_recent};
 pub(crate) use save::save_ends_preview;
 pub use save::{FileSnapshot, file_bytes, thumbnail};
 use save::{color_profile, mark_saved, save, save_as};
-pub use version::content_at;
 #[cfg(test)]
 pub(crate) use version::saved_version;
+pub use version::{content_at, snapshot_version};
 use version::{preview_version, restore_version};
 
 /// A new file of `kind` in a tab of its own.
@@ -224,14 +224,14 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "version.restore",
             "Restore version",
-            "{version (a replica version, base64, as the host's checkpoint names it)}  the design takes the content it had at that version, as one undoable edit (the file name, what it published and the comments stay); refused when the design's history here does not reach the version",
+            "{snapshot (the saved version's KDM snapshot, base64, as the host's checkpoint carries it)}  the design takes the content that version holds, as one undoable edit (the file name, what it published and the comments stay); refused when the snapshot is not this design's",
             true,
             restore_version
         ),
         spec!(
             "version.preview",
             "View version",
-            "{version (base64), id?, name?, time? (the host's checkpoint, shown in the banner)}  show the design as it was at that version on the canvas in place of the document (read-only; `version.restore` keeps it, `version.exitPreview` goes back)",
+            "{snapshot (base64), id?, name?, time? (the host's checkpoint, shown in the banner)}  show the design as it was at that version on the canvas in place of the document (read-only; `version.restore` keeps it, `version.exitPreview` goes back)",
             false,
             preview_version
         ),

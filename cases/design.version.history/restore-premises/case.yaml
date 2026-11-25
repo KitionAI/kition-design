@@ -2,11 +2,11 @@ format: 1
 id: design.version.history/restore-premises
 feature: design.version.history
 intent: >-
-  An agent's version.restore names its version by the replica version (the content there, which
-  never changes) and writes the whole design: with a basis, a colleague's change of a layer or a
-  style the restore replaces refuses it, and a comment added beside it does not (comments stay).
-  The engine restores a version as one undoable change of the replica, refuses a version its
-  history does not reach, and keeps nothing about versions in the session's document or file.
+  An agent's version.restore names its version by the snapshot the host's checkpoint carries (the
+  content there, which never changes) and writes the whole design: with a basis, a colleague's
+  change of a layer or a style the restore replaces refuses it, and a comment added beside it does
+  not (comments stay). The engine restores a version as one undoable change of the replica, refuses
+  another design's snapshot, and keeps nothing about versions in the session's document or file.
 layer: gate
 dimension: collab
 source:

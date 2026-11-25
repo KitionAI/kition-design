@@ -3,7 +3,7 @@
 // section 7m). Saves two versions, reloads the document (both are still listed: nothing about them
 // is in the file or the replica), renames, deletes by identity (two versions with one title),
 // restores one (the content is what it was) and undoes the restore. A file opened without its
-// history lists its versions as unavailable.
+// stored replica still lists and shows its versions: each checkpoint carries its own snapshot.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
 import { evidence } from './evidence.mjs'
@@ -80,7 +80,7 @@ try {
   step('the design changed between the versions', first.includes('Version A') && second.includes('Version B') && !first.includes('Version B'), JSON.stringify(second))
   step('saves a second version', await save('Second'))
   const recorded = await labelled()
-  step('both are the kit\'s, newest first, at the replica versions saved', recorded.length === 2 && recorded[0].label === 'Second' && recorded[1].label === 'First' && recorded.every((c) => c.origin === 'kit' && c.available && c.version), JSON.stringify(recorded))
+  step('both are the kit\'s, newest first, at the replica versions saved', recorded.length === 2 && recorded[0].label === 'Second' && recorded[1].label === 'First' && recorded.every((c) => c.origin === 'kit' && c.version), JSON.stringify(recorded))
   const names = await page.evaluate((path) => {
     // The file's members (a zip's central directory): nothing about versions.
     const data = new Uint8Array(window.devHost.files.get(path).bytes)
@@ -139,14 +139,14 @@ try {
   await kit.getByTestId('design-redo').click()
   step('and redo restores it again', await until(async () => JSON.stringify(await layers()) === JSON.stringify(first)))
 
-  // The file opened without its history: the version stays listed, unavailable, with the reason.
+  // The file opened without its stored replica: the checkpoint carries its own snapshot, so the
+  // version is still listed and shows the content it holds.
   await page.evaluate((path) => window.devHost.open(path, window.devHost.files.get(path).bytes.slice(0)), PATH)
   await ready()
   await openPanel()
-  step('a version the history no longer reaches is listed as unavailable', await until(async () => (await kit.getByTestId('design-version-unavailable-0').count()) === 1))
+  step('opened alone, the version is still listed', await until(async () => (await rowName(0)) === 'Same'))
   await kit.getByTestId('design-version-0').click()
-  await page.waitForTimeout(300)
-  step('and is not shown', (await kit.getByTestId('design-version-banner').count()) === 0)
+  step('and shows the content it holds', await until(async () => (await kit.getByTestId('design-version-banner').count()) === 1 && JSON.stringify(await layers()) === JSON.stringify(first)), JSON.stringify(await layers()))
 } catch (error) {
   failures += 1
   shots.failed('error')

@@ -60,7 +60,7 @@ fn design() -> Vec<u8> {
     );
     rect(&mut doc, panel, "Other", 10.0);
     doc.execute("page.select", json!({ "id": home })).unwrap();
-    doc.seal_and_save(None).unwrap()
+    doc.save_file(None).unwrap()
 }
 
 /// The page the saved file opens on.

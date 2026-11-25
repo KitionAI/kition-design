@@ -1,0 +1,6 @@
+{"kdm":1,"kit":"kit.design","docId":"01a206f1-02bf-71d6-9bac-c761760c07c8","schemaVersion":1,"objects":{
+"01a206f1-02bf-71d6-9bac-c762fe45e390":{"$type":"Node","frame":{"height":0,"width":0},"key":1,"kind":{"background":{"a":1,"b":0.9607843160629272,"g":0.9607843160629272,"r":0.9607843160629272},"flows":[{"description":"","name":"Onboarding","start":999999}],"guides":[],"prototype":{"background":{"a":1,"b":0.11764705926179886,"g":0.11764705926179886,"r":0.11764705926179886},"device":"None","rotation":"portrait"},"type":"page"},"name":"Page 1"},
+"01a206f1-02bf-71d6-9bac-c76387023c32":{"$type":"Node","fills":["01a206f1-02bf-71d6-9bac-c7648fdeb09d"],"frame":{"height":300,"width":400},"key":2,"kind":{"type":"frame"},"name":"Frame 1","props":{"clip":true}},
+"01a206f1-02bf-71d6-9bac-c7648fdeb09d":{"$type":"Paint","paint":{"blend":"normal","color":{"a":1,"b":1,"g":1,"r":1},"opacity":1,"type":"solid","visible":true}},
+"design":{"$type":"Design","nodes":[[0,"01a206f1-02bf-71d6-9bac-c762fe45e390"],[1,"01a206f1-02bf-71d6-9bac-c76387023c32"]],"settings":{"document_colors":[],"name":"broken-flow"}}
+}}

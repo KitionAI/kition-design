@@ -11,7 +11,7 @@ import { useUiRequest } from '../kit/requests'
 import type { Rect } from '../kit/types'
 import { Button, IconButton } from '../ui'
 import { focusOn, statusColor } from './DevPanel'
-import { loadCheckpoint, refusal, useCheckpoints } from './checkpoints'
+import { loadCheckpoint, refusal, restoreVersion, useCheckpoints } from './checkpoints'
 import { STATUS_COLORS, openVersionHistory, relativeTime, setDev, useDev, type FocusState } from './store'
 import { MenuDropdown, toBytes } from './widgets'
 import './dev.css'
@@ -22,8 +22,8 @@ export function DevHost() {
   const dev = useDev()
   useUiRequest('panel.versionHistory', (data) => openVersionHistory((data as { save?: boolean } | null)?.save === true))
   useUiRequest('view.devCompare', (data) => {
-    const d = data as { id?: number; version?: string | null } | null
-    if (typeof d?.id === 'number') setDev({ compare: { id: d.id, version: d.version ?? null } })
+    const d = data as { id?: number; snapshot?: string | null } | null
+    if (typeof d?.id === 'number') setDev({ compare: { id: d.id, snapshot: d.snapshot ?? null } })
   })
   // The engine's Dev Mode (measure on hover, no handles, edits refused) follows the Inspect tab.
   const inspecting = ui.rightTab === 'inspect'
@@ -50,13 +50,14 @@ export function DevHost() {
   return (
     <>
       {preview ? <VersionBanner version={preview} /> : focus ? <FocusBar focus={focus} /> : null}
-      {dev.compare ? <CompareWindow id={dev.compare.id} version={dev.compare.version} /> : null}
+      {dev.compare ? <CompareWindow id={dev.compare.id} snapshot={dev.compare.snapshot} /> : null}
     </>
   )
 }
 
 function VersionBanner({ version }: { version: { id: string; name: string; time: number; version: string } }) {
-  const { t, run, toast } = useDesignKit()
+  const designKit = useDesignKit()
+  const { t, run, toast } = designKit
   const name = version.name || t('Untitled version')
   return (
     <div className="design-dev-banner" data-testid="design-version-banner">
@@ -71,8 +72,11 @@ function VersionBanner({ version }: { version: { id: string; name: string; time:
       <Button
         variant="primary"
         onClick={async () => {
-          // The preview gave the engine this version's blobs already.
-          if ((await run('version.restore', { version: version.version })) != null) toast(t('Restored “{name}”', { name }))
+          try {
+            if ((await restoreVersion(designKit, version.id)) != null) toast(t('Restored “{name}”', { name }))
+          } catch (error) {
+            toast(refusal(t, error))
+          }
         }}
         testId="design-version-restore"
       >
@@ -127,7 +131,7 @@ const KIND_COLORS = { added: '#087d4f', removed: '#f24822', changed: STATUS_COLO
 const LIST_W = 330
 
 /** A side's picture (`devCompareRender`) as an object URL; null while it draws or when it can't. */
-function useSidePicture(id: number, version: string | null, side: 'before' | 'after', known: boolean): string | null {
+function useSidePicture(id: number, snapshot: string | null, side: 'before' | 'after', known: boolean): string | null {
   const { invoke, revision } = useDesignKit()
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => {
@@ -137,7 +141,7 @@ function useSidePicture(id: number, version: string | null, side: 'before' | 'af
     }
     let live = true
     let made: string | null = null
-    void invoke<Uint8Array>('devCompareRender', JSON.stringify({ id, version, side })).then(
+    void invoke<Uint8Array>('devCompareRender', JSON.stringify({ id, snapshot, side })).then(
       (bytes) => {
         if (!live) return
         made = URL.createObjectURL(new Blob([toBytes(bytes) as BlobPart], { type: 'image/png' }))
@@ -154,21 +158,22 @@ function useSidePicture(id: number, version: string | null, side: 'before' | 'af
         setTimeout(() => URL.revokeObjectURL(old), 1000)
       }
     }
-  }, [id, invoke, known, revision, side, version])
+  }, [id, invoke, known, revision, side, snapshot])
   return url
 }
 
 /** A side's outlines as fractions of its picture. */
 const boxesOf = (side: Side | null): Box[] => (side ? side.boxes.map((b) => ({ id: b.id, kind: b.change, rect: { x: b.rect[0] / side.width, y: b.rect[1] / side.height, width: (b.rect[2] - b.rect[0]) / side.width, height: (b.rect[3] - b.rect[1]) / side.height } })) : [])
 
-function CompareWindow({ id, version }: { id: number; version: string | null }) {
+function CompareWindow({ id, snapshot }: { id: number; snapshot: string | null }) {
   const designKit = useDesignKit()
   const { t, run, toast } = designKit
   const [mode, setMode] = useState<'side' | 'overlay'>('side')
-  const [against, setAgainst] = useState<string | null>(version)
+  // The snapshot (base64) of the saved version compared with; null: with when it was marked ready.
+  const [against, setAgainst] = useState<string | null>(snapshot)
   const [hot, setHot] = useState<number | null>(null)
   const [split, setSplit] = useState(0.4)
-  const cmp = useQuery<Comparison>('dev.compare', { id, version: against })
+  const cmp = useQuery<Comparison>('dev.compare', { id, snapshot: against })
   const node = useQuery<{ name: string; devStatus?: string }>('node', { id })
   const ready = node?.devStatus === 'readyForDev'
   const close = () => setDev({ compare: null })
@@ -185,9 +190,10 @@ function CompareWindow({ id, version }: { id: number; version: string | null }) 
   }, [])
   const before = useSidePicture(id, against, 'before', cmp?.before != null)
   const after = useSidePicture(id, against, 'after', cmp?.after != null)
-  // The saved versions (the host's checkpoints) the design's history here still reaches.
-  const versions = useCheckpoints(true).list.filter((v) => v.available)
-  const versionName = against ? (versions.find((v) => v.version === against)?.label ?? t('Saved version')) : null
+  // The saved versions (the host's checkpoints); the one compared with is named by its replica version.
+  const versions = useCheckpoints(true).list
+  const comparedWith = against && cmp?.version ? versions.find((v) => v.version === cmp.version) : undefined
+  const versionName = against ? (comparedWith?.label ?? t('Saved version')) : null
   const width = Math.max(560, Math.min(1120, window.innerWidth - 64))
   const height = Math.max(320, Math.min(700, window.innerHeight - 96))
   const summary = !cmp
@@ -304,11 +310,11 @@ function CompareWindow({ id, version }: { id: number; version: string | null }) 
               ...(ready ? [{ label: t('When marked ready'), checked: against == null, onSelect: () => setAgainst(null) }] : []),
               ...versions.map((v) => ({
                 label: v.label || t('Untitled version'),
-                checked: against === v.version,
+                checked: against != null && comparedWith?.id === v.id,
                 shortcut: relativeTime(t, v.time / 1000),
                 onSelect: async () => {
                   try {
-                    setAgainst((await loadCheckpoint(designKit, v)).version)
+                    setAgainst((await loadCheckpoint(designKit, v.id)).snapshot)
                   } catch (error) {
                     toast(refusal(t, error))
                   }

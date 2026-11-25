@@ -237,8 +237,8 @@ fn selection_color_edits_respect_read_only_version_previews() {
     let mut s = Session::new();
     let a = rectangle(&mut s, "#ff0000");
     s.enable_kdm();
-    let version = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, s.version().unwrap().encode());
-    run(&mut s, "version.preview", json!({"version": version}));
+    let version = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, s.snapshot().unwrap());
+    run(&mut s, "version.preview", json!({"snapshot": version}));
     let red = group(&s, &[a], "FF0000");
     let before = s.undo_depth();
     assert!(s.execute("selection.setPaint", &json!({"targets":red.targets,"paint":"#0000ff"})).is_err());

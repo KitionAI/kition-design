@@ -6,9 +6,9 @@ intent: >-
   the replica: under the development host with checkpoints, two saved versions are listed again
   after devHost.reload(); renaming goes to the host; deleting a row deletes that version by its
   id even when two versions share a title; restoring one gives the design the content it had then
-  and undo takes the restore back; a version the design's history no longer reaches (the file
-  opened alone) is listed as unavailable and cannot be shown; without the capability the panel
-  says why and cannot save.
+  and undo takes the restore back; the file opened without its stored replica still lists a
+  version and shows the content it holds (a checkpoint carries its own snapshot); without the
+  capability the panel says why and cannot save.
 layer: gate
 dimension: function
 source:

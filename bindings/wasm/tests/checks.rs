@@ -123,11 +123,11 @@ fn checking_changes_nothing() {
     for entry in catalogue() {
         let name = entry["fixture"].as_str().unwrap();
         let mut doc = fixture(name);
-        let (revision, dirty, inspected, saved) = (doc.revision(), doc.dirty(), doc.inspect().unwrap(), doc.seal_and_save(None).unwrap());
+        let (revision, dirty, inspected, saved) = (doc.revision(), doc.dirty(), doc.inspect().unwrap(), doc.save_file(None).unwrap());
         let _ = doc.check();
         assert_eq!((doc.revision(), doc.dirty()), (revision, dirty), "{name}");
         assert_eq!(doc.inspect().unwrap(), inspected, "{name}");
-        assert_eq!(doc.seal_and_save(None).unwrap(), saved, "{name}");
+        assert_eq!(doc.save_file(None).unwrap(), saved, "{name}");
     }
 }
 

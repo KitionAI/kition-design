@@ -32,15 +32,15 @@ kition-design-docpath = { path = "crates/support/docpath" }
 kition-design-kit = { path = "bindings/wasm" }
 
 # kition-sdk, pinned by commit (one revision for every crate of it)
-kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
-kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
-# The convergence suite (L6) and the collaboration budgets, for the SDK crate's tests.
-kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
-kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
+kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
+kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
+# The collaboration budgets (kition-convergence performance mode), for the SDK crate's tests.
+kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
+kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
 # A host of kit processes (`HeadlessKit`), for the `document.identity` tests.
-kition-kit-host = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
+kition-kit-host = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
 # The kits' MCP server's tools (kition-kits-mcp), for the headless kit's end-to-end tests.
-kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "2d79991519247ea15b9d06a4dfcd2f648f097a90" }
+kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "91cf510cd2e0ed2f9414693fd916959776a1a2f6" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }

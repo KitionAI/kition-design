@@ -265,7 +265,7 @@ fn fixture(name: &str, build: Build, damage: Option<Damage>, drop_images: bool) 
     let mut doc = DesignDocument::create(name, 400, 300)?;
     build(&mut doc)?;
     run(&mut doc, "select.none", json!({}))?;
-    let bytes = doc.seal_and_save(None)?;
+    let bytes = doc.save_file(None)?;
     Ok(if damage.is_some() || drop_images {
         rewrite(&bytes, damage, if drop_images { |name: &str| !name.starts_with("images/") } else { |_: &str| true })
     } else {

@@ -1,7 +1,7 @@
 //! The native `.kdesign` format.
 //!
 //! A zip archive holding the document's **content** (kition-sdk data model 7.3, rule M16b): its
-//! `kit.design` replica's sealed content snapshot (`kdm/content.bin`, with `kdm/meta.json`
+//! `kit.design` replica's content (`kdm/content.json`, kition-sdk data model 7.4, with `kdm/meta.json`
 //! naming the document; [`kition_design_kdm::file`]) and `images/<sha256>` for every image the
 //! content (or the published library) uses. No history: no change log, no saved versions (the
 //! host's history store keeps checkpoints), no branches (a copy of the file is a new document),
@@ -71,7 +71,7 @@ pub struct Loaded {
     pub doc: Document,
     pub issues: Vec<String>,
     pub images_past_budget: usize,
-    /// The file's Kition KDM replica entries (`kdm/meta.json`, `kdm/content.bin`): the content
+    /// The file's Kition KDM replica entries (`kdm/meta.json`, `kdm/content.json`): the content
     /// the document was read from, which the engine's bridge opens as the document's replica.
     pub replica: Vec<(String, Vec<u8>)>,
 }
@@ -440,9 +440,8 @@ pub(crate) fn json_options() -> zip::write::SimpleFileOptions {
     zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Some(JSON_LEVEL))
 }
 
-/// How the content entries are compressed: Deflate at the default level. The KDM's snapshot is
-/// compressed already in part, so it deflates about in half; level 6 is 1% smaller than level 3
-/// and as small as 9 (measured on `examples/ridgeline-app.kdesign`).
+/// How the content entries are compressed: Deflate at a fixed level (6, the default), so a design
+/// saved again unchanged is the same bytes. The content is JSON (`kdm/content.json`).
 pub(crate) fn content_options() -> zip::write::SimpleFileOptions {
     zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Some(6))
 }
@@ -453,7 +452,7 @@ pub fn save_bytes(doc: &Document) -> Result<Vec<u8>, FormatError> {
     save_bytes_with_replica(doc, &[])
 }
 
-/// The content entries of `doc` when no replica holds it: a new replica of it, sealed. Numbers
+/// The content entries of `doc` when no replica holds it: a new replica of it. Numbers
 /// that are not finite are written as 0, as `document.json` used to write them.
 fn content_of(doc: &Document) -> Result<Vec<(String, Vec<u8>)>, FormatError> {
     let mut json = Vec::new();
@@ -548,7 +547,7 @@ pub(crate) fn load_within(bytes: &[u8], budget: ImageBudget) -> Result<Loaded, F
     let mut issues = Vec::new();
     let replica = read_replica(&mut z, &mut issues);
     if !replica.iter().any(|(name, _)| name == kition_design_kdm::file::CONTENT) {
-        return Err(FormatError::Corrupt("damaged: the file holds no content (kdm/content.bin)".into()));
+        return Err(FormatError::Corrupt("damaged: the file holds no content (kdm/content.json)".into()));
     }
     let listed = kition_design_kdm::file::image_keys(&replica).map_err(|e| content_error(&e))?;
     let ImagesRead { images, unread, past_budget } = read_images(&mut z, Some(&listed), budget);

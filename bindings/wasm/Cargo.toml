@@ -34,7 +34,7 @@ sha2 = { workspace = true }
 # Counted ids for the tests that build the same document twice (KITION_REPRODUCIBLE_IDS); never in
 # [dependencies]: a shipped engine draws its ids at random.
 kition-kit = { workspace = true, features = ["session", "reproducible-ids"] }
-# The Kition platform convergence suite (L6), on the same kition-sdk revision.
+# The performance mode of kition-convergence (tests/perf.rs), on the same kition-sdk revision.
 kition-convergence = { workspace = true }
 image = { workspace = true }
 usvg = { workspace = true }

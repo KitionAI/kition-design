@@ -9,7 +9,7 @@ mod normalisation;
 fn rewrite(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let out = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.save_file(None).unwrap()).unwrap();
     out
 }
 

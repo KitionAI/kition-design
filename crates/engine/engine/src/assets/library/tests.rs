@@ -429,7 +429,7 @@ fn library_survives_restoring_a_version_and_saving() {
     let r = ex(&mut lib, "library.publish", json!({}));
     let version = crate::cmd::file::saved_version(&mut lib);
     // Restoring a version keeps what the file published.
-    ex(&mut lib, "version.restore", json!({"version": version}));
+    ex(&mut lib, "version.restore", json!({"snapshot": version}));
     assert!(lib.doc().unwrap().published.is_some());
     ex(&mut lib, "file.saveAs", json!({"path": path}));
     // Reopened: the library is there (a file holds no history: saved versions are the host's).

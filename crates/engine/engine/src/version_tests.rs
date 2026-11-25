@@ -1,6 +1,7 @@
-//! Saved versions are the host's checkpoints: the engine derives the design at a replica version
-//! to restore it (one undo step, a change of the replica), preview it and compare with it; nothing
-//! about versions is kept in the session's document or its file; bad versions are refused.
+//! Saved versions are the host's checkpoints, each with its own snapshot: the engine reads the
+//! design a snapshot holds to restore it (one undo step, a change of the replica), preview it and
+//! compare with it; nothing about versions is kept in the session's document or its file; bad
+//! snapshots and another design's are refused.
 
 use serde_json::json;
 
@@ -34,7 +35,7 @@ fn restore_takes_the_content_at_a_version_as_one_undo_step() {
     // The content goes back, the file name stays; one undo step brings it back.
     s.execute("file.rename", &json!({"name": "Shop v2"})).unwrap();
     let before = s.version().unwrap();
-    let r = s.execute("version.restore", &json!({"version": first})).unwrap();
+    let r = s.execute("version.restore", &json!({"snapshot": first})).unwrap();
     assert_eq!(r["restored"], true);
     assert_eq!(count(&s), one);
     assert_eq!(s.doc().unwrap().name, "Shop v2");
@@ -45,7 +46,7 @@ fn restore_takes_the_content_at_a_version_as_one_undo_step() {
     s.execute("edit.redo", &json!({})).unwrap();
     assert_eq!(count(&s), one);
     // A later version restores its own content.
-    s.execute("version.restore", &json!({"version": second})).unwrap();
+    s.execute("version.restore", &json!({"snapshot": second})).unwrap();
     assert_eq!(count(&s), one + 1);
 }
 
@@ -66,18 +67,18 @@ fn bad_versions_are_rejected() {
     saved_version(&mut s);
     rect(&mut s, 20.0);
     let n = count(&s);
-    for p in [json!({"version": "nope"}), json!({"version": "%%%"}), json!({"version": 5}), json!({"index": 0}), json!({}), json!(null)] {
+    for p in [json!({"snapshot": "nope"}), json!({"snapshot": "%%%"}), json!({"snapshot": 5}), json!({"index": 0}), json!({}), json!(null)] {
         for cmd in ["version.restore", "version.preview"] {
             assert!(s.execute(cmd, &p).is_err(), "{cmd} {p}");
         }
     }
-    // A version this design's history never had.
+    // A version of another design.
     let mut other = Session::new();
     rect(&mut other, 0.0);
     rect(&mut other, 30.0);
     let foreign = saved_version(&mut other);
     for cmd in ["version.restore", "version.preview"] {
-        assert!(matches!(s.execute(cmd, &json!({"version": foreign})), Err(EngineError::Disabled(..))), "{cmd}");
+        assert!(matches!(s.execute(cmd, &json!({"snapshot": foreign})), Err(EngineError::Disabled(..))), "{cmd}");
     }
     assert_eq!(count(&s), n);
     assert!(s.ds().unwrap().preview.is_none());
@@ -101,13 +102,13 @@ fn versions_stay_out_of_the_file() {
     let names: Vec<&str> = z.file_names().collect();
     assert!(names.iter().all(|n| n.starts_with("kdm/") || n.starts_with("images/")), "{names:?}");
 
-    // Reopened alone, the file's history starts at its seal: an earlier version is not reached.
+    // The version carries its own snapshot: the file reopened alone restores it too.
     let mut t = Session::empty();
     t.enable_kdm();
     t.execute("file.open", &json!({"path": path})).unwrap();
-    assert!(matches!(t.execute("version.restore", &json!({"version": start})), Err(EngineError::Disabled(..))));
-    // The session whose history has it restores it.
-    s.execute("version.restore", &json!({"version": start})).unwrap();
+    t.execute("version.restore", &json!({"snapshot": start})).unwrap();
+    assert_eq!(count(&t), one);
+    s.execute("version.restore", &json!({"snapshot": start})).unwrap();
     assert_eq!(count(&s), one);
     let _ = std::fs::remove_dir_all(&dir);
 }

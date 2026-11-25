@@ -7,7 +7,7 @@
 //! names and shapes of kition-sdk's `session::web`, as Kition Vector and Design do, so Kition's
 //! host code is the same for every kit. The wasm bindings are in [`web`].
 //!
-//! A `.kdesign` file carries its replica's content (`kdm/` entries: the sealed content snapshot,
+//! A `.kdesign` file carries its replica's content (`kdm/` entries: `content.json`, the state alone,
 //! no history); the history is the replica the host stores (`snapshot`), never the file. The members below still answer `replica/*` so a host can relay changes
 //! between people editing the same design. Images are blobs, encoded for transfer as
 //! `(64-char ASCII-hex sha256, u64 LE length, bytes) * N`, as every kit does.
@@ -34,10 +34,9 @@ fn decode_version(bytes: &[u8]) -> Result<Version, String> {
 impl DesignDocument {
     /// Opens a file with the replica a host stored for it (the Kit UI protocol's `replica`
     /// capability: the document's history). A `.kdesign` of the same document is taken into the
-    /// stored replica (`kition_kit::session::take_file`): nothing when the replica has the file's
-    /// version; the changes the file holds beyond it when its history starts at a version the
-    /// replica has; otherwise (it was saved from changes the store never saw) its state, as one
-    /// `system` transaction keyed by object id. A `.kdesign` of another document opens with its
+    /// stored replica (`kition_kit::session::take_file`): nothing when the replica holds the file's
+    /// state; otherwise its state, as one change keyed by object id, so the stored line of changes
+    /// continues. A `.kdesign` of another document opens with its
     /// own content. Any other file opens on the stored replica, with the file recorded on top as
     /// one `import` transaction when the replica does not hold it; a stored replica that does not
     /// open is ignored and the file opens as [`KitDocument::open`] opens it; a file that does not
@@ -170,6 +169,17 @@ impl DesignDocument {
             result
         };
         if *origin == kition_design_engine::kdm::local_person() { run(self) } else { self.aside(run) }
+    }
+
+    /// Writes the design a saved version holds (`snapshot`: a KDM snapshot or this document's
+    /// content, as a host's checkpoint keeps it; Kit UI protocol `replica/restore`) over the design
+    /// as one change of `origin`: `version.restore`, one undo step of the person for a person's
+    /// origin (the file name, what it published and the comments stay). Add the snapshot's blobs
+    /// first. Refuses another document's snapshot.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage, String> {
+        let snapshot = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, snapshot);
+        self.execute_as("version.restore", json!({ "snapshot": snapshot }), origin)?;
+        Ok(Damage::Full)
     }
 
     /// Every blob the replica holds, as one buffer a peer feeds into [`DesignDocument::add_blobs`].
@@ -332,6 +342,14 @@ pub mod web {
             let params = kition_kit::parse_params(params).map_err(error)?;
             let origin = kition_kit::kdm::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))?;
             self.0.execute_as(command, params, &origin).map(|value| value.to_string()).map_err(error)
+        }
+
+        /// `origin` is the KDM's commit form, the JSON array `[kind, principal, label]`; answers the
+        /// damage JSON (Kit UI protocol `replica/restore`).
+        #[wasm_bindgen(js_name = restoreState)]
+        pub fn restore_state(&mut self, snapshot: &[u8], origin: &str) -> Result<String, JsError> {
+            let origin = kition_kit::kdm::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))?;
+            self.0.restore_state(snapshot, &origin).map(|damage| serde_json::to_string(&damage).unwrap_or_else(|_| "null".to_owned())).map_err(error)
         }
 
         pub fn blobs(&mut self) -> Result<Vec<u8>, JsError> {

@@ -392,8 +392,8 @@ function Status({ nodes }: { nodes: SelectionNode[] }) {
   const { t, run } = useDesignKit()
   const focused = useQuery<FocusState | null>('dev.focusState')
   const designKit = useDesignKit()
-  // The newest saved version the design's history here reaches (the host's checkpoints).
-  const newestVersion = useCheckpoints(true).list.find((v) => v.available) ?? null
+  // The newest saved version (the host's checkpoints).
+  const newestVersion = useCheckpoints(true).list[0] ?? null
   const key = (n: SelectionNode) => `${n.devStatus ?? 'none'}:${n.devStatus === 'readyForDev' && n.devChanged ? 1 : 0}`
   const same = nodes.every((n) => key(n) === key(nodes[0]))
   const one = nodes[0]
@@ -430,9 +430,9 @@ function Status({ nodes }: { nodes: SelectionNode[] }) {
           ) : null}
           {changed || newest ? (
             <Button variant={changed ? 'primary' : 'secondary'} tip={t(changed ? 'What changed since it was marked ready for dev' : 'What changed since a saved version')} onClick={async () => {
-                const version = newest ? await loadCheckpoint(designKit, newest).then((v) => v.version, () => null) : null
-                if (newest && !version) return
-                void run('dev.compare', { id: single.id, version, show: true })
+                const snapshot = newest ? await loadCheckpoint(designKit, newest.id).then((v) => v.snapshot, () => null) : null
+                if (newest && !snapshot) return
+                void run('dev.compare', { id: single.id, snapshot, show: true })
               }} testId="design-dev-compare">
               {t('Compare changes')}
             </Button>

@@ -1163,7 +1163,7 @@ pub(super) fn inputs(design: &DesignDocument, command: &str, params: &Value) -> 
             }
         }
         "version.restore" => {
-            // The restored version's content (its replica `version`, which never changes)
+            // The restored version's content (the snapshot its checkpoint carries)
             // replaces the whole design: every node, resource and setting it overwrites.
             component_inputs(doc, doc.pages.iter().copied(), &mut under);
             under.premises.push(

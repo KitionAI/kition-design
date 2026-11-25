@@ -4,12 +4,12 @@
 //! | Entry | Content |
 //! | --- | --- |
 //! | `kdm/meta.json` | [`Meta`]: what identifies the content |
-//! | `kdm/content.bin` | the replica's sealed content snapshot: its state, and of its history only a `system` seal |
+//! | `kdm/content.json` | the replica's content (`Replica::content_snapshot`, kition-sdk data model 7.4): its state, no version, no history |
 //!
 //! The blobs are the file's own `images/<sha256>` entries, only those the state references. A file
 //! opens as the same document (same docId, same object ids) and is repaired once; a save writes
-//! the sealed content again, the same bytes while the document is at the file's version. The
-//! history lives in the host's history store (the live replica's `snapshot()`), never in the file.
+//! the content again, the same bytes while the state is unchanged. The history lives in the
+//! host's history store (the live replica's `snapshot()`), never in the file.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -24,7 +24,7 @@ use crate::{DesignSession, KIT, Result, kit_err};
 /// Every replica entry's name starts with this.
 pub const PREFIX: &str = "kdm/";
 pub const META: &str = "kdm/meta.json";
-pub const CONTENT: &str = "kdm/content.bin";
+pub const CONTENT: &str = "kdm/content.json";
 /// `meta.json`'s `format`.
 pub const FORMAT: &str = "kition.design-content";
 pub const FORMAT_VERSION: u32 = 1;
@@ -44,7 +44,7 @@ pub struct Meta {
 /// What a document's file holds of its replica: a save of this version writes the same bytes.
 #[derive(Clone, Debug)]
 pub struct FileBase {
-    /// The replica version the file's content holds (its seal included).
+    /// The replica version the file's content was read or written at.
     version: Version,
     doc_id: String,
 }
@@ -99,7 +99,7 @@ fn read_entries(entries: &[(String, Vec<u8>)]) -> Result<(Meta, Vec<u8>)> {
     if meta.format_version > FORMAT_VERSION {
         return Err(KitError::new(format!("the file's content is from a newer Kition Design (format {}); please update", meta.format_version)));
     }
-    let content = entry(CONTENT).ok_or_else(|| damaged("no kdm/content.bin"))?.clone();
+    let content = entry(CONTENT).ok_or_else(|| damaged("no kdm/content.json"))?.clone();
     Ok((meta, content))
 }
 
@@ -117,8 +117,8 @@ fn load(meta: &Meta, content: &[u8], actor: ActorId) -> Result<Replica> {
 }
 
 /// Opens a file's replica entries as a replica of a fresh actor, with `blobs` (the file's
-/// images): the document the file holds, with its docId and object ids, and of its history only
-/// the seal. Repaired once. Errs, opening nothing, when an entry is missing or the content does
+/// images): the document the file holds, with its docId and object ids, on a new line of changes.
+/// Repaired once. Errs, opening nothing, when an entry is missing or the content does
 /// not load.
 pub fn open(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result<(DesignSession, FileBase)> {
     let (meta, content) = read_entries(entries)?;
@@ -153,36 +153,29 @@ pub fn read_content(entries: &[(String, Vec<u8>)], blobs: MemoryBlobs) -> Result
     Ok((**session.document()).clone())
 }
 
-/// The replica entries `session` saves: its sealed content snapshot (the same bytes for the same
-/// version), and what the file then holds. The host seals the session first
-/// (`KitDocument::prepare_save`, [`DesignSession::seal`]); a replica nobody sealed is refused
-/// (`not-sealed`), never saved.
+/// The replica entries `session` saves: its content (the same bytes for the same state), and what
+/// the file then holds.
 pub fn save(session: &DesignSession) -> Result<Saved> {
     let replica = session.replica();
-    if !replica.is_sealed() {
-        return Err(KitError::new("not-sealed: the design was not sealed for this save (prepare_save first)"));
-    }
     let meta = meta_of(replica);
     let doc_id = meta.doc_id.clone();
-    let entries = entries_of(&meta, replica.sealed_content_snapshot().map_err(kit_err)?)?;
+    let entries = entries_of(&meta, replica.content_snapshot().map_err(kit_err)?)?;
     Ok(Saved { entries, base: FileBase { version: replica.version(), doc_id } })
 }
 
 /// The replica entries of a document no session holds (a file written without the bridge): a new
-/// replica of `doc`, sealed, under a new docId.
+/// replica of `doc`, under a new docId.
 pub fn content_entries(doc: &Arc<Document>) -> Result<Entries> {
-    let mut session = DesignSession::create(doc, &Origin::system("create"))?;
-    session.seal()?;
+    let session = DesignSession::create(doc, &Origin::system("create"))?;
     Ok(save(&session)?.entries)
 }
 
 /// The replica entries of the same document as `entries` (a file's) whose content is now `doc`:
 /// another program's edit of the design, written as one `import` transaction of the file's
-/// replica and sealed, so the file keeps its document id and object ids.
+/// replica, so the file keeps its document id and object ids.
 pub fn rewrite(entries: &[(String, Vec<u8>)], doc: &Arc<Document>) -> Result<Entries> {
     let (mut session, _) = open(entries, crate::blobs_of(doc))?;
     session.record(&Origin::new(OriginKind::Import, "file").with_label("file"), doc)?;
-    session.seal()?;
     Ok(save(&session)?.entries)
 }
 
@@ -200,11 +193,10 @@ pub fn embedded_replica(entries: &[(String, Vec<u8>)]) -> Result<Option<Vec<u8>>
 }
 
 /// The replica entries of a file that holds the document `snapshot` (`document.fork`, KitModel
-/// M7a): `meta.json` with the snapshot's docId and its content (a copy's birth is its seal, so a
-/// copy adds no change), so no earlier identity or history is left; and the images (their
-/// SHA-256) its state references.
+/// M7a): `meta.json` with the snapshot's docId and its content, so no earlier identity or history
+/// is left; and the images (their SHA-256) its state references.
 pub fn fork_entries(snapshot: &[u8]) -> Result<(Entries, BTreeSet<String>)> {
-    let mut replica = Replica::load(crate::schema()?, snapshot, ActorId::random()).map_err(damaged)?;
+    let replica = Replica::load(crate::schema()?, snapshot, ActorId::random()).map_err(damaged)?;
     let images = images_of(&replica)?;
     let meta = meta_of(&replica);
     let content = replica.content_snapshot().map_err(kit_err)?;

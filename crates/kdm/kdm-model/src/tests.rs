@@ -36,30 +36,6 @@ fn a_document_round_trips_through_a_replica() {
 }
 
 #[test]
-fn edits_merge_between_two_replicas() {
-    let doc = Arc::new(sample());
-    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let mut b = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
-    assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
-    let rect = a.document().nodes().find(|n| n.name == "Rectangle 1").map(|n| n.id).unwrap();
-
-    let mut da = (**a.document()).clone();
-    da.get_mut(rect).unwrap().name = "Renamed".into();
-    assert_eq!(a.record(&person(), &Arc::new(da)).unwrap(), 1);
-    let mut db = (**b.document()).clone();
-    db.get_mut(rect).unwrap().opacity = 0.5;
-    assert_eq!(b.record(&person(), &Arc::new(db)).unwrap(), 1);
-
-    let (va, vb) = (a.version(), b.version());
-    a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-    b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
-    assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
-    let n = a.document().node(rect).unwrap();
-    assert_eq!((n.name.as_str(), n.opacity), ("Renamed", 0.5));
-    assert!(same_content(a.document(), b.document()));
-}
-
-#[test]
 fn structure_edits_round_trip_and_undo_keeps_the_other_scope() {
     let doc = Arc::new(sample());
     let mut s = DesignSession::create(&doc, &Origin::system("create")).unwrap();
@@ -103,11 +79,8 @@ fn the_file_entries_reopen_the_replica() {
     let page = d.first_page().unwrap();
     d.get_mut(page).unwrap().name = "Edited".into();
     s.record(&person(), &Arc::new(d)).unwrap();
-    let error = crate::file::save(&s).unwrap_err().to_string();
-    assert!(error.contains("not-sealed"), "a session nobody sealed is not saved: {error}");
-    s.seal().unwrap();
     let saved = crate::file::save(&s).unwrap();
-    assert_eq!(saved.base.version(), &s.version(), "a sealed session saves its own content");
+    assert_eq!(saved.base.version(), &s.version(), "a session saves its own content");
     let names: Vec<&str> = saved.entries.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, [crate::file::META, crate::file::CONTENT], "the content and what identifies it, no change log");
     // An unchanged save writes the same bytes.
@@ -120,10 +93,10 @@ fn the_file_entries_reopen_the_replica() {
 }
 
 #[test]
-fn the_document_at_an_earlier_version_is_read_from_a_fork() {
+fn the_document_at_a_saved_version_is_read_from_its_snapshot() {
     let doc = Arc::new(sample());
     let mut s = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let before = s.version();
+    let before = s.snapshot().unwrap();
     let mut d = (**s.document()).clone();
     let page = d.first_page().unwrap();
     let was = d.node(page).unwrap().name.clone();
@@ -131,98 +104,14 @@ fn the_document_at_an_earlier_version_is_read_from_a_fork() {
     s.record(&person(), &Arc::new(d)).unwrap();
     let hash = s.state_hash().unwrap();
     assert_eq!(s.document_at(&before).unwrap().node(page).unwrap().name, was, "the design as it was then");
-    assert_eq!(s.document_at(&s.version()).unwrap().node(page).unwrap().name, "Edited");
+    assert_eq!(s.document_at(&s.snapshot().unwrap()).unwrap().node(page).unwrap().name, "Edited");
+    // A file's content (no version) reads too.
+    assert_eq!(s.document_at(&s.replica().content_snapshot().unwrap()).unwrap().node(page).unwrap().name, "Edited");
     assert_eq!(s.state_hash().unwrap(), hash, "reading a version changes nothing");
-    // A version this replica never had is refused.
+    // Another document's snapshot is refused.
     let other = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    assert!(s.document_at(&other.version()).is_err());
-}
-
-/// V7 (KDM M10b): A creates a layer and undoes it; B, not having seen the undo, moves the layer
-/// into a frame; A redoes, which makes the layer a new tree node. After the merge both replicas
-/// name the layer with one node and read the same design.
-#[test]
-fn a_redo_concurrent_with_a_move_keeps_one_layer() {
-    let doc = Arc::new(sample());
-    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let mut b = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
-    let page = a.document().first_page().unwrap();
-    let frame = a.document().nodes().find(|n| n.name == "Frame 1").map(|n| n.id).unwrap();
-    let ellipse = a.document().nodes().find(|n| n.name == "Ellipse").map(|n| n.id).unwrap();
-    let sync = |a: &mut DesignSession, b: &mut DesignSession| {
-        let (va, vb) = (a.version(), b.version());
-        a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-        b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
-    };
-
-    let mut d = (**a.document()).clone();
-    let added = d.create(page, NodeKind::Rectangle, "Added", 400.0, 0.0, 20.0, 20.0).unwrap();
-    d.take_dirty();
-    a.record(&person(), &Arc::new(d)).unwrap();
-    sync(&mut a, &mut b);
-
-    assert!(a.undo_in(UndoScope::Person).unwrap());
-    assert!(a.document().node(added).is_none());
-    // B's move comes after a few edits of its own, so it is the later write of the node's parent.
-    for opacity in [0.9, 0.8, 0.7, 0.6] {
-        let mut d = (**b.document()).clone();
-        d.get_mut(ellipse).unwrap().opacity = opacity;
-        b.record(&person(), &Arc::new(d)).unwrap();
-    }
-    let mut d = (**b.document()).clone();
-    d.reparent(added, frame, None).unwrap();
-    d.take_dirty();
-    b.record(&person(), &Arc::new(d)).unwrap();
-    assert!(a.redo_in(UndoScope::Person).unwrap());
-    sync(&mut a, &mut b);
-    sync(&mut a, &mut b);
-
-    assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
-    assert!(same_content(a.document(), b.document()));
-    let entries = a.replica().tree(&crate::root_id(), "nodes").unwrap();
-    let mut objects: Vec<_> = entries.iter().map(|e| e.object.clone()).collect();
-    objects.sort();
-    let all = objects.len();
-    objects.dedup();
-    assert_eq!(objects.len(), all, "every layer has one tree node");
-    assert_eq!(a.document().nodes().filter(|n| n.name == "Added").count(), 1);
-}
-
-/// V8: A and B each delete one of the design's two pages at once. The merge would leave no page;
-/// the repair gives the design one empty page, the same one on both replicas.
-#[test]
-fn deleting_the_last_two_pages_at_once_leaves_one_page() {
-    let doc = Arc::new(sample());
-    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let mut b = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
-    let pages = a.document().pages.clone();
-    assert_eq!(pages.len(), 2);
-    for (session, page) in [(&mut a, pages[0]), (&mut b, pages[1])] {
-        let mut d = (**session.document()).clone();
-        d.remove(page).unwrap();
-        d.take_dirty();
-        session.record(&person(), &Arc::new(d)).unwrap();
-    }
-    let (va, vb) = (a.version(), b.version());
-    a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-    b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
-    // Each repaired the merge on its own; their repairs meet once more.
-    let (va, vb) = (a.version(), b.version());
-    a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-    b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
-
-    assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
-    assert!(same_content(a.document(), b.document()));
-    for session in [&a, &b] {
-        let v = session.document();
-        assert_eq!(v.pages.len(), 1, "{:?}", v.pages);
-        let page = v.node(v.pages[0]).unwrap();
-        assert!(page.is_page() && page.children.is_empty() && !v.is_divider(page.id));
-    }
-    // The page is a layer like any other: a later repair leaves it alone.
-    let hash = a.state_hash().unwrap();
-    a.import_changes(&b.export_changes(&Version::empty()).unwrap()).unwrap();
-    assert_eq!(a.state_hash().unwrap(), hash);
+    let error = s.document_at(&other.snapshot().unwrap()).unwrap_err().to_string();
+    assert!(error.contains("not-this-document"), "{error}");
 }
 
 fn with_library(doc: &Document, id: &str, path: &str) -> Arc<Document> {
@@ -231,24 +120,25 @@ fn with_library(doc: &Document, id: &str, path: &str) -> Arc<Document> {
     Arc::new(d)
 }
 
-fn merged(a: &mut DesignSession, b: &mut DesignSession) {
-    let (va, vb) = (a.version(), b.version());
-    a.import_changes(&b.export_changes(&va).unwrap()).unwrap();
-    b.import_changes(&a.export_changes(&vb).unwrap()).unwrap();
-    assert_eq!(a.state_hash().unwrap(), b.state_hash().unwrap());
+/// Takes `from`'s changes into `to`, which has every change before them (one line of changes).
+fn relayed(from: &DesignSession, to: &mut DesignSession) {
+    let since = to.version();
+    to.import_changes(&from.export_changes(&since).unwrap()).unwrap();
+    assert_eq!(from.state_hash().unwrap(), to.state_hash().unwrap());
 }
 
 #[test]
-fn library_links_are_objects_that_merge() {
+fn library_links_are_objects() {
     let doc = Arc::new(sample());
     let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
     let mut b = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
-    // Two people add two libraries at once: both stay, each with its workspace path.
+    // Two people add two libraries, one after the other: both stay, each with its workspace path.
     let da = with_library(a.document(), "lib-a", "../libraries/A.kdesign");
     a.record(&person(), &da).unwrap();
+    relayed(&a, &mut b);
     let db = with_library(b.document(), "lib-b", "B.kdesign");
     b.record(&person(), &db).unwrap();
-    merged(&mut a, &mut b);
+    relayed(&b, &mut a);
     let ids: Vec<&str> = a.document().libraries.enabled.iter().map(|l| l.id.as_str()).collect();
     assert_eq!(ids.len(), 2, "{ids:?}");
     assert!(ids.contains(&"lib-a") && ids.contains(&"lib-b"));
@@ -257,25 +147,17 @@ fn library_links_are_objects_that_merge() {
     assert_eq!(back.libraries.enabled, a.document().libraries.enabled);
     assert_eq!(back.libraries.enabled.iter().find(|l| l.id == "lib-a").map(|l| l.path.as_str()), Some("../libraries/A.kdesign"));
 
-    // Both add the same library at once: the repair keeps one link (V9).
-    let da = with_library(a.document(), "lib-c", "C.kdesign");
-    a.record(&person(), &da).unwrap();
-    let db = with_library(b.document(), "lib-c", "C.kdesign");
-    b.record(&person(), &db).unwrap();
-    merged(&mut a, &mut b);
-    assert_eq!(a.document().libraries.enabled.iter().filter(|l| l.id == "lib-c").count(), 1, "{:?}", a.document().libraries.enabled);
-    assert!(same_content(a.document(), b.document()));
-
-    // One removes a library while the other renames another: both happen.
+    // One removes a library, then the other moves another: both happen.
     let mut da = (**a.document()).clone();
     da.libraries_mut().enabled.retain(|l| l.id != "lib-a");
     a.record(&person(), &Arc::new(da)).unwrap();
+    relayed(&a, &mut b);
     let mut db = (**b.document()).clone();
     if let Some(l) = db.libraries_mut().enabled.iter_mut().find(|l| l.id == "lib-b") {
         l.path = "moved/B.kdesign".into();
     }
     b.record(&person(), &Arc::new(db)).unwrap();
-    merged(&mut a, &mut b);
+    relayed(&b, &mut a);
     let links = &a.document().libraries.enabled;
     assert!(links.iter().all(|l| l.id != "lib-a"));
     assert_eq!(links.iter().find(|l| l.id == "lib-b").map(|l| l.path.as_str()), Some("moved/B.kdesign"));
@@ -328,48 +210,14 @@ fn a_register_that_does_not_read_leaves_the_rest_of_the_document() {
     assert_eq!(s.record(&person(), &Arc::new(d)).unwrap(), 1);
 }
 
-/// Review #11: a reorder moves only the layers that left the order (the tree appends, so the
-/// longest start of the new order that keeps the old order stays). A brings the bottom layer to
-/// the front while B swaps two others: both changes survive, even with A's write the later one.
-#[test]
-fn a_reorder_moves_only_the_layers_that_left_their_order() {
-    let mut doc = Document::new("Order");
-    let page = doc.first_page().unwrap();
-    let rs: Vec<NodeId> = (0..5).map(|i| doc.create(page, NodeKind::Rectangle, &format!("r{i}"), 0.0, 0.0, 10.0, 10.0).unwrap()).collect();
-    doc.take_dirty();
-    let doc = Arc::new(doc);
-    let mut a = DesignSession::create(&doc, &Origin::system("create")).unwrap();
-    let mut b = DesignSession::open(&a.snapshot().unwrap(), &[], a.blobs().clone()).unwrap();
-    let reorder = |s: &mut DesignSession, order: Vec<NodeId>| {
-        let mut d = (**s.document()).clone();
-        d.get_mut(page).unwrap().children = order;
-        s.record(&person(), &Arc::new(d)).unwrap();
-    };
-    reorder(&mut b, vec![rs[0], rs[1], rs[2], rs[4], rs[3]]);
-    // A's moves come after a few edits of its own, so they are the later writes.
-    for opacity in [0.9, 0.8, 0.7, 0.6] {
-        let mut d = (**a.document()).clone();
-        d.get_mut(rs[1]).unwrap().opacity = opacity;
-        a.record(&person(), &Arc::new(d)).unwrap();
-    }
-    reorder(&mut a, vec![rs[1], rs[2], rs[3], rs[4], rs[0]]);
-    merged(&mut a, &mut b);
-    merged(&mut a, &mut b);
-    assert!(same_content(a.document(), b.document()));
-    let order = a.document().node(page).unwrap().children.clone();
-    let at = |id: NodeId| order.iter().position(|c| *c == id).unwrap();
-    assert!(at(rs[4]) < at(rs[3]), "B's swap is kept: {order:?} ({rs:?})");
-    assert!(at(rs[1]) < at(rs[2]) && at(rs[2]) < at(rs[4]) && at(rs[2]) < at(rs[0]), "A's raise is kept: {order:?} ({rs:?})");
-}
-
 fn message(id: u64, author: &str, text: &str, created: u64) -> kition_design_doc::Message {
     kition_design_doc::Message { id, author: author.into(), text: text.into(), created, edited: 0, reactions: Vec::new() }
 }
 
 /// Review #12: comment messages keep their objects by identity (their message ids), not by place.
-/// A deletes the first reply while B edits the second: the second reply keeps B's edit.
+/// A deletes the first reply, then B edits the second: the second reply keeps B's edit.
 #[test]
-fn deleting_a_reply_keeps_a_concurrent_edit_of_the_next_one() {
+fn deleting_a_reply_keeps_the_next_one_by_identity() {
     let mut doc = sample();
     let page = doc.first_page().unwrap();
     doc.comments.push(kition_design_doc::Comment {
@@ -389,11 +237,12 @@ fn deleting_a_reply_keeps_a_concurrent_edit_of_the_next_one() {
     let mut d = (**a.document()).clone();
     d.comments[0].replies.remove(0);
     a.record(&person(), &Arc::new(d)).unwrap();
+    relayed(&a, &mut b);
     let mut d = (**b.document()).clone();
-    let r = &mut d.comments[0].replies[1];
+    let r = &mut d.comments[0].replies[0];
     (r.text, r.edited) = ("Second reply, edited".into(), 400);
     b.record(&person(), &Arc::new(d)).unwrap();
-    merged(&mut a, &mut b);
+    relayed(&b, &mut a);
     assert!(same_content(a.document(), b.document()));
     let c = &a.document().comments[0];
     assert_eq!(c.first.text, "Look here");
@@ -402,7 +251,7 @@ fn deleting_a_reply_keeps_a_concurrent_edit_of_the_next_one() {
 }
 
 /// Limit closed (F18): two replies by one author within one second keep their own
-/// objects by their message ids. A deletes the first while B edits the second: the second keeps
+/// objects by their message ids. A deletes the first, then B edits the second: the second keeps
 /// B's edit and the first is gone, on both replicas.
 #[test]
 fn same_second_replies_by_one_author_keep_their_own_objects() {
@@ -425,11 +274,12 @@ fn same_second_replies_by_one_author_keep_their_own_objects() {
     let mut d = (**a.document()).clone();
     d.comments[0].replies.remove(0);
     a.record(&person(), &Arc::new(d)).unwrap();
+    relayed(&a, &mut b);
     let mut d = (**b.document()).clone();
-    let r = &mut d.comments[0].replies[1];
+    let r = &mut d.comments[0].replies[0];
     (r.text, r.edited) = ("Second reply, edited".into(), 400);
     b.record(&person(), &Arc::new(d)).unwrap();
-    merged(&mut a, &mut b);
+    relayed(&b, &mut a);
     assert!(same_content(a.document(), b.document()));
     let c = &a.document().comments[0];
     let replies: Vec<(&str, &str, u64)> = c.replies.iter().map(|m| (m.author.as_str(), m.text.as_str(), m.edited)).collect();

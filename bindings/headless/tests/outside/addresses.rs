@@ -123,7 +123,7 @@ fn setup(f: &Fixture, form: &str) -> Value {
 
 fn change_file(f: &Fixture, s: &Value, form: &str, change: &str, side: usize) {
     fn raw(d: &mut DesignDocument, edit: impl FnOnce(&mut kition_design_doc::Document)) {
-        let mut file = kition_design_format::load_with_replica(&d.seal_and_save(None).unwrap()).unwrap();
+        let mut file = kition_design_format::load_with_replica(&d.save_file(None).unwrap()).unwrap();
         edit(&mut file.doc);
         let bytes = kition_design_format::save_edited(&file).unwrap();
         *d = DesignDocument::open(FILE, &bytes).unwrap();

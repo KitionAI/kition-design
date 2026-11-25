@@ -292,12 +292,14 @@ fn dev_focus_compare_and_the_playground_picture() {
     assert!(is_png(&png));
     assert!(is_png(&doc.dev_compare_render(&json!({ "id": frame, "side": "before" })).unwrap()));
     assert!(doc.dev_compare_render(&json!({ "id": frame, "side": "middle" })).unwrap_err().starts_with("invalid-params"));
-    // Against a saved version (the host's checkpoint names the replica version).
+    // Against a saved version (the host's checkpoint carries its snapshot; the answer names its
+    // replica version).
     let vid = json!(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.version().unwrap()));
-    let c = doc.query("dev.compare", &json!({ "id": frame, "version": vid })).unwrap();
+    let snapshot = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.snapshot().unwrap());
+    let c = doc.query("dev.compare", &json!({ "id": frame, "snapshot": snapshot })).unwrap();
     assert_eq!(c["version"], vid);
     assert!(c.get("versions").is_none(), "the editor lists the host's checkpoints itself");
-    assert!(doc.query("dev.compare", &json!({ "id": frame, "version": "nope" })).is_err());
+    assert!(doc.query("dev.compare", &json!({ "id": frame, "snapshot": "nope" })).is_err());
     // The playground's instance as a picture; the document stays as it was.
     let revision = doc.revision();
     let button =
@@ -335,7 +337,8 @@ fn code_links_callouts_and_the_version_preview_state() {
     assert_eq!(first["visible"], true);
     assert_eq!(doc.query("version.previewState", &json!({})).unwrap(), Value::Null);
     let version = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.version().unwrap());
-    doc.execute("version.preview", json!({ "version": version, "id": "checkpoint-1", "name": "First", "time": 1 })).unwrap();
+    let snapshot = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, doc.snapshot().unwrap());
+    doc.execute("version.preview", json!({ "snapshot": snapshot, "id": "checkpoint-1", "name": "First", "time": 1 })).unwrap();
     let p = doc.query("version.previewState", &json!({})).unwrap();
     assert_eq!(p["id"], "checkpoint-1", "{p}");
     assert_eq!(p["name"], "First");

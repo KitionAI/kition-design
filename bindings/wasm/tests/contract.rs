@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 fn fixture() -> Vec<u8> {
     let mut doc = DesignDocument::create("Design.kdesign", 400, 300).unwrap();
     doc.execute("shape.rectangle", json!({ "x": 20, "y": 20, "width": 120, "height": 80 })).unwrap();
-    doc.seal_and_save(None).unwrap()
+    doc.save_file(None).unwrap()
 }
 
 fn layers(doc: &DesignDocument) -> u64 {
@@ -93,7 +93,7 @@ fn saving_writes_kdesign_and_leaves_the_document_dirty_until_marked() {
     doc.execute("select.all", json!({})).unwrap();
     doc.execute("object.group", json!({})).unwrap();
     assert!(doc.dirty());
-    let bytes = doc.seal_and_save(Some("Design.kdesign")).unwrap();
+    let bytes = doc.save_file(Some("Design.kdesign")).unwrap();
     assert_eq!(&bytes[..2], b"PK", "a .kdesign is a zip");
     assert!(doc.dirty());
     doc.mark_saved();

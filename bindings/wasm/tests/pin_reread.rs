@@ -17,9 +17,9 @@ fn rectangle(doc: &mut DesignDocument, name: &str, x: f64) -> Value {
 
 /// `live`'s file as another program saved it after `edit`, read again.
 fn saved_elsewhere(live: &mut DesignDocument, edit: impl FnOnce(&mut DesignDocument)) -> DesignDocument {
-    let mut writer = DesignDocument::open(FILE, &live.seal_and_save(None).unwrap()).unwrap();
+    let mut writer = DesignDocument::open(FILE, &live.save_file(None).unwrap()).unwrap();
     edit(&mut writer);
-    DesignDocument::open(FILE, &writer.seal_and_save(None).unwrap()).unwrap()
+    DesignDocument::open(FILE, &writer.save_file(None).unwrap()).unwrap()
 }
 
 fn x_of(doc: &DesignDocument, id: &Value) -> f64 {
@@ -54,10 +54,10 @@ fn the_file_read_again_refuses_a_deleted_active_target_and_changes_nothing() {
     assert!(error.contains("deleted active target"), "{error}");
     assert_eq!(fresh.inspect().unwrap()["selection"], before["selection"]);
     // The live design keeps the state, and reconciling with that file is refused untouched.
-    let kept = live.seal_and_save(None).unwrap();
+    let kept = live.save_file(None).unwrap();
     let error = live.reconcile_reread(&fresh).unwrap_err();
     assert!(error.contains("deleted active target"), "{error}");
-    assert_eq!(live.seal_and_save(None).unwrap(), kept);
+    assert_eq!(live.save_file(None).unwrap(), kept);
     assert_eq!(live.inspect().unwrap()["selection"], json!([a]));
 }
 

@@ -70,7 +70,7 @@ impl Fixture {
         doc.execute("component.create", json!({"ids":[component]})).unwrap();
         let instance = doc.execute("instance.create", json!({"component":component,"parent":frame,"x":200,"y":20})).unwrap()["id"].as_u64().unwrap();
         let style = doc.execute("style.create", json!({"type":"paint","name":"Accent","value":["#f00"]})).unwrap()["id"].clone();
-        std::fs::write(workspace.path().join(FILE), doc.seal_and_save(None).unwrap()).unwrap();
+        std::fs::write(workspace.path().join(FILE), doc.save_file(None).unwrap()).unwrap();
         let kit = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
         let kits = KitManager::new(Some(workspace.path().to_path_buf()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-design"))))]);
         Self { kits, workspace, options: CallOptions { guard, ..CallOptions::default() }, frame, a, b, destination, component, instance, style }
@@ -85,7 +85,7 @@ impl Fixture {
         for (command, params) in commands {
             writer.execute(command, params.clone()).unwrap_or_else(|error| panic!("colleague {command} {params}: {error}"));
         }
-        std::fs::write(self.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
+        std::fs::write(self.workspace.path().join(FILE), writer.save_file(None).unwrap()).unwrap();
     }
 
     async fn call(&self, action: &str, mut input: Value) -> Value {
@@ -193,7 +193,7 @@ async fn inserted_before_an_index_is_refused_but_inserted_after_it_applies() {
         if before {
             writer.execute("node.reorder", json!({"id":created,"index":0})).unwrap();
         }
-        std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
+        std::fs::write(f.workspace.path().join(FILE), writer.save_file(None).unwrap()).unwrap();
         let answer = f.write(&basis, "node.reparent", json!({"ids":[f.a],"parent":f.destination,"index":1})).await;
         assert_eq!(answer["error"]["code"] == "conflict", before, "before={before} {answer}");
         f.shutdown().await;

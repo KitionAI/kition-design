@@ -20,10 +20,10 @@ fn every_command_refuses_a_parameter_it_does_not_take() {
 #[test]
 fn a_misspelled_parameter_names_the_one_it_resembles_and_changes_nothing() {
     let mut doc = design();
-    let before = doc.seal_and_save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     let error = doc.execute("frame.create", json!({ "x": 0, "y": 0, "widht": 10, "height": 10 })).unwrap_err();
     assert!(error.contains("`widht`") && error.contains("did you mean `width`"), "{error}");
-    assert_eq!(doc.seal_and_save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 }
 
 /// The editor's own calls name only parameters the commands take: it passes the selection as

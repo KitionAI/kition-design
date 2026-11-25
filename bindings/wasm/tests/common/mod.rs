@@ -1,4 +1,4 @@
-//! Kition Design as the convergence suite drives it (kition-sdk `kition-convergence`, `KitAdapter`):
+//! Kition Design as the performance mode drives it (kition-sdk `kition-convergence`, `KitAdapter`):
 //! replicas are `DesignDocument`s edited through the engine's own commands.
 
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -364,8 +364,7 @@ impl KitAdapter for DesignKit {
     }
 
     fn export_file(&self, d: &mut DesignDocument) -> Result<Option<Vec<u8>>> {
-        d.prepare_save()?;
-        d.seal_and_save(None).map(Some)
+        d.save_file(None).map(Some)
     }
 
     /// The largest example design, as a person opens it.

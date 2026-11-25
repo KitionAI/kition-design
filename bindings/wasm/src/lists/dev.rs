@@ -46,9 +46,9 @@ pub fn focus_state(doc: &DesignDocument) -> Result<Value, String> {
 /// A compare view's layer, version, comparison, and its before and after documents.
 type Compared = (NodeId, Option<String>, Comparison, Option<Arc<Document>>, Arc<Document>);
 
-/// The two documents a compare view shows for layer `id` and `version` (a saved version's replica
-/// version, base64, as the host's checkpoint names it; none: the snapshot from when it was marked
-/// ready for dev), with the comparison.
+/// The two documents a compare view shows for layer `id` and `snapshot` (a saved version's KDM
+/// snapshot, base64, as the host's checkpoint carries it; none: the snapshot from when it was
+/// marked ready for dev), with the comparison and the replica version of the snapshot compared.
 fn compared(doc: &DesignDocument, params: &Value) -> Result<Compared, String> {
     let ds = doc.ds()?;
     let id = super::target(doc, params)?;
@@ -56,17 +56,18 @@ fn compared(doc: &DesignDocument, params: &Value) -> Result<Compared, String> {
     if now.node(id).is_none() {
         return Err(format!("not-found: no layer {id}"));
     }
-    let version = match params.get("version") {
+    let snapshot = match params.get("snapshot") {
         None | Some(Value::Null) => None,
         Some(Value::String(v)) => Some(v.clone()),
-        Some(other) => return Err(format!("invalid-params: `version` must be a replica version (base64), not {other}")),
+        Some(other) => return Err(format!("invalid-params: `snapshot` must be a KDM snapshot (base64), not {other}")),
     };
-    let (cmp, before) = match &version {
+    let (cmp, before, version) = match &snapshot {
         Some(v) => {
             let b = kition_design_engine::cmd::file::content_at("dev.compare", ds, v).map_err(crate::engine_error)?;
-            (devcompare::compare_with(&b, &now, id), Some(b))
+            let version = kition_design_engine::cmd::file::snapshot_version("dev.compare", v).map_err(crate::engine_error)?;
+            (devcompare::compare_with(&b, &now, id), Some(b), Some(version))
         }
-        None => (devcompare::compare(&now, id), devcompare::before_doc(&now, id).map(Arc::new)),
+        None => (devcompare::compare(&now, id), devcompare::before_doc(&now, id).map(Arc::new), None),
     };
     Ok((id, version, cmp, before, now))
 }
@@ -78,14 +79,14 @@ fn shot(d: &Document, id: NodeId, max_side: f64) -> Option<(kition_design_geom::
     (side.is_finite() && side > 0.0).then(|| (area, (max_side / side).min(2.0)))
 }
 
-/// `dev.compare { id?, version?, maxSide? }`: what the compare view lists and outlines for a
+/// `dev.compare { id?, snapshot?, maxSide? }`: what the compare view lists and outlines for a
 /// ready-for-dev frame or section (`id`, default the first selected layer) against the snapshot
-/// from when it was marked, or against saved version `version` (its replica version; the editor
-/// lists the saved versions from the host's checkpoints):
+/// from when it was marked, or against the saved version whose KDM snapshot is `snapshot` (the
+/// editor reads it from the host's checkpoint):
 ///
 /// ```text
 /// { …Comparison,          // the engine's dev.compare: id, name, changed, snapshot, changes: [{ id, name, type, change, depth, layers, properties }], added, removed, modified, truncated
-///   version,              // the version compared with, or null
+///   version,              // the replica version of the snapshot compared with, or null
 ///   before: Side or null, // null: the before is not known (no snapshot)
 ///   after: Side or null }
 /// Side = { area: { x, y, width, height } (page space), scale, width, height (the picture's pixels),
@@ -144,7 +145,7 @@ fn png(mut pix: kition_design_render::Pixmap, profile: kition_design_color::Colo
 }
 
 impl DesignDocument {
-    /// `devCompareRender { id?, version?, side: "before" | "after", maxSide? }`: one side of the
+    /// `devCompareRender { id?, snapshot?, side: "before" | "after", maxSide? }`: one side of the
     /// compare view as a PNG, the size and scale `dev.compare` gives for that side (longest side
     /// `maxSide`, default 1400, at most 2x). An error when the side is not known (`before`
     /// without a snapshot).

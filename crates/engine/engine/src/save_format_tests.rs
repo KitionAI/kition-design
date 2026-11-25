@@ -205,7 +205,7 @@ fn fig_copy_write_failure_keeps_save_state() {
     rect(&mut s, "Kept rectangle");
     let kept = crate::cmd::file::saved_version(&mut s);
     rect(&mut s, "Later rectangle");
-    s.execute("version.preview", &json!({"version": kept})).unwrap();
+    s.execute("version.preview", &json!({"snapshot": kept})).unwrap();
     let before = s.ds().unwrap().clone();
     for command in ["file.save", "file.saveAs"] {
         for path in [&blocked, &missing] {
@@ -244,7 +244,7 @@ fn fig_copy_of_version_preview_keeps_visible_version_and_save_state() {
         s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         let saved = std::fs::read(&native).unwrap();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"version": a_only})).unwrap();
+        s.execute("version.preview", &json!({"snapshot": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
         assert!(before.preview.is_some());
@@ -273,7 +273,7 @@ fn pending_save_choice_keeps_version_preview() {
             s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         }
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"version": a_only})).unwrap();
+        s.execute("version.preview", &json!({"snapshot": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
         assert!(matches!(s.execute(command, &json!({})), Err(EngineError::Disabled(..))));
@@ -292,7 +292,7 @@ fn native_save_from_version_preview_writes_current_document() {
         let a_only = crate::cmd::file::saved_version(&mut s);
         s.execute("file.save", &json!({"path": native.to_string_lossy()})).unwrap();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"version": a_only})).unwrap();
+        s.execute("version.preview", &json!({"snapshot": a_only})).unwrap();
         let undo = s.ds().unwrap().history.undo.len();
         let params = if explicit { json!({"path": native.to_string_lossy()}) } else { json!({}) };
         s.execute(command, &params).unwrap();
@@ -318,14 +318,12 @@ fn implicit_save_protects_legacy_fig_destination() {
         rect(&mut s, "A");
         let a_only = crate::cmd::file::saved_version(&mut s);
         // Earlier builds could write native data under .fig; keep those bytes safe on plain Save.
-        let origin = s.origin();
-        s.ds_mut().unwrap().prepare_save(&origin).unwrap();
         let sentinel = crate::cmd::file::file_bytes(s.ds().unwrap()).unwrap();
         std::fs::write(&legacy, &sentinel).unwrap();
         s.ds_mut().unwrap().path = Some(legacy.to_string_lossy().into_owned());
         s.ds_mut().unwrap().mark_saved();
         rect(&mut s, "B");
-        s.execute("version.preview", &json!({"version": a_only})).unwrap();
+        s.execute("version.preview", &json!({"snapshot": a_only})).unwrap();
         let before = s.ds().unwrap().clone();
         let recent = s.prefs.recent_files.clone();
 

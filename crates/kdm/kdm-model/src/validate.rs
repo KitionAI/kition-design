@@ -123,10 +123,6 @@ fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     if !tx.exists(&root) {
         return Ok(false);
     }
-    // V7: an object two tree nodes name (a redo made a new node for a layer while another
-    // replica's concurrent move kept the old one): the KDM keeps one of them (M10b).
-    wrote |= tx.tree_dedupe(&root, "nodes")? > 0;
-    wrote |= tx.tree_dedupe(&root, STORE_TREE)? > 0;
     let entries = tx.tree(&root, "nodes")?;
     let mut store_entries = tx.tree(&root, STORE_TREE)?;
 

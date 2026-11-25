@@ -1,22 +1,21 @@
-//! A `.kdesign` holds the design's content, not its history (kition-sdk data model 7.3, rule M16b;
-//! feature `design.file.content-only`): its `kdm/content.bin`, read through the KDM, holds one
-//! change (the seal) and none of the deleted or overwritten content; an unchanged design saves to
-//! the same bytes; a file opened without a store is the same document and takes edits; a replica
-//! from the file and one with the whole history converge; undo after a save takes back the last
-//! edit; and a file opens on top of a stored replica, which keeps its history. Hosts seal before
-//! saving (`prepare_save`); a save nobody sealed for is refused (`not-sealed`), never written.
+//! A `.kdesign` holds the design's content, not its history (kition-sdk data model 7.3 and 7.4;
+//! feature `design.file.content-only`): its `kdm/content.json` holds the state alone (no version,
+//! no change, none of the deleted or overwritten content); an unchanged design saves to the same
+//! bytes, and opened again it is the same objects under the same ids; a file opened without a
+//! store is the same document and takes edits; undo after a save takes back the last edit; and a
+//! file opens on top of a stored replica, whose line of changes continues.
 //!
 //! The needles below are written once each and share no run of four characters with anything else
 //! in the design, so each stays literal in the KDM bytes that hold it: every test checks the
-//! session's full snapshot holds them (the control) before it checks the file's content (unpacked
-//! from the zip) does not.
+//! session's changes hold them (the control) before it checks the file's content (unpacked from the
+//! zip) does not.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use std::io::Read;
 
 use kition_design_kit::DesignDocument;
 use kition_kit::KitDocument;
-use kition_kit::kdm::{ActorId, Origin, OriginKind, Replica};
+use kition_kit::kdm::Version;
 use serde_json::{Value, json};
 
 const FILE: &str = "Plan.kdesign";
@@ -30,9 +29,8 @@ fn contains(bytes: &[u8], needle: &str) -> bool {
     bytes.windows(needle.len()).any(|window| window == needle.as_bytes()) || bytes.windows(utf16.len()).any(|window| window == utf16.as_slice())
 }
 
-/// The file as a host saves it: sealed first (`prepare_save`), then the bytes.
+/// The file as a host saves it.
 fn host_save(doc: &mut DesignDocument) -> Vec<u8> {
-    doc.prepare_save().unwrap();
     doc.save(Some(FILE)).unwrap()
 }
 
@@ -44,12 +42,18 @@ fn entry(bytes: &[u8], name: &str) -> Vec<u8> {
 }
 
 fn content(bytes: &[u8]) -> Vec<u8> {
-    entry(bytes, "kdm/content.bin")
+    entry(bytes, "kdm/content.json")
 }
 
-/// The version a file's content holds.
-fn file_version(bytes: &[u8]) -> Vec<u8> {
-    Replica::load(kition_design_kdm::schema().unwrap(), &content(bytes), ActorId::random()).unwrap().version().encode()
+/// The file's content holds the state alone: JSON with no version, line of changes, actor or
+/// origin (data model 7.4).
+fn holds_the_state_alone(bytes: &[u8]) {
+    let content = content(bytes);
+    let value: Value = serde_json::from_slice(&content).unwrap();
+    assert!(value.get("objects").is_some(), "the state");
+    for key in ["version", "changes", "lineage", "actor", "origin"] {
+        assert!(value.get(key).is_none(), "the content holds no {key}");
+    }
 }
 
 fn id_of(answer: &Value, doc: &DesignDocument) -> u64 {
@@ -59,7 +63,14 @@ fn id_of(answer: &Value, doc: &DesignDocument) -> u64 {
 /// A design whose history holds typed-then-deleted text, a deleted layer and an overwritten
 /// value; answers it and the id of the text layer that stays.
 fn design_with_history() -> (DesignDocument, u64) {
+    let (doc, text, _) = design_with_changes();
+    (doc, text)
+}
+
+/// [`design_with_history`] and the replica version it was created at (its changes follow it).
+fn design_with_changes() -> (DesignDocument, u64, Vec<u8>) {
     let mut doc = DesignDocument::create(FILE, 800, 600).unwrap();
+    let created = doc.version().unwrap();
     let made = doc.execute("text.create", json!({ "text": "Kept", "x": 20, "y": 20 })).unwrap();
     let text = id_of(&made, &doc);
     doc.execute("object.rename", json!({ "ids": [text], "name": "Title" })).unwrap();
@@ -73,7 +84,7 @@ fn design_with_history() -> (DesignDocument, u64) {
     let box_ = id_of(&made, &doc);
     doc.execute("object.rename", json!({ "ids": [box_], "name": OVERWRITTEN })).unwrap();
     doc.execute("object.rename", json!({ "ids": [box_], "name": "Box" })).unwrap();
-    (doc, text)
+    (doc, text, created)
 }
 
 fn tree(doc: &DesignDocument) -> Value {
@@ -88,24 +99,17 @@ fn characters(doc: &DesignDocument, id: u64) -> String {
 }
 
 #[test]
-fn the_file_holds_the_content_and_of_the_history_only_the_seal() {
-    let (mut doc, text) = design_with_history();
-    let full = doc.snapshot().unwrap();
+fn the_file_holds_the_content_and_no_history() {
+    let (mut doc, text, created) = design_with_changes();
+    let full = doc.export_changes(&created).unwrap();
     for needle in NEEDLES {
-        assert!(contains(&full, needle), "the control: the session's history holds {needle}");
+        assert!(contains(&full, needle), "the control: the session's changes hold {needle}");
     }
     let bytes = host_save(&mut doc);
     for needle in NEEDLES {
         assert!(!contains(&content(&bytes), needle), "the file holds {needle}");
     }
-    let held = Replica::snapshot_origins(&content(&bytes)).unwrap();
-    assert_eq!(held.len(), 1, "of the history, the file holds one change: {held:?}");
-    let origin = held[0].clone().unwrap();
-    assert_eq!(origin, Origin::system("content-seal"));
-    assert_eq!(origin.kind, OriginKind::System);
-    assert!(Replica::snapshot_origins(&full).unwrap().len() > 1, "the control: the history holds every change");
-    // The direct path: the seal is the session's own, before the host marks the file saved.
-    assert_eq!(doc.version().unwrap(), file_version(&bytes));
+    holds_the_state_alone(&bytes);
     // No `document.json`, no saved versions, no change log.
     let names: Vec<String> = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap().file_names().map(str::to_owned).collect();
     assert!(!names.iter().any(|n| n == "document.json" || n.starts_with("versions/") || n.starts_with("kdm/changes")), "{names:?}");
@@ -121,11 +125,12 @@ fn an_unchanged_design_saves_to_the_same_bytes() {
     let first = host_save(&mut doc);
     let version = doc.version().unwrap();
     assert_eq!(host_save(&mut doc), first, "two saves with nothing between");
-    assert_eq!(doc.version().unwrap(), version, "a sealed design seals nothing more");
+    assert_eq!(doc.version().unwrap(), version, "a save writes no change");
     doc.mark_saved();
     assert_eq!(host_save(&mut doc), first, "and after the host stored the first");
     let mut opened = DesignDocument::open(FILE, &first).unwrap();
     assert_eq!(host_save(&mut opened), first, "and from the file opened again");
+    assert_eq!(opened.state_json().unwrap(), doc.state_json().unwrap(), "reopened, the same objects under the same ids");
 }
 
 #[test]
@@ -140,24 +145,7 @@ fn a_file_opened_without_a_store_is_the_same_document_and_takes_edits() {
     let again = DesignDocument::open(FILE, &edited).unwrap();
     assert_eq!(again.doc_id(), doc.doc_id());
     assert_eq!(characters(&again, text), "Kept, edited");
-    assert_eq!(Replica::snapshot_origins(&content(&edited)).unwrap().len(), 1, "still only the seal");
-}
-
-#[test]
-fn a_replica_from_the_file_and_one_with_the_whole_history_converge() {
-    let (mut a, text) = design_with_history();
-    let bytes = host_save(&mut a);
-    let mut b = DesignDocument::open(FILE, &bytes).unwrap();
-    a.execute("shape.ellipse", json!({ "x": 400, "y": 300, "width": 30, "height": 30 })).unwrap();
-    b.execute("text.set", json!({ "id": text, "characters": "Kept by B" })).unwrap();
-    let (va, vb) = (a.version().unwrap(), b.version().unwrap());
-    let to_b = a.export_changes(&vb).unwrap();
-    let to_a = b.export_changes(&va).unwrap();
-    b.add_blobs(&a.blobs().unwrap()).unwrap();
-    b.import_changes(&to_b).unwrap();
-    a.import_changes(&to_a).unwrap();
-    assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    assert_eq!(characters(&a, text), "Kept by B");
+    holds_the_state_alone(&edited);
 }
 
 #[test]
@@ -168,7 +156,7 @@ fn undo_after_a_save_takes_back_the_last_edit() {
     let with = tree(&doc);
     let bytes = host_save(&mut doc);
     doc.mark_saved();
-    assert!(doc.undo().unwrap().0, "the seal is no undo step");
+    assert!(doc.undo().unwrap().0, "a save is no undo step");
     assert_eq!(tree(&doc), before);
     assert!(doc.redo().unwrap().0);
     assert_eq!(tree(&doc), with);
@@ -176,32 +164,15 @@ fn undo_after_a_save_takes_back_the_last_edit() {
 }
 
 #[test]
-fn a_save_nobody_sealed_for_is_refused() {
-    let (mut doc, _) = design_with_history();
-    let version = doc.version().unwrap();
-    let error = doc.save(Some(FILE)).unwrap_err();
-    assert!(error.contains("not-sealed"), "{error}");
-    assert_eq!(doc.version().unwrap(), version, "a refused save changes nothing");
-    assert!(doc.dirty(), "and leaves the edits unsaved");
-    // Sealed, the same design saves: its content, of its history only the seal.
-    let bytes = host_save(&mut doc);
-    for needle in NEEDLES {
-        assert!(!contains(&content(&bytes), needle), "the file holds {needle}");
-    }
-    assert_eq!(Replica::snapshot_origins(&content(&bytes)).unwrap(), vec![Some(Origin::system("content-seal"))]);
-    assert_eq!(doc.version().unwrap(), file_version(&bytes), "the seal is in the replica the host stores");
-}
-
-#[test]
-fn a_file_opens_on_the_stored_replica_which_keeps_its_history() {
+fn a_file_opens_on_the_stored_replica_whose_line_of_changes_continues() {
     let (mut doc, text) = design_with_history();
     let bytes = host_save(&mut doc);
     let stored = doc.snapshot().unwrap();
     let blobs = doc.blobs().unwrap();
-    // The file and the store agree: the store's history stays.
+    // The file and the store agree: the store's version stays.
     let mut same = DesignDocument::open_with_replica(FILE, &bytes, &stored, &blobs).unwrap();
     assert_eq!(same.doc_id(), doc.doc_id());
-    assert!(Replica::snapshot_origins(&same.snapshot().unwrap()).unwrap().len() > 1, "the stored history");
+    assert_eq!(same.version().unwrap(), doc.version().unwrap(), "the stored line of changes, nothing added");
     assert_eq!(tree(&same), tree(&doc));
     // The file was saved elsewhere from changes the store never saw: its state is taken in.
     let mut elsewhere = DesignDocument::open(FILE, &bytes).unwrap();
@@ -210,5 +181,6 @@ fn a_file_opens_on_the_stored_replica_which_keeps_its_history() {
     let mut taken = DesignDocument::open_with_replica(FILE, &newer, &stored, &blobs).unwrap();
     assert_eq!(taken.doc_id(), doc.doc_id());
     assert_eq!(characters(&taken, text), "Saved elsewhere");
-    assert!(Replica::snapshot_origins(&taken.snapshot().unwrap()).unwrap().len() > 1, "the stored history stays");
+    let (now, was) = (Version::decode(&taken.version().unwrap()).unwrap(), Version::decode(&doc.version().unwrap()).unwrap());
+    assert!(now.includes(&was) && now != was, "the stored line of changes continues with the file's change");
 }

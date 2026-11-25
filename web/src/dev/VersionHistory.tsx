@@ -80,17 +80,13 @@ export function VersionHistory() {
   const nameOf = (v: KitCheckpoint) => v.label || t('Untitled version')
 
   const menuItems = (v: KitCheckpoint): MenuEntry[] => [
-    ...(v.available
-      ? [
-          {
-            label: t('Restore this version'),
-            onSelect: async () => {
-              if ((await attempt(() => restoreVersion(designKit, v))) != null) toast(t('Restored “{name}”', { name: nameOf(v) }))
-            },
-            testId: 'design-version-menu-restore',
-          },
-        ]
-      : []),
+    {
+      label: t('Restore this version'),
+      onSelect: async () => {
+        if ((await attempt(() => restoreVersion(designKit, v.id))) != null) toast(t('Restored “{name}”', { name: nameOf(v) }))
+      },
+      testId: 'design-version-menu-restore',
+    },
     ...(ownCheckpoint(v)
       ? [
           { label: t('Rename'), onSelect: () => setRenaming(v.id), testId: 'design-version-menu-rename' },
@@ -236,19 +232,14 @@ type RowProps = {
 function VersionRow({ version, index, name, previewing, menuOpen, onPreview, onMenu, onRename }: RowProps) {
   const { t } = useDesignKit()
   const more = useRef<HTMLSpanElement>(null)
-  const reason = version.available ? undefined : t("This version is no longer in the design's history here")
   return (
     <div
       className="design-version-row"
       data-version="true"
-      data-available={version.available}
       data-selected={previewing || undefined}
-      data-tip={reason}
       data-testid={`design-version-${index}`}
       data-checkpoint={version.id}
-      onClick={() => {
-        if (version.available) onPreview()
-      }}
+      onClick={onPreview}
       onDoubleClick={onRename}
       onContextMenu={(event: MouseEvent) => {
         event.preventDefault()
@@ -259,7 +250,6 @@ function VersionRow({ version, index, name, previewing, menuOpen, onPreview, onM
       <div className="design-version-name">{name}</div>
       <div className="design-version-time">{relativeTime(t, version.time / 1000)}</div>
       {version.description ? <div className="design-version-desc">{version.description}</div> : null}
-      {reason ? <div className="design-version-desc" data-testid={`design-version-unavailable-${index}`}>{reason}</div> : null}
       <span ref={more} className="design-version-more" aria-expanded={menuOpen} onClick={(event) => event.stopPropagation()}>
         <IconButton icon="Dots" label={t('More')} onClick={() => more.current && onMenu(more.current)} testId={`design-version-more-${index}`} />
       </span>

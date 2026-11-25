@@ -38,9 +38,9 @@ draft tools.
   command's declared targets. Imported thread/layer number collisions are repaired
   deterministically before exposing tool ids; inspect again after an import. Individual
   messages are held through their thread; category and preset records through settings
-  selectors. A saved version is named by its replica version (a string, as the host's checkpoint
-  names it), never a layer id; the host keeps saved versions, so an agent restores one only with a
-  version it was given.
+  selectors. A saved version is passed as its snapshot (a base64 string, as the host's checkpoint
+  carries it), never a layer id; the host keeps saved versions, so an agent restores one only with
+  a snapshot it was given.
 - An integer is an object address only in the command's marked `objects` or `targets` paths.
   Indexes, dimensions and point coordinates are numbers, not object ids. A connector's endpoint
   may be either an object or coordinates; the call resolves which one it is. Marked name
@@ -149,7 +149,7 @@ successful write as proof that the entire document stayed unchanged.
 | Prototype/variable values | Referenced destinations, aliases and parsed expression variable/mode objects; resource alias chains and default-mode order. Dynamic expression names are replayed against previous names. |
 | Text formatting, search/replace, layout, boolean/flatten/outline and page duplicate/delete | Traversed text or layer subtrees, membership and consumed geometry. Text ranges conservatively hold whole text records. |
 | Annotation categories and image presets | The saved record selected by id/name; category creation/removal conservatively holds the category list. Comment message indexes hold their thread's body/order. |
-| Version restore | The current design it replaces (every node, resource and setting); the version's content is named by its replica version and never changes. File comments are retained. |
+| Version restore | The current design it replaces (every node, resource and setting); the version's content is the snapshot its checkpoint carries and never changes. File comments are retained. |
 | `library.publish` | Publishable identities, previous publication manifest and content fingerprint, component dependency graphs, styles, collections and variables. |
 | `library.acceptUpdates`, `library.swap`, `library.remove` | Local copy records, library links, component copies and instance inputs, style/variable definitions and the reference/alias membership query used by pruning. This is conservative across libraries. |
 | Paste, repeated `edit.duplicate` | Copied mains and instance mains, clipboard style/variable ids and the paste parent; foreign pastes also adopt library records. A repeat without `dx`/`dy` holds the last sources and copies. |

@@ -19,7 +19,8 @@ export type DevState = {
   colorFormat: ColorFormat
   language: CodeLanguage
   rem: boolean
-  compare: { id: number; version: string | null } | null
+  /** The layer compared and the saved version's snapshot (base64) it is compared with; null: with when it was marked ready. */
+  compare: { id: number; snapshot: string | null } | null
   versions: { open: boolean; saving: boolean }
 }
 

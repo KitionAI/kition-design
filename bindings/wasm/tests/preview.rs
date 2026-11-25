@@ -140,10 +140,10 @@ fn scale_and_size_budget() {
 #[test]
 fn previews_change_nothing_and_are_listed_for_agents() {
     let mut doc = basic();
-    let (revision, saved) = (doc.revision(), doc.seal_and_save(None).unwrap());
+    let (revision, saved) = (doc.revision(), doc.save_file(None).unwrap());
     render(&mut doc, json!({ "scale": 2 }));
     assert_eq!((doc.revision(), doc.dirty()), (revision, false));
-    assert_eq!(doc.seal_and_save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
     let command = doc.commands().into_iter().find(|c| c.id == "file.render").unwrap();
     assert!(!command.mutates && command.enabled && command.schema.is_some());
     let schema = kition_design_kit::agent::output();

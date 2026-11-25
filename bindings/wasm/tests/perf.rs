@@ -1,4 +1,4 @@
-//! The convergence suite's performance mode for Kition Design (Kition `docs/kits.md` section 7,
+//! The performance mode of kition-convergence for Kition Design (Kition `docs/kits.md` section 7,
 //! "Collaboration budgets"): `cargo test --release -p kition-design-kit --test perf -- --ignored
 //! --nocapture`.
 

@@ -62,12 +62,10 @@ fn main() {
         json!({ "collection": theme, "name": "Text", "type": "color", "values": { "Light": "#1a1a1a", "Dark": "#eceff1" } }),
     );
     run(&mut doc, "library.publish", json!({ "description": "Buttons, a badge, brand colours and a light and dark theme." }));
-    doc.prepare_save().unwrap();
-    let v1 = doc.seal_and_save(None).unwrap();
+    let v1 = doc.save_file(None).unwrap();
     run(&mut doc, "node.set", json!({ "id": primary, "props": { "fill": "#e5484d" } }));
     run(&mut doc, "library.publish", json!({ "description": "Primary buttons are red." }));
-    doc.prepare_save().unwrap();
-    let v2 = doc.seal_and_save(None).unwrap();
+    let v2 = doc.save_file(None).unwrap();
     for (path, bytes) in [("web/public/sample/libraries/Design System.kdesign", v1), ("web/tests/fixtures/Design System v2.kdesign", v2)] {
         let at = repo.join(path);
         std::fs::create_dir_all(at.parent().unwrap()).unwrap();

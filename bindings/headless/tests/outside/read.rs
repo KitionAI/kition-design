@@ -8,7 +8,7 @@ use super::*;
 pub(super) fn prepare(f: &Fixture, edit: impl FnOnce(&mut DesignDocument) -> Value) -> Value {
     let mut writer = DesignDocument::open(FILE, &f.bytes()).unwrap();
     let made = edit(&mut writer);
-    std::fs::write(f.workspace.path().join(FILE), writer.seal_and_save(None).unwrap()).unwrap();
+    std::fs::write(f.workspace.path().join(FILE), writer.save_file(None).unwrap()).unwrap();
     made
 }
 
@@ -359,7 +359,7 @@ async fn removing_a_table_row_reads_its_place_and_not_its_text() {
             let cell = kition_design_doc::NodeId(table["cells"][1][0].as_u64().unwrap());
             let row = doc.node(cell).unwrap().parent.and_then(|id| doc.node(id)).unwrap().parent.unwrap();
             let made = json!({"table":table["id"],"text":cell.0,"row":row.0});
-            std::fs::write(f.workspace.path().join(FILE), board.seal_and_save(None).unwrap()).unwrap();
+            std::fs::write(f.workspace.path().join(FILE), board.save_file(None).unwrap()).unwrap();
             made
         },
         |_, made| ("board.tableEdit", json!({"id":made["table"],"action":"removeRow","index":1})),

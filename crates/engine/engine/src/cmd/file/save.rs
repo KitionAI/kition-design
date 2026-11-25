@@ -19,8 +19,7 @@ pub fn thumbnail(doc: &Document) -> Option<Vec<u8>> {
     kition_design_render::encode_png(&pix).ok()
 }
 
-/// The `.kdesign` file for a document: its content and the images it uses (no history). Its
-/// replica must be sealed for the save ([`DocState::prepare_save`]).
+/// The `.kdesign` file for a document: its content and the images it uses (no history).
 pub fn file_bytes(ds: &DocState) -> Result<Vec<u8>> {
     FileSnapshot::of(ds)?.encode()
 }
@@ -39,8 +38,7 @@ pub struct FileSnapshot {
 }
 
 impl FileSnapshot {
-    /// The file of `ds` now; its replica must be sealed for the save ([`DocState::prepare_save`]):
-    /// an unsealed one is refused (`not-sealed`), never left out of the file.
+    /// The file of `ds` now.
     pub fn of(ds: &DocState) -> Result<Self> {
         Ok(Self { uid: ds.uid, path: ds.path.clone(), doc: ds.doc.clone(), saved: ds.saved_doc.clone(), replica: ds.replica_entries()? })
     }
@@ -127,10 +125,10 @@ fn save_to(s: &mut Session, path: Option<String>) -> Result<Value> {
     if let Some(path) = path.as_deref() {
         refuse_dropping_images(ds, path)?;
     }
-    // The engine's own save seals the replica first, as a host does before it saves (without the
-    // bridge there is no replica: the file gets a new one).
+    // What is committed is in the replica before its content is written (without the bridge there
+    // is no replica: the file gets a new one).
     if bridged {
-        ds.prepare_save(&origin)?;
+        ds.sync_kdm(&origin);
     }
     let mut snapshot = FileSnapshot::of(ds)?;
     let follows_path = ds.path.as_deref().map_or(ds.doc.name == "Untitled", |old| ds.doc.name == file_stem(old));
