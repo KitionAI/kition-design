@@ -1013,7 +1013,7 @@
    "show": {
     "type": "boolean"
    },
-   "version": {
+   "snapshot": {
     "type": "string"
    }
   }

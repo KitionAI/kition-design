@@ -5,7 +5,7 @@
 //! the repair on open, so a sample of a broken design (the `check-*` fixtures) stays broken.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use kition_design_kdm::file::{CONTENT, fork_entries};
@@ -60,43 +60,4 @@ fn every_committed_sample_loads_and_saves_to_its_own_bytes() {
         assert!(kition_design_format::load_with_replica(&bytes).is_ok(), "{sample} opens");
         assert_eq!(kit_save(&bytes, &content), bytes, "{sample} saves to its own bytes");
     }
-}
-
-/// TEMPORARY (plain model sample conversion, deleted in the next commit): writes each converted
-/// `content.json` (`tests/regen/<path with / as __>.json`, written by kition-sdk's
-/// `tools/convert-content`) into its sample in place of the old `kdm/content.bin`, saves it
-/// through the kit and prints the file as base64, then fails so CI shows the output.
-#[test]
-fn regenerate_samples() {
-    let regen = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/regen");
-    let mut printed = 0;
-    for sample in samples() {
-        let content = std::fs::read(regen.join(format!("{}.json", sample.replace('/', "__")))).unwrap();
-        let old = std::fs::read(repo().join(&sample)).unwrap();
-        // The old file with the converted content in place of its old one.
-        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(&old)).unwrap();
-        let mut out = std::io::Cursor::new(Vec::new());
-        {
-            let mut writer = zip::ZipWriter::new(&mut out);
-            let options = zip::write::SimpleFileOptions::default();
-            for index in 0..zip.len() {
-                let mut file = zip.by_index(index).unwrap();
-                let name = file.name().to_owned();
-                let mut data = Vec::new();
-                file.read_to_end(&mut data).unwrap();
-                if name == "kdm/content.bin" {
-                    writer.start_file(CONTENT, options).unwrap();
-                    writer.write_all(&content).unwrap();
-                } else {
-                    writer.start_file(name, options).unwrap();
-                    writer.write_all(&data).unwrap();
-                }
-            }
-            writer.finish().unwrap();
-        }
-        let bytes = kit_save(&out.into_inner(), &content);
-        println!("REGEN {sample} {}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes));
-        printed += 1;
-    }
-    panic!("REGEN printed {printed} samples");
 }
