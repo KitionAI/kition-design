@@ -453,7 +453,7 @@ fn a_restore_through_the_host_keeps_the_name_the_publication_and_the_comments() 
 
     let person = kition_design_engine::kdm::local_person();
     let damage = doc.restore_state(&saved, &person).unwrap();
-    assert_ne!(serde_json::to_value(&damage).unwrap(), json!("none"));
+    assert_ne!(serde_json::to_value(&damage).unwrap()["kind"], json!("none"), "{damage:?}");
     let d = view(&doc);
     assert!(!d.contains(node_id(&added)), "the design the version holds");
     assert_eq!(d.name, "Shop v2", "the file keeps its current name");
@@ -471,7 +471,7 @@ fn a_restore_through_the_host_keeps_the_name_the_publication_and_the_comments() 
 
     let steps = doc.query("history", &json!({})).unwrap();
     let damage = doc.restore_state(&saved, &person).unwrap();
-    assert_eq!(serde_json::to_value(&damage).unwrap(), json!("none"), "the design already holds it");
+    assert_eq!(serde_json::to_value(&damage).unwrap()["kind"], json!("none"), "the design already holds it");
     assert_eq!(doc.state_json().unwrap(), restored);
     assert_eq!(doc.query("history", &json!({})).unwrap(), steps, "no undo step");
 }
@@ -523,7 +523,7 @@ fn an_agents_draft_merges_as_one_undo_step_of_the_person_and_undoes_exactly() {
 
     let agent = Origin::agent("agent:drafter");
     let answer = doc.merge_changes(&changes, &agent).unwrap();
-    assert_ne!(answer["damage"], json!("none"), "{answer}");
+    assert_eq!(answer["damage"]["kind"], json!("full"), "{answer}");
     assert_eq!(layers(&doc), count + 1, "{answer}");
     for id in [&ellipse, &meanwhile] {
         assert!(view(&doc).contains(node_id(id)), "both sides' layers are there: {id}");

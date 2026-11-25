@@ -121,8 +121,24 @@ fn no_paint_binding_on_the_node(s: &DesignSession, rect: NodeId) {
     assert!(bindings.get("bound").is_none(), "a paint's binding is the paint object's: {bindings}");
 }
 
-/// A variable binding lives on its Paint object: a reorder of the paints moves it with its paint
-/// (the engine names it by the new place), and a recolour of the other paint leaves it.
+/// Swaps a layer's two fills as the engine's reorder does: the paints and the bindings that name
+/// them by place.
+fn swap_fills(d: &mut Document, rect: NodeId) {
+    let n = d.get_mut(rect).unwrap();
+    n.fills.swap(0, 1);
+    let bound: Vec<(String, String)> = std::mem::take(&mut n.bound).into_iter().collect();
+    for (key, variable) in bound {
+        let key = match key.strip_prefix("fills/") {
+            Some(rest) if rest.starts_with("0/") => format!("fills/1/{}", &rest[2..]),
+            Some(rest) if rest.starts_with("1/") => format!("fills/0/{}", &rest[2..]),
+            _ => key,
+        };
+        n.bound.insert(key, variable);
+    }
+}
+
+/// A variable binding lives on its Paint object: a reorder of the paints moves the Paint objects
+/// (the binding with its paint), and a recolour of the other paint leaves it.
 #[test]
 fn a_binding_moves_with_its_paint_on_a_reorder_and_stays_on_a_recolour() {
     let (mut doc, _, rect) = doc();
@@ -131,7 +147,11 @@ fn a_binding_moves_with_its_paint_on_a_reorder_and_stays_on_a_recolour() {
     let (mut a, mut b) = pair(doc);
     let blue = a.document().node(rect).unwrap().fills[1].clone();
     assert_eq!(fill_bindings(&a, rect), [None, Some("V:brand".to_owned())]);
-    edit(&mut a, |d| d.get_mut(rect).unwrap().fills.swap(0, 1));
+    let object = a.ids().node_object(rect).unwrap().clone();
+    let mut objects = a.replica().list(&object, "fills").unwrap();
+    edit(&mut a, |d| swap_fills(d, rect));
+    objects.reverse();
+    assert_eq!(a.replica().list(&object, "fills").unwrap(), objects, "the reorder moves the Paint objects");
     let n = a.document().node(rect).unwrap();
     assert_eq!(n.fills[0], blue);
     assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:brand"), "the binding followed its paint: {:?}", n.bound);
@@ -164,7 +184,7 @@ fn a_draft_reordering_paints_while_the_person_rebinds_keeps_the_binding_on_its_p
         let n = a.document().node(rect).unwrap();
         (n.fills[0].clone(), n.fills[1].clone())
     };
-    edit(&mut draft, |d| d.get_mut(rect).unwrap().fills.swap(0, 1));
+    edit(&mut draft, |d| swap_fills(d, rect));
     edit(&mut a, |d| {
         d.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:accent".into());
     });
