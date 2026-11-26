@@ -105,6 +105,9 @@ try {
   await kit.getByTestId('design-version-save-form-submit').click({ timeout: 10000 })
   await until(async () => (await labelled()).some((c) => c.label === 'With the draft'), 'the labelled version is recorded by the host')
   const version = (await labelled()).find((c) => c.label === 'With the draft')
+  // The panel takes the Layers panel's place; closing it shows the layers again.
+  await kit.getByTestId('design-version-close').click({ timeout: 10000 })
+  await until(async () => (await kit.getByTestId('design-version-history').count()) === 0 && (await panel()).includes('Person A'), 'the Layers panel is back')
   step('d: draw after the version, restore it')
   await draw('After the version', -2700)
   await within(page.evaluate((id) => window.devHost.restoreCheckpoint(id), version.id))
