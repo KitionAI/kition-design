@@ -24,16 +24,23 @@ page.on('pageerror', (error) => errors.push(error.message))
 const PATH = 'Sample.kdesign'
 const frame = () => page.frames().find((f) => f !== page.mainFrame())
 const designKit = (body, arg) => frame().evaluate(body, arg)
+/** The step under way, named in a failure (a click or a host call that never answers). */
+let doing = 'open the editor'
+const step = (name) => {
+  doing = name
+}
+/** `promise`, or a failure naming the step after `ms`. */
+const within = (promise, ms = 20000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`no answer in ${ms} ms`)), ms))])
 const until = async (check, message) => {
   for (let n = 0; n < 200; n += 1) {
-    if (await check().catch(() => false)) return
+    if (await within(check(), 10000).catch(() => false)) return
     await page.waitForTimeout(100)
   }
   assert.fail(message)
 }
 /** An agent's step through the host (`ai/run`), on the document or (`draft`) on the agent's draft. */
 const agent = (command, params, draft) =>
-  page.evaluate(async ({ command, params, draft }) => (await window.devHost.connection().ai.run([{ command, params }], false, draft ? { draft: true } : {})).completed[0].result, { command, params, draft })
+  within(page.evaluate(async ({ command, params, draft }) => (await window.devHost.connection().ai.run([{ command, params }], false, draft ? { draft: true } : {})).completed[0].result, { command, params, draft }))
 /** The names of the first page's top-level layers, as the editor reads them. */
 const layers = async () => (await designKit(() => window.designKit.query('document', { depth: 1 }))).pages[0].children.map((child) => child.name)
 /** The text of the Layers panel. */
@@ -45,12 +52,12 @@ const shows = async (names, want) => {
 }
 /** The person draws a rectangle named `name` (the editor's own command, as its tool runs it). */
 const draw = async (name, x) => {
-  await designKit(([name, x]) => window.designKit.run('shape.rectangle', { x, y: -3000, width: 40, height: 40, props: { name } }), [name, x])
+  await within(designKit(([name, x]) => window.designKit.run('shape.rectangle', { x, y: -3000, width: 40, height: 40, props: { name } }), [name, x]))
   await until(async () => (await panel()).includes(name), `the person's ${name} shows in the Layers panel`)
 }
 const button = async (id) => {
   await until(() => kit.getByTestId(id).isEnabled(), `${id} is enabled`)
-  await kit.getByTestId(id).click()
+  await kit.getByTestId(id).click({ timeout: 10000 })
 }
 const NAMES = ['Person A', 'Person B', 'From the draft', 'After the version']
 let failures = 0
@@ -61,22 +68,26 @@ try {
   await until(async () => (await designKit(() => Boolean(window.designKit?.canvas.current?.view()))) === true, 'the canvas is up')
 
   // a. The person's edit, then the agent's draft of another.
+  step('a: the person draws, the agent drafts')
   await draw('Person A', -3000)
   await agent('shape.rectangle', { x: -2900, y: -3000, width: 40, height: 40, props: { name: 'From the draft' } }, true)
   const drafted = JSON.stringify(await page.evaluate(() => window.devHost.connection().ai.inspect({ draft: true })))
   assert.ok((await page.evaluate(() => window.devHost.connection().draft.state())).state !== 'none', 'the draft is open')
   const before = await layers()
+  step('a: compare the draft')
   const compared = await page.evaluate(() => window.devHost.connection().draft.compare({ maxSize: 256 }))
   assert.ok(compared.summary.created.length >= 1, `the preview lists the draft's layer: ${JSON.stringify(compared.summary).slice(0, 400)} (draft ${drafted.slice(0, 200)})`)
   assert.deepEqual(await layers(), before, 'comparing changes nothing in the document')
   assert.ok(await shows(NAMES, ['Person A']), 'the editor does not show the draft\'s layer')
   await draw('Person B', -2800)
+  step('a: merge the draft')
   const merged = await page.evaluate(() => window.devHost.connection().draft.merge({ kind: 'agent', principal: 'agent:test' }))
   assert.equal(merged.merged, true, 'the draft merged')
   await until(() => shows(NAMES, ['Person A', 'Person B', 'From the draft']), `the editor shows both the person's layers and the draft's (${await layers()})`)
   console.log(`PASS ${which}: a draft accepted after the person's edits keeps them and adds its own`)
 
   // b. One Undo takes the draft back, and only the draft; Redo brings it back.
+  step('b: Undo, Redo')
   await button('design-undo')
   await until(() => shows(NAMES, ['Person A', 'Person B']), `one Undo takes back the draft's layer only (${await layers()})`)
   await button('design-redo')
@@ -85,16 +96,20 @@ try {
 
   // d. A version saved with a label; a later edit; the host restores the version; Undo.
   const labelled = async () => (await page.evaluate((path) => window.devHost.history.checkpoints(path), PATH)).filter((c) => c.label)
-  await designKit(() => window.designKit.run('file.versionHistory', {}))
+  step('d: open Version history')
+  await within(designKit(() => window.designKit.run('file.versionHistory', {})))
   await until(async () => (await kit.getByTestId('design-version-history').count()) === 1, 'the Version history panel opens')
-  await kit.getByTestId('design-version-save-toggle').click()
-  await kit.getByTestId('design-version-save-form-title').fill('With the draft')
-  await kit.getByTestId('design-version-save-form-submit').click()
+  step('d: save a version with a label')
+  await kit.getByTestId('design-version-save-toggle').click({ timeout: 10000 })
+  await kit.getByTestId('design-version-save-form-title').fill('With the draft', { timeout: 10000 })
+  await kit.getByTestId('design-version-save-form-submit').click({ timeout: 10000 })
   await until(async () => (await labelled()).some((c) => c.label === 'With the draft'), 'the labelled version is recorded by the host')
   const version = (await labelled()).find((c) => c.label === 'With the draft')
+  step('d: draw after the version, restore it')
   await draw('After the version', -2700)
-  await page.evaluate((id) => window.devHost.restoreCheckpoint(id), version.id)
+  await within(page.evaluate((id) => window.devHost.restoreCheckpoint(id), version.id))
   await until(() => shows(NAMES, ['Person A', 'Person B', 'From the draft']), `the restore shows the version's content (${await layers()})`)
+  step('d: Undo the restore')
   await button('design-undo')
   await until(() => shows(NAMES, ['Person A', 'Person B', 'From the draft', 'After the version']), `one Undo brings the later edit back (${await layers()})`)
   console.log(`PASS ${which}: a restored version is one step of the person's Undo`)
@@ -102,7 +117,7 @@ try {
 } catch (error) {
   failures += 1
   shots.failed('error')
-  console.log(`FAIL ${which}: ${error instanceof Error ? error.message.split('\n').slice(0, 6).join(' / ') : String(error)}`)
+  console.log(`FAIL ${which} (${doing}): ${error instanceof Error ? error.message.split('\n').slice(0, 6).join(' / ') : String(error)}`)
 } finally {
   if (errors.length) console.log(`page errors:\n${errors.slice(0, 8).join('\n')}`)
   await shots.settled()

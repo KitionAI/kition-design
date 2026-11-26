@@ -75,12 +75,14 @@ try {
     }
     const at = zoom === null ? 'default zoom' : `zoom ${Math.round(zoom * 100)} %`
     let clean = 0
+    const began = Date.now()
     for (let run = 1; run <= RUNS; run += 1) {
-      // A fresh state: the weights set again, nothing selected, then the two layers.
+      // A fresh state: the weights set again, one layer selected (the field shows its weight),
+      // then the two (the field shows Mixed).
       await designKit(([a, b]) => window.designKit.run('node.set', { ids: [a], props: { strokeWeight: 3 } }).then(() => window.designKit.run('node.set', { ids: [b], props: { strokeWeight: 7 } })), [SAVE, OTHER])
-      await designKit(() => window.designKit.run('select.set', { ids: [] }))
+      await designKit((ids) => window.designKit.run('select.set', { ids }), [OTHER])
       const field = kit.getByTestId('design-stroke-weight')
-      await until(async () => (await field.count()) === 0)
+      await until(async () => (await field.count()) === 1 && (await field.getAttribute('data-mixed')) !== 'true' && (await field.locator('input').inputValue()) === '7')
       await designKit((ids) => window.designKit.run('select.set', { ids }), [SAVE, OTHER])
       const mixed = await until(async () => (await field.count()) === 1 && (await field.getAttribute('data-mixed')) === 'true')
       const [wa, wb] = await weights()
@@ -116,7 +118,7 @@ try {
         console.log(`  scrub: ${(await designKit(() => window.__scrub.join('\n    '))) ?? ''}`)
       }
     }
-    console.log(`${clean === RUNS ? 'PASS' : 'FAIL'} ${which} ${at}: ${clean} of ${RUNS} scrubs of a mixed stroke weight moved each weight by the drag's delta`)
+    console.log(`${clean === RUNS ? 'PASS' : 'FAIL'} ${which} ${at}: ${clean} of ${RUNS} scrubs of a mixed stroke weight moved each weight by the drag's delta (${((Date.now() - began) / 1000).toFixed(0)} s)`)
   }
   console.log(`${which}: ${((Date.now() - started) / 1000).toFixed(0)} s`)
 } catch (error) {
