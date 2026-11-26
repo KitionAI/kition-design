@@ -195,15 +195,16 @@ impl DesignDocument {
     /// person (`mergeChanges`, as `export_kit_session!` answers it; M12a: the person accepts the
     /// draft, also one an agent made, `origin`): the engine's design follows, and the person's one
     /// Undo takes the whole draft back. Add the draft's blobs first. Answers `{"damage",
-    /// "summary"}`, `summary` what the merge and the repair after it changed (`StateDiff`, read
+    /// "summary", "scope"}`, `scope` the undo scope the merge's step went to (`"person"`, `null`
+    /// for no step), `summary` what the merge and the repair after it changed (`StateDiff`, read
     /// only at the objects they wrote, `Replica::diff_since`). A refused merge changes nothing and
     /// fails with the KDM's message.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
-        let (wrote, since) = self.aside(|doc| doc.session.merge_draft(bytes, origin).map_err(engine_error))?;
+        let (wrote, since, scope) = self.aside(|doc| doc.session.merge_draft(bytes, origin).map_err(engine_error))?;
         let kdm = self.session.kdm().ok_or("the design left its replica")?;
         let summary = kdm.replica().diff_since(&since).map_err(engine_error)?;
         let damage = if wrote { Damage::Full } else { Damage::None };
-        Ok(json!({ "damage": damage, "summary": summary.to_json() }))
+        Ok(json!({ "damage": damage, "summary": summary.to_json(), "scope": scope.map(UndoScope::as_str) }))
     }
 
     /// What merging a draft's changes would change in the design now, as `StateDiff` JSON, read

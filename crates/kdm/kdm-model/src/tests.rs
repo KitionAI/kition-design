@@ -507,7 +507,7 @@ fn a_draft_deleting_the_other_of_the_last_two_pages_leaves_one_page() {
         d.take_dirty();
         session.record(&person(), &Arc::new(d)).unwrap();
     }
-    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap().1.unwrap();
     let v = a.document();
     assert_eq!(v.pages.len(), 1, "{:?}", v.pages);
     assert!(!pages.contains(&v.pages[0]), "a new page: {:?}", v.pages);
@@ -533,7 +533,7 @@ fn a_draft_adding_a_library_the_document_added_meanwhile_keeps_one_link() {
     a.record(&person(), &da).unwrap();
     let dd = with_library(draft.document(), "lib-c", "C.kdesign");
     draft.record(&person(), &dd).unwrap();
-    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap().1.unwrap();
     let links = &a.document().libraries.enabled;
     assert_eq!(links.iter().map(|l| (l.id.as_str(), l.path.as_str())).collect::<Vec<_>>(), [("lib-c", "C.kdesign")], "{links:?}");
     let r = a.replica();

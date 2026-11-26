@@ -190,12 +190,15 @@ impl DesignSession {
     }
 
     /// Takes a draft's changes (made on a fork of this replica) in as one transaction of `origin`
-    /// (`Replica::merge_changes`): one undo step of its scope unless `origin` is a `system` or
-    /// `import` one. Repairs the result and patches the view as an import does; add the draft's
-    /// blobs first ([`DesignSession::add_blobs`]). A refused merge changes nothing.
-    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<()> {
-        self.replica.merge_changes(bytes, origin).map_err(kit_err)?;
-        self.settle()
+    /// (`Replica::merge_changes`): one undo step of the person (KitModel M12a, also for an agent's
+    /// `origin`) unless `origin` is a `system` or `import` one. Repairs the result and patches the
+    /// view as an import does; add the draft's blobs first ([`DesignSession::add_blobs`]). A
+    /// refused merge changes nothing (the outer error). Answers the undo scope the merge's step was
+    /// recorded in (`DraftMerge::scope`, `None` for no step) and the repair's result: a merge
+    /// whose repair failed is still taken in.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Result<()>)> {
+        let merged = self.replica.merge_changes(bytes, origin).map_err(kit_err)?;
+        Ok((merged.scope, self.settle()))
     }
 
     pub fn can_undo_in(&self, scope: UndoScope) -> bool {

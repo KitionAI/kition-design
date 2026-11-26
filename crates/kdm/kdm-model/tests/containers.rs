@@ -188,7 +188,7 @@ fn a_draft_reordering_paints_while_the_person_rebinds_keeps_the_binding_on_its_p
     edit(&mut a, |d| {
         d.get_mut(rect).unwrap().bound.insert("fills/1/color".into(), "V:accent".into());
     });
-    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap();
+    a.merge_changes(&draft.export_changes(&base).unwrap(), &person()).unwrap().1.unwrap();
     let n = a.document().node(rect).unwrap();
     assert_eq!(n.fills, vec![blue, red], "the draft's reorder");
     assert_eq!(n.bound.get("fills/0/color").map(String::as_str), Some("V:accent"), "the person's binding, on its paint: {:?}", n.bound);

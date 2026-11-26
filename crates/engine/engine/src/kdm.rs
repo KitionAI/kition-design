@@ -576,10 +576,11 @@ impl Session {
     /// accepts the draft, also one an agent made, and the replica records it in the person's
     /// scope whatever `origin` names; none for a `system` or `import` origin): local edits not
     /// written yet are written first, the document follows the replica as after an import, and
-    /// the person's one Undo takes the whole draft back. Answers whether it changed the replica
-    /// and the replica's version just before the merge (what `Replica::diff_since` reads the
-    /// merge's summary from). A refused merge changes nothing.
-    pub fn merge_draft(&mut self, bytes: &[u8], origin: &Origin) -> Result<(bool, Version)> {
+    /// the person's one Undo takes the whole draft back. Answers whether it changed the replica,
+    /// the replica's version just before the merge (what `Replica::diff_since` reads the
+    /// merge's summary from) and the undo scope the merge's step went to (`DraftMerge::scope`:
+    /// the person's, `None` for no step). A refused merge changes nothing.
+    pub fn merge_draft(&mut self, bytes: &[u8], origin: &Origin) -> Result<(bool, Version, Option<UndoScope>)> {
         const LABEL: &str = "Merge draft";
         let uid = self.ds()?.uid;
         if let Some(why) = self.live_read_only(uid) {
@@ -594,26 +595,30 @@ impl Session {
         let (doc, selection, page) = (ds.committed(), ds.selection.clone(), ds.page);
         let kdm = ds.link.kdm.as_mut().ok_or_else(no_replica)?;
         let before = kdm.version();
-        let result = kdm.merge_changes(bytes, origin);
+        let (scope, result) = match kdm.merge_changes(bytes, origin) {
+            Ok((scope, repaired)) => (scope, repaired),
+            Err(error) => (None, Err(error)),
+        };
         let changed = kdm.version() != before;
         if !changed {
             result.map_err(kdm_error)?;
-            return Ok((false, before));
+            return Ok((false, before, None));
         }
         if result.is_err() && !kdm.view_loaded() {
             ds.detach_kdm();
-            return result.map_err(kdm_error).map(|()| (true, before));
+            return result.map_err(kdm_error).map(|()| (true, before, scope));
         }
         ds.follow_kdm();
-        if kition_design_kdm::undoable(origin) {
-            // The replica records a merge in the person's scope (M12a), whoever made the draft.
-            ds.push_undo(LABEL, doc, selection, page, UndoScope::Person);
+        // The replica records a merge in the person's scope (M12a), whoever made the draft: the
+        // engine's history takes the step where the replica put it.
+        if let Some(scope) = scope {
+            ds.push_undo(LABEL, doc, selection, page, scope);
             if let Some(top) = ds.history.undo.last_mut() {
                 top.steps = 1;
             }
         }
         ds.mark();
-        result.map_err(kdm_error).map(|()| (true, before))
+        result.map_err(kdm_error).map(|()| (true, before, scope))
     }
 
     /// Takes in what another program saved to the active document's file while the document was
