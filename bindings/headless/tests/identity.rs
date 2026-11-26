@@ -259,7 +259,7 @@ async fn an_agents_batches_save_content_alone() {
             .unwrap();
         assert!(ran.get("error").is_none(), "{ran}");
     }
-    kit.request("document.save", json!({ "documentId": document }), LIMIT).await.unwrap();
+    kit.request("file.save", json!({ "documentId": document }), LIMIT).await.unwrap();
     let saved = std::fs::read(dir.join("Plan.kdesign")).unwrap();
     let content = entry(&saved, "kdm/content.json").unwrap();
     let value: Value = serde_json::from_slice(&content).unwrap();
