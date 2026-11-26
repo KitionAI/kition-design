@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-merge-changing-nothing
+feature: design.collab.containers
+intent: >-
+  A merged draft that changes nothing records nothing (kition-sdk 6a57d68): the person deletes a
+  rectangle while an agent's draft deletes the same one (the same change, rules D7 and D8), and the
+  repair inside the merge writes nothing. The merge answers no scope and no damage; the state, the
+  engine's design, the version, the person's undo depth and the history's labels stay; the next
+  undo is named by the deletion, the person's Undo takes it back exactly and Redo deletes it again
+  (test a_merge_that_changes_nothing_records_no_step).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: kition-sdk 6a57d68 alignment (schema-freeze, 2026-11-26)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: collab
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-26"

@@ -545,6 +545,49 @@ fn an_agents_draft_merges_as_one_undo_step_of_the_person_and_undoes_exactly() {
     assert!(kition_design_kdm::same_content(&view(&doc), &merged_view));
 }
 
+/// A merge that changes nothing records nothing (kition-sdk 6a57d68, data model 6.6 D9): the
+/// person deletes a rectangle while an agent's draft deletes the same one (D7, D8: the same
+/// change), so the merge, with the repair inside it, leaves the design as it was. It answers no
+/// scope and no damage; the state, the version, the person's undo depth and the history's labels
+/// stay; the person's next Undo is named by the deletion and takes it back exactly. (No draft of
+/// the design is taken back whole by the repair alone: a draft that places into a layer, a thread
+/// or a list the person deleted collides (D7, D8), and V9, V11 and V12 keep one of two copies by
+/// object id, which changes the design when the person's sorts later.)
+#[test]
+fn a_merge_that_changes_nothing_records_no_step() {
+    let mut doc = DesignDocument::open("Design.kdesign", &fixture()).unwrap();
+    rect(&mut doc, 200.0);
+    let start = doc.state_json().unwrap();
+    let base = doc.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+    let card = the_rect(&draft);
+    let agent = Origin::agent("agent:drafter");
+    draft.execute_as("edit.delete", json!({ "ids": [card] }), &agent).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+
+    doc.execute("edit.delete", json!({ "ids": [the_rect(&doc)] })).unwrap();
+    let (deleted, deleted_view, version) = (doc.state_json().unwrap(), view(&doc), doc.version().unwrap());
+    let history = doc.query("history", &json!({})).unwrap();
+    let deletion = doc.inspect().unwrap()["undo"].clone();
+    assert!(deletion.is_string() && deletion != json!("Merge draft"), "{deletion}");
+    let depth = doc.session().kdm().unwrap().replica().undo_depth(UndoScope::Person);
+
+    let answer = doc.merge_changes(&changes, &agent).unwrap();
+    assert_eq!(answer["scope"], Value::Null, "no step was recorded: {answer}");
+    assert_eq!(answer["damage"]["kind"], json!("none"), "{answer}");
+    assert_eq!(doc.state_json().unwrap(), deleted, "the merge changes nothing");
+    assert!(kition_design_kdm::same_content(&view(&doc), &deleted_view), "nor the engine's own design");
+    assert_eq!(doc.version().unwrap(), version, "no change is logged");
+    assert_eq!(doc.session().kdm().unwrap().replica().undo_depth(UndoScope::Person), depth, "the replica records no step");
+    assert_eq!(doc.query("history", &json!({})).unwrap(), history, "nor does the engine's history");
+    assert_eq!(doc.inspect().unwrap()["undo"], deletion, "the next undo is named by the deletion");
+
+    assert!(doc.undo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), start, "the person's Undo takes back their deletion exactly");
+    assert!(doc.redo().unwrap().0);
+    assert_eq!(doc.state_json().unwrap(), deleted, "Redo deletes the rectangle again");
+}
+
 /// `compareChanges`: what a draft's merge would change, named before it runs; nothing changes.
 #[test]
 fn comparing_a_draft_changes_nothing_and_names_what_the_merge_does() {
