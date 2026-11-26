@@ -453,7 +453,7 @@ fn label_copy_text(doc: &DesignDocument, library: &str) -> Vec<String> {
     let mut texts = Vec::new();
     for record in ds.doc.libraries.components.iter().filter(|r| r.library == library) {
         for child in &ds.doc.node(record.root).unwrap().children {
-            if let Some(text) = ds.doc.node(*child).and_then(|n| n.text()) {
+            if let Some(text) = ds.doc.node(*child).and_then(|n| n.kind.text()) {
                 texts.push(text.characters.clone());
             }
         }
