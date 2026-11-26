@@ -1,0 +1,25 @@
+format: 1
+id: design.collab.containers/drafts-editor
+feature: design.collab.containers
+intent: >-
+  An agent's draft and a restored version in the real editor under the development host (replica
+  and checkpoints): the person adds a layer, the agent's draft adds another, the comparison lists
+  the draft's layer and leaves the document as it was, the person adds a layer meanwhile, and
+  accepting the draft keeps both of the person's layers and adds the draft's in the Layers panel;
+  one Undo takes back the draft's layer only and Redo brings it back; a version saved with a label
+  and restored by the host shows its content, and one Undo brings back the layer added after it.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: web/tests/drafts.mjs
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/drafts.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 300
+requires: [chromium]

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-mixed-weight-scrub-repeat
+feature: design.object.transform
+intent: >-
+  A scrub of the Stroke weight field over two layers of different weights moves each weight by the
+  drag's delta, every time: paint.mjs failed twice in CI on Chromium (weights 3 and 7 became 1363
+  and 10, at 1660 % zoom) and passed on rerun. web/tests/scrub-repeat.mjs performs that scrub 30
+  times at the default zoom and 30 times at 1660 %, each from a fresh state, and asserts the exact
+  weights each time, printing the scrub's pointer events and commands on a failure.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design CI on GitHub's Linux runners (web/tests/paint.mjs)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/scrub-repeat.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]
