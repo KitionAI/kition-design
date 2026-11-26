@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-draft-preview-repaired
+feature: design.collab.containers
+intent: >-
+  A draft's preview (`compareChanges`) read the merge without the repair, so a draft placing a
+  library component the person placed meanwhile previewed two copies where accepting it gives one.
+  The preview now runs the repair on its copy (`DesignSession::compare_changes`,
+  `Replica::compare_changes_repaired`): the comparison equals what the merge changed, the previewed
+  state equals the state after merging and differs from the unrepaired merge, and comparing
+  changes nothing (test a_drafts_preview_shows_the_repaired_merge).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: kition-sdk 7466039 alignment (schema-freeze, 2026-11-26)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: libraries
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-26"

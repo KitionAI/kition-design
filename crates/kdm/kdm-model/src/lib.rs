@@ -48,7 +48,7 @@ use kition_kit::session::KitError;
 pub use ids::Ids;
 pub use read::{read_document, read_with};
 pub use session::{DesignSession, blobs_of, undoable};
-pub use validate::{StoreTexts, repair_comment_ids, store_texts, validate};
+pub use validate::{repair_comment_ids, validate};
 pub use write::{write_changes, write_document};
 
 /// Re-exported so the engine and the bindings share this crate's exact kition-sdk pin.

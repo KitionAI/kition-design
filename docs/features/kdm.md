@@ -430,7 +430,11 @@ nodes), from an undo or redo carried over later changes, and from what a file, a
 agent's batch holds. The tests name each rule's state and how it arises.
 
 Run after open, every import, undo and redo, in one `system` transaction labelled `repair`,
-only when something is wrong. Every rule depends on the state alone. A repair drops, clears,
+only when something is wrong. A draft's merge runs it inside the merge's transaction
+(`Replica::merge_changes_repaired`; the rules read text through the transaction, `Tx::text_delta`),
+so the repair is part of the merge's one undo step: one Undo gives back the exact state before the
+merge, one Redo the repaired state. A draft's preview (`compareChanges`) runs it on its copy, so
+it shows what accepting the draft gives. Every rule depends on the state alone. A repair drops, clears,
 renames or moves; it inserts only under an object id derived from the state (V8, V12), and it
 sets a setting only to values derived from the state (V10). The tree rules (V3, V4, V5) hold for
 both trees, `Design.nodes` and

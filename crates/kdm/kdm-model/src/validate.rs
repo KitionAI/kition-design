@@ -8,8 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use kition_design_doc::{Document, NodeId, NodeKind};
-use kition_kit::kdm::{NodeRef, ObjectId, Replica, Tx};
-use kition_kit::session::TextRun;
+use kition_kit::kdm::{NodeRef, ObjectId, Tx};
 use serde_json::{Value, json};
 
 use crate::store::{self, BY_ASSET, COPIES, STORE_PAGE, STORE_TREE};
@@ -91,33 +90,15 @@ pub(crate) fn live_keys(tx: &Tx<'_>) -> KdmResult<BTreeSet<NodeId>> {
     Ok(keys)
 }
 
-/// The text fields of the library store's layers (`Node.text`, by object), read before the
-/// repair's transaction: a transaction cannot read a text field, and V12 copies them.
-pub type StoreTexts = HashMap<ObjectId, Vec<TextRun>>;
-
-/// [`StoreTexts`] of `replica`: every live store layer whose text is not empty.
-pub fn store_texts(replica: &Replica) -> StoreTexts {
-    let mut out = StoreTexts::new();
-    for entry in replica.tree(&root_id(), STORE_TREE).unwrap_or_default() {
-        if !replica.exists(&entry.object) {
-            continue;
-        }
-        if let Ok(runs) = replica.text_delta(&entry.object, "text")
-            && !runs.is_empty()
-        {
-            out.insert(entry.object, runs);
-        }
-    }
-    out
+/// Runs the rules; answers whether it wrote anything.
+pub fn validate(tx: &mut Tx<'_>, _changed: &BTreeSet<ObjectId>) -> Result<bool> {
+    repair(tx).map_err(kit_err)
 }
 
-/// Runs the rules; answers whether it wrote anything. `texts` is [`store_texts`] of the state the
-/// transaction starts from.
-pub fn validate(tx: &mut Tx<'_>, _changed: &BTreeSet<ObjectId>, texts: &StoreTexts) -> Result<bool> {
-    repair(tx, texts).map_err(kit_err)
-}
-
-fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
+/// The rules in a transaction: the repair of an open, an import, an undo or a redo in its own
+/// `system` transaction, and of a merge inside the merge's step (`Replica::merge_changes_repaired`,
+/// so one undo takes both back). They read text fields through the transaction (V12 copies them).
+pub(crate) fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
     let mut wrote = false;
     let root = root_id();
     if !tx.exists(&root) {
@@ -148,7 +129,7 @@ fn repair(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
     wrote |= one_copy_per_asset(tx)?;
     // V12: copies of one library component placed by a draft and meanwhile become one (after V11, which leaves
     // one record per copy; before V1, V3 and V10, which see the new copy).
-    if crate::merge::one_copy_per_component(tx, texts)? {
+    if crate::merge::one_copy_per_component(tx)? {
         wrote = true;
         store_entries = tx.tree(&root, STORE_TREE)?;
     }

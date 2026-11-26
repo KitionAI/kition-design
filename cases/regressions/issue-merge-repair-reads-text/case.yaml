@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-merge-repair-reads-text
+feature: design.collab.containers
+intent: >-
+  The repair of a merged draft reads text (V12 copies the kept component copy's text), and a
+  transaction could not read text, so the repair ran as a separate `system` step after the merge:
+  the person's one Undo of the merge left the repair's copy behind. kition-sdk 7466039's `Tx` reads
+  text (`Tx::text_delta`), so the repair now runs inside the merge's step
+  (`Replica::merge_changes_repaired`): an agent's draft placing a library component with a text
+  layer that the person placed meanwhile merges into one copy with the library's text, one Undo
+  gives back the exact state hash before the merge and one Redo the exact repaired state (test
+  a_merge_whose_repair_copies_text_undoes_in_one_step_exactly).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: kition-sdk 7466039 alignment (schema-freeze, 2026-11-26)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-design-kit
+      test: libraries
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-26"

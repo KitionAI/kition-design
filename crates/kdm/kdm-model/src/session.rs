@@ -3,8 +3,8 @@
 //!
 //! It is `kition_kit::session::KitSession`'s flow on concrete parts, as Kition Vector's and
 //! Design's sessions are: transactions with an origin, the replica's undo in scopes, the change
-//! exchange, the repair after an import, an undo or a redo, and the view patched from the
-//! replica. Edits are diff-bridged: the engine changes its own [`Document`] and
+//! exchange, the repair after an import, an undo or a redo (and inside a merge's step), and the
+//! view patched from the replica. Edits are diff-bridged: the engine changes its own [`Document`] and
 //! [`DesignSession::record`] writes what changed as one transaction, then adopts it as the view.
 
 use std::collections::BTreeSet;
@@ -60,12 +60,18 @@ fn transact(replica: &mut Replica, origin: &Origin, f: impl FnOnce(&mut Tx<'_>) 
     }
 }
 
-/// The repair (rules V1 to V12) in a `system` transaction labelled `repair`, written only when
-/// there is something to repair.
+/// The repair (rules V1 to V13) in a `system` transaction labelled `repair`, written only when
+/// there is something to repair: after an open, an import, an undo or a redo.
 fn repair(replica: &mut Replica) -> Result<()> {
     let everything = BTreeSet::new();
-    let texts = crate::validate::store_texts(replica);
-    transact(replica, &Origin::system("repair"), |tx| validate(tx, &everything, &texts)).map(|_| ())
+    transact(replica, &Origin::system("repair"), |tx| validate(tx, &everything)).map(|_| ())
+}
+
+/// The repair as a merge runs it inside its transaction (`Replica::merge_changes_repaired`,
+/// `compare_changes_repaired`, `merged_state_repaired`): its writes are part of the merge's one
+/// step, so one undo gives back the exact state before the merge and one redo the repaired one.
+fn in_merge(tx: &mut Tx<'_>, _changed: &BTreeSet<ObjectId>) -> std::result::Result<(), KdmError> {
+    crate::validate::repair(tx).map(drop)
 }
 
 /// The images of `doc` as blobs.
@@ -190,15 +196,31 @@ impl DesignSession {
     }
 
     /// Takes a draft's changes (made on a fork of this replica) in as one transaction of `origin`
-    /// (`Replica::merge_changes`): one undo step of the person (KitModel M12a, also for an agent's
-    /// `origin`) unless `origin` is a `system` or `import` one. Repairs the result and patches the
-    /// view as an import does; add the draft's blobs first ([`DesignSession::add_blobs`]). A
-    /// refused merge changes nothing (the outer error). Answers the undo scope the merge's step was
-    /// recorded in (`DraftMerge::scope`, `None` for no step) and the repair's result: a merge
-    /// whose repair failed is still taken in.
+    /// with the repair of the merged state in it (`Replica::merge_changes_repaired`): one undo step
+    /// of the person (KitModel M12a, also for an agent's `origin`) unless `origin` is a `system` or
+    /// `import` one, and that one step's undo gives back the exact state before the merge. Patches
+    /// the view as an import does; add the draft's blobs first ([`DesignSession::add_blobs`]). A
+    /// refused merge (also one whose repair fails) changes nothing (the outer error). Answers the
+    /// undo scope the merge's step was recorded in (`DraftMerge::scope`, `None` for no step) and
+    /// whether the view read the merged state: a merge whose view failed is still taken in.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Result<()>)> {
-        let merged = self.replica.merge_changes(bytes, origin).map_err(kit_err)?;
-        Ok((merged.scope, self.settle()))
+        let merged = self.replica.merge_changes_repaired(bytes, origin, in_merge).map_err(kit_err)?;
+        let changed = self.replica.take_changed();
+        let read = if changed.is_empty() { Ok(()) } else { self.refresh(&changed) };
+        Ok((merged.scope, read))
+    }
+
+    /// What merging a draft's changes would change in the design now, the repair included as
+    /// [`DesignSession::merge_changes`] runs it (`Replica::compare_changes_repaired`), so a draft's
+    /// preview is what accepting it gives. Nothing changes; refuses what the merge refuses.
+    pub fn compare_changes(&self, bytes: &[u8]) -> Result<kition_kit::kdm::diff::StateDiff> {
+        self.replica.compare_changes_repaired(bytes, in_merge).map_err(kit_err)
+    }
+
+    /// The canonical state merging a draft's changes would give, the repair included
+    /// (`Replica::merged_state_repaired`, see [`DesignSession::compare_changes`]); nothing changes.
+    pub fn merged_state(&self, bytes: &[u8]) -> Result<serde_json::Value> {
+        self.replica.merged_state_repaired(bytes, in_merge).map_err(kit_err)
     }
 
     pub fn can_undo_in(&self, scope: UndoScope) -> bool {

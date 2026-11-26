@@ -408,3 +408,105 @@ fn a_draft_placing_the_component_the_person_placed_meanwhile_keeps_one_copy() {
     }
     assert_eq!(a.session().ds().unwrap().doc.libraries.components.iter().filter(|r| r.library == system).count(), 1);
 }
+
+/// A library whose component "Label" holds the text layer "Sign in".
+fn label_library() -> Vec<u8> {
+    let mut s = Session::with_document(kition_design_doc::Document::new("Labels"));
+    let f = ex(&mut s, "frame.add", json!({ "x": 0, "y": 0, "width": 120, "height": 40, "name": "Label" }))["id"].clone();
+    ex(&mut s, "text.add", json!({ "text": "Sign in", "x": 8, "y": 8, "parent": f }));
+    ex(&mut s, "component.add", json!({ "ids": [f] }));
+    ex(&mut s, "library.publish", json!({}));
+    kition_design_format::save_bytes(s.doc().unwrap()).unwrap()
+}
+
+/// An agent's draft places the library component "Label" while the person places it meanwhile
+/// (the store already exists): the design, the draft's changes and both instances. Merging them
+/// leaves two copies of the component that the repair (V12) makes one, copying the kept copy's
+/// text, which it reads in the merge's transaction.
+fn a_draft_placing_the_label_twice() -> (DesignDocument, Vec<u8>, Vec<Value>, String) {
+    kition_kit::host::set_root(None);
+    let (labels, icons) = (label_library(), icons());
+    let lend = |doc: &mut DesignDocument| {
+        doc.lend_library("Labels.kdesign", Some(&labels)).unwrap();
+        doc.lend_library("Icons.kdesign", Some(&icons)).unwrap();
+    };
+    let (mut a, _) = design();
+    lend(&mut a);
+    let library = a.execute("library.add", json!({ "path": "Labels.kdesign" })).unwrap()["id"].as_str().unwrap().to_owned();
+    let icon_lib = a.execute("library.add", json!({ "path": "Icons.kdesign" })).unwrap()["id"].as_str().unwrap().to_owned();
+    a.execute("library.place", json!({ "library": icon_lib, "component": "Icon", "x": 500, "y": 100 })).unwrap();
+    let base = a.version().unwrap();
+    let mut draft = DesignDocument::open_with_replica("Design.kdesign", &[], &a.snapshot().unwrap(), &a.blobs().unwrap()).unwrap();
+    lend(&mut draft);
+    let mut instances = Vec::new();
+    for (doc, x) in [(&mut draft, 300), (&mut a, 100)] {
+        instances.push(doc.execute("library.place", json!({ "library": library, "component": "Label", "x": x, "y": 100 })).unwrap()["id"].clone());
+    }
+    let changes = draft.export_changes(&base).unwrap();
+    a.add_blobs(&draft.blobs_since(&base).unwrap()).unwrap();
+    (a, changes, instances, library)
+}
+
+/// The text layers of every copy of `library`'s component in the library store.
+fn label_copy_text(doc: &DesignDocument, library: &str) -> Vec<String> {
+    let ds = doc.session().ds().unwrap();
+    let mut texts = Vec::new();
+    for record in ds.doc.libraries.components.iter().filter(|r| r.library == library) {
+        for child in &ds.doc.node(record.root).unwrap().children {
+            if let Some(text) = ds.doc.node(*child).and_then(|n| n.text()) {
+                texts.push(text.characters.clone());
+            }
+        }
+    }
+    texts
+}
+
+/// Regression (`docs/features/kdm.md` section 5, V12; kition-sdk regressions/issue-merge-repair-reads-text):
+/// the repair reads the merged copies' text, so it ran as a separate `system` step after the merge
+/// and the person's one Undo of the merge left the repair's copy behind. It now runs inside the
+/// merge's step (`Replica::merge_changes_repaired`, reading text through `Tx::text_delta`): one
+/// copy with the library's text, one Undo gives back the exact state before the merge and one Redo
+/// the exact repaired state.
+#[test]
+fn a_merge_whose_repair_copies_text_undoes_in_one_step_exactly() {
+    let _turn = turn();
+    let (mut a, changes, instances, library) = a_draft_placing_the_label_twice();
+    let hash = |doc: &DesignDocument| doc.session().kdm().unwrap().state_hash().unwrap();
+    let before = hash(&a);
+    let merged = a.merge_changes(&changes, &kition_kit::kdm::Origin::agent("agent:drafter")).unwrap();
+    assert_eq!(merged["scope"], "person", "{merged}");
+    assert_eq!(label_copy_text(&a, &library), ["Sign in"], "one copy, with the text the repair copied");
+    let root = a.session().ds().unwrap().doc.libraries.components.iter().find(|r| r.library == library).map(|r| r.root);
+    assert!(root.is_some());
+    for instance in &instances {
+        assert_eq!(main_of(&a, instance), root, "every instance uses the one copy");
+    }
+    let repaired = hash(&a);
+    assert!(a.undo().unwrap().0);
+    assert_eq!(hash(&a), before, "one undo: the exact state before the merge");
+    assert!(a.redo().unwrap().0);
+    assert_eq!(hash(&a), repaired, "one redo: the exact repaired state");
+    assert_eq!(label_copy_text(&a, &library), ["Sign in"]);
+}
+
+/// Regression (kition-sdk regressions/issue-draft-preview-repaired): a draft's preview
+/// (`compareChanges`) read the merge without the repair, so it showed two copies of "Label" where
+/// accepting the draft gives one. It now runs the repair on its copy: the comparison is what the
+/// merge changed and the previewed state is the merged one; comparing changes nothing.
+#[test]
+fn a_drafts_preview_shows_the_repaired_merge() {
+    let _turn = turn();
+    let (mut a, changes, _, library) = a_draft_placing_the_label_twice();
+    let kdm = a.session().kdm().unwrap();
+    let (version, hash) = (kdm.version(), kdm.state_hash().unwrap());
+    let unrepaired = kdm.replica().merged_state(&changes).unwrap();
+    let previewed = kdm.merged_state(&changes).unwrap();
+    assert_ne!(previewed, unrepaired, "the repair changes this merge");
+    let compared = a.compare_changes(&changes).unwrap();
+    let kdm = a.session().kdm().unwrap();
+    assert_eq!((kdm.version(), kdm.state_hash().unwrap()), (version, hash), "a preview changes nothing");
+    let merged = a.merge_changes(&changes, &kition_kit::kdm::Origin::agent("agent:drafter")).unwrap();
+    assert_eq!(merged["summary"], compared, "the comparison is what accepting changed: {merged}");
+    assert_eq!(a.session().kdm().unwrap().replica().state_json().unwrap(), previewed, "the preview is the merge");
+    assert_eq!(label_copy_text(&a, &library), ["Sign in"]);
+}

@@ -208,11 +208,12 @@ impl DesignDocument {
     }
 
     /// What merging a draft's changes would change in the design now, as `StateDiff` JSON, read
-    /// only at the objects the merge would write (`Replica::compare_changes`); nothing changes.
-    /// Refuses what [`DesignDocument::merge_changes`] refuses.
+    /// only at the objects the merge and its repair would write (`DesignSession::compare_changes`,
+    /// `Replica::compare_changes_repaired`), so the preview is what accepting the draft gives;
+    /// nothing changes. Refuses what [`DesignDocument::merge_changes`] refuses.
     pub fn compare_changes(&self, bytes: &[u8]) -> Result<Value, String> {
         let kdm = self.session.kdm().ok_or("the design has no replica, so no draft of it")?;
-        Ok(kdm.replica().compare_changes(bytes).map_err(engine_error)?.to_json())
+        Ok(kdm.compare_changes(bytes).map_err(engine_error)?.to_json())
     }
 
     /// What changed since the version `since` (empty bytes: since the replica began), a receipt as

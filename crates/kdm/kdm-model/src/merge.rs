@@ -13,7 +13,7 @@
 //! nothing else is written (no instance propagation, no layout: section 4.1). Overrides are
 //! registers of the instances' own layers and stay as they are. The new copy's layers take the
 //! kept copy's paint and effect objects (made again under ids derived from the layer's) and text
-//! (read before the transaction, [`crate::validate::StoreTexts`]).
+//! (read through the transaction, `Tx::text_delta`).
 //!
 //! Why a new copy rather than keeping one of them: each copy was made by one person's
 //! placement, and that person's undo deletes what it made (KitModel M12). A kept copy would go
@@ -34,7 +34,7 @@ use serde_json::{Map, Value, json};
 use crate::fields::{NODE_REGISTERS, node_fields, node_from_lenient};
 use crate::items::{self, BOUND, LISTS};
 use crate::store::{COMPONENT, COPIES, STORE_TREE};
-use crate::validate::{StoreTexts, fnv64, free_repair_key};
+use crate::validate::{fnv64, free_repair_key};
 use crate::{KdmResult, kdm_err, root_id};
 
 /// A component copy's record and where it is.
@@ -175,15 +175,15 @@ fn copy_items(tx: &mut Tx<'_>, objects: &[Vec<ObjectId>; 3], to: &ObjectId, chan
 }
 
 /// Copies a store layer's text (its runs, read before the transaction) into the new layer `to`.
-fn copy_text(tx: &mut Tx<'_>, runs: Option<&Vec<kition_kit::session::TextRun>>, to: &ObjectId) -> KdmResult<()> {
-    let Some(runs) = runs else { return Ok(()) };
+fn copy_text(tx: &mut Tx<'_>, from: &ObjectId, to: &ObjectId) -> KdmResult<()> {
+    let runs = tx.text_delta(from, "text").unwrap_or_default();
     let all: String = runs.iter().map(|r| r.insert.as_str()).collect();
     if all.is_empty() {
         return Ok(());
     }
     tx.text_insert(to, "text", 0, &all)?;
     let mut at = 0;
-    for run in runs {
+    for run in &runs {
         let len = run.insert.chars().count();
         for (key, value) in &run.attributes {
             tx.text_mark(to, "text", at, at + len, key, value.clone())?;
@@ -194,7 +194,7 @@ fn copy_text(tx: &mut Tx<'_>, runs: Option<&Vec<kition_kit::session::TextRun>>, 
 }
 
 /// V12 (run after V11, before V1 and V3). Answers whether it wrote.
-pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>, texts: &StoreTexts) -> KdmResult<bool> {
+pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>) -> KdmResult<bool> {
     let root = root_id();
     let live = |tx: &Tx<'_>, o: &ObjectId| tx.exists(o);
     let store_entries = tx.tree(&root, STORE_TREE)?;
@@ -361,7 +361,7 @@ pub(crate) fn one_copy_per_component(tx: &mut Tx<'_>, texts: &StoreTexts) -> Kdm
             fields.insert("key".into(), json!(key.0));
             tx.create_with_id("Node", id, fields)?;
             copy_items(tx, &objects, id, &item_values)?;
-            copy_text(tx, texts.get(object), id)?;
+            copy_text(tx, object, id)?;
             let under = parent.as_ref().and_then(|p| nodes.iter().find(|(n, _)| *n == p).map(|(_, made)| made));
             let created = tx.tree_create(&root, STORE_TREE, under, id)?;
             nodes.push((node, created));
