@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-hand-other-platform-keys
+feature: design.editor.keyboard
+intent: >-
+  On Windows and Linux every key the shortcuts dialog gives runs its command once. Eight did
+  nothing there: kit-editor's frame binds each command's Mac key from the engine's catalog, so a
+  binding whose Windows and Linux key differs (Alt+Shift+H and Alt+Shift+V distribute, Ctrl+Alt+Shift+T
+  tidy up, Ctrl+Alt+P pixel preview, Ctrl+Alt+M mask, Ctrl+Shift+] and [ to the front and back,
+  Ctrl+Alt+Shift+A suggest auto layout) had no handler, and a key written with Ctrl never matched
+  off the Mac. Found when the acceptance test's Alt+Shift+H did not distribute in CI's Linux
+  Chromium (stage 11). web/tests/hand/other-platform-keys.mjs makes the page report Linux on any
+  machine and presses each key.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design stage 11, kit CI run 46070227326 (first-ten-minutes N20 on Linux)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/other-platform-keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

@@ -12,7 +12,9 @@ import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const hand = await openHand('hand-first-ten-minutes', which)
-const { page, kit, designKit, step, until, finish, mod, inspect, run, query, node, view, toPage, toDoc, viewAt, settle, undoStack, surface } = hand
+const { page, kit, designKit, step, until, finish, mod, inspect, run, query, node, view, toPage, toDoc, viewAt, settle, surface } = hand
+/** The undo stack's labels, newest first, all of them (the harness's helper gives the last 50). */
+const undoStack = () => designKit(() => window.designKit.invoke('query', 'history', JSON.stringify({ limit: 1000 })).then((text) => JSON.parse(text).undo ?? []))
 const mac = mod === 'Meta'
 const shots = process.env.HAND_SHOTS ?? null
 if (shots) mkdirSync(shots, { recursive: true })
@@ -307,12 +309,13 @@ try {
     check('typing replaced the text', (await node(TEXT)).characters === 'World', (await node(TEXT)).characters)
   })
 
-  // Moving and selecting: two rectangles on a page and a frame with a group in it.
+  // Moving and selecting: two rectangles on a page and a frame with a group in it, made again on a
+  // page of its own for each thing, so that no thing depends on what the one before left.
   let M1 = null
   let M2 = null
   let F = null
   let G1 = null
-  await quiet(async () => {
+  const moveSetup = async () => {
     await newPage('Move')
     M1 = await rect(100, 250, 100, 80)
     M2 = await rect(300, 100, 100, 80)
@@ -324,11 +327,12 @@ try {
     await run('arrange.group', {})
     await select([])
     await viewAt(1, 400, 250)
-  })
+  }
 
   // 8. A press on a layer that is not selected drags it; near another one's edge it snaps, with
   // the red line.
   await item(8, 'Select and move', 1, async () => {
+    await quiet(moveSetup)
     let guides = 0
     await drag({ x: 150, y: 290 }, { x: 150, y: 143 }, {
       before: async () => {
@@ -345,6 +349,7 @@ try {
 
   // 9. A marquee from the empty canvas selects what it touches; Shift+click adds one.
   await item(9, 'Select several', '1–n', async () => {
+    await quiet(moveSetup)
     await quiet(deselect)
     await drag({ x: 240, y: 60 }, { x: 320, y: 120 })
     check('a marquee that touches a rectangle\'s corner selects it', ids(await selection()) === ids([M2]), JSON.stringify(await selection()))
@@ -359,6 +364,7 @@ try {
 
   // 10. Cmd+click picks the deepest layer, in a group in a frame.
   await item(10, 'Select a layer in a group', 1, async () => {
+    await quiet(moveSetup)
     await quiet(deselect)
     await click(550, 90, [mod])
     check('Cmd+click selects the rectangle in the group', ids(await selection()) === ids([G1]), JSON.stringify(await selection()))
@@ -367,6 +373,7 @@ try {
   // 11. A corner handle resizes; Shift keeps the proportions, Alt resizes about the centre; the
   // Design panel's W and H follow.
   await item(11, 'Resize', 1, async () => {
+    await quiet(moveSetup)
     await quiet(async () => {
       await select([M1])
     })
@@ -398,6 +405,7 @@ try {
 
   // 12. W in the panel: 200, +20, *2, each a click, the value and Enter; Tab goes to H.
   await item(12, 'Exact size', 3, async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     await field('design-design-width', '200')
     check('200 sets the width', near((await box(M1)).w, 200, 0.01), show(await box(M1)))
@@ -419,6 +427,7 @@ try {
 
   // 13. Dragging just outside a corner rotates; with Shift in steps of 15 degrees.
   await item(13, 'Rotate', 1, async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     await drag({ x: 210, y: 242 }, { x: 260, y: 300 }, { held: ['Shift'] })
     const r = (await box(M1)).rotation
@@ -429,6 +438,7 @@ try {
 
   // 14. Alt+drag drags a copy; Cmd+D makes another at the same distance.
   await item(14, 'Duplicate', '1 + 1', async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     const layers = (await inspect()).layers
     await drag({ x: 150, y: 290 }, { x: 150, y: 440 }, { held: ['Alt'] })
@@ -442,6 +452,7 @@ try {
 
   // 15. The arrows nudge 1, with Shift 10.
   await item(15, 'Nudge', 1, async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     await key('ArrowRight')
     check('an arrow moves 1', near((await box(M1)).x, 101, 0.01), show(await box(M1)))
@@ -452,6 +463,7 @@ try {
 
   // 29. Undo and redo: one drag, one field, one text edit, each one step.
   await item(29, 'Undo and redo', 1, async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     await quiet(() => drag({ x: 150, y: 290 }, { x: 180, y: 290 }))
     await key(`${mod}+z`)
@@ -480,6 +492,7 @@ try {
 
   // 31. With one layer selected, Alt over another shows the distance.
   await item(31, 'Measure the distance', 1, async () => {
+    await quiet(moveSetup)
     await quiet(() => select([M1]))
     const over = await toPage(350, 140)
     await page.mouse.move(over.x - 20, over.y)
@@ -494,15 +507,16 @@ try {
 
   // 16–19 on one rectangle.
   let P = null
-  await quiet(async () => {
+  const paintSetup = async () => {
     await newPage('Paint')
     P = await rect(100, 100, 160, 120)
     await select([P])
     await viewAt(1, 300, 200)
-  })
+  }
 
   // 16. The fill: the hex typed and Enter; or a drag in the picker, one undo step.
   await item(16, 'Change the fill', '2–3', async () => {
+    await quiet(paintSetup)
     const undoDepth = (await undoStack()).length
     await field('design-fill-0-hex', 'FF0000')
     check('the hex sets the fill', (await node(P)).fills?.[0]?.color === '#FF0000', JSON.stringify((await node(P)).fills))
@@ -533,6 +547,7 @@ try {
 
   // 17. The Stroke section's +: a stroke, with its weight and its position.
   await item(17, 'Add a stroke', 1, async () => {
+    await quiet(paintSetup)
     await press(kit.getByTestId('design-stroke-add'))
     const n = await node(P)
     check('a stroke', (n.strokes?.length ?? 0) === 1, JSON.stringify(n.strokes))
@@ -541,6 +556,7 @@ try {
 
   // 18. The radius handle inside a corner, or the Corner radius field.
   await item(18, 'Round the corners', '1–3', async () => {
+    await quiet(paintSetup)
     await quiet(() => select([P]))
     // The handle sits 10 px in along the corner's bisector at radius 0 (100 % zoom).
     await drag({ x: 107, y: 107 }, { x: 121, y: 121 }, { steps: 10 })
@@ -553,6 +569,7 @@ try {
 
   // 19. The Effects section's +: a drop shadow, X 0, Y 4, blur 4, black at 25 %.
   await item(19, 'Add a drop shadow', 1, async () => {
+    await quiet(paintSetup)
     await quiet(() => select([P]))
     await press(kit.getByTestId('design-effect-add'))
     const e = (await node(P)).effects?.[0]
@@ -562,17 +579,22 @@ try {
   // 20–23 on three rectangles in a frame.
   let FR = null
   let K = []
-  await quiet(async () => {
+  const arrangeSetup = async () => {
     await newPage('Arrange')
     FR = await frame(0, 0, 600, 400, 'Board')
     K = [await rect(40, 40, 60, 40, FR), await rect(200, 90, 60, 60, FR), await rect(420, 60, 80, 30, FR)]
     await select([])
     await viewAt(1, 300, 200)
-  })
+  }
   const kb = async () => Promise.all(K.map(box))
+  /** Undoes a key's edit, only when it made one (an undo of nothing would take the setup away). */
+  const undoMoved = async (before) => {
+    if (JSON.stringify(await kb()) !== before) await undo()
+  }
 
   // 20. Alt+A / H / D / W / V / S align, Ctrl+Alt+H / V distribute; one layer aligns to its frame.
   await item(20, 'Align and distribute', 1, async () => {
+    await quiet(arrangeSetup)
     await quiet(async () => {
       await click(70, 60)
       await click(230, 120, ['Shift'])
@@ -588,29 +610,34 @@ try {
       ['Alt+s', (b) => b.every((r) => near(r.y + r.h, 150, 0.01)), 'bottom'],
     ]
     for (const [k, ok, name] of keys) {
+      const before = JSON.stringify(await kb())
       if (k === 'Alt+a') await key(k)
       else await quiet(() => key(k))
       const b = await kb()
       check(`${k} aligns ${name}`, ok(b), b.map(show).join(' / '))
-      await quiet(() => undo())
+      await quiet(() => undoMoved(before))
     }
+    // Off the Mac the keys are Alt+Shift+H / V (tests/hand/other-platform-keys.mjs presses them all).
     const distribute = mac ? 'Control+Alt+h' : 'Alt+Shift+h'
+    const spread = JSON.stringify(await kb())
     await quiet(() => key(distribute))
     const d = await kb()
     const gaps = [d[1].x - (d[0].x + d[0].w), d[2].x - (d[1].x + d[1].w)]
     check(`${distribute} spaces them evenly`, near(gaps[0], gaps[1], 0.01), JSON.stringify(gaps))
-    await quiet(() => undo())
+    await quiet(() => undoMoved(spread))
     await quiet(async () => {
       await deselect()
       await click(70, 60)
     })
+    const alone = JSON.stringify(await kb())
     await quiet(() => key('Alt+d'))
     check('one layer aligns to its frame', near((await box(K[0])).x + 60, 600, 0.01), show(await box(K[0])))
-    await quiet(() => undo())
+    await quiet(() => undoMoved(alone))
   })
 
   // 21. Cmd+G groups, Alt+Cmd+G frames; the new one selected.
   await item(21, 'Group and frame', 1, async () => {
+    await quiet(arrangeSetup)
     await quiet(() => select([K[0], K[1]]))
     await key(`${mod}+g`)
     const [g] = await selection()
@@ -627,6 +654,7 @@ try {
 
   // 22. A double-click on a row's name, the name, Enter; Tab goes on to the next row.
   await item(22, 'Rename a layer', 3, async () => {
+    await quiet(arrangeSetup)
     await quiet(() => select([]))
     await quiet(() => run('layer.expandAll', {}).catch(() => undefined))
     const row = kit.locator(`[data-row-id='${K[2]}'] .design-layer-name`)
@@ -654,6 +682,7 @@ try {
 
   // 23. A row dragged in the Layers panel, with the drop line; Cmd+] and Cmd+[.
   await item(23, 'Layer order', 1, async () => {
+    await quiet(arrangeSetup)
     const was = await children(FR)
     const lowest = was[0]
     const highest = was[was.length - 1]
@@ -678,15 +707,25 @@ try {
 
   // 24–26: auto layout.
   let L = []
-  await quiet(async () => {
+  let AL = null
+  const layoutSetup = async () => {
     await newPage('Layout')
     L = [await rect(0, 0, 60, 40), await rect(80, 0, 60, 40), await rect(160, 0, 60, 40)]
     await select([])
     await viewAt(1, 200, 100)
-  })
-  let AL = null
+  }
+  /** Three in a row given auto layout (thing 24's way), for the things that adjust it. */
+  const autoLayoutSetup = async () => {
+    await layoutSetup()
+    await select(L)
+    await page.keyboard.press('Shift+a')
+    await until(async () => (await node((await selection())[0])).layout?.mode === 'horizontal', 40)
+    AL = (await selection())[0]
+    await settle(300)
+  }
   // 24. Shift+A on three in a row: a frame round them, horizontal, their gap, nothing moves.
   await item(24, 'Add auto layout', 1, async () => {
+    await quiet(layoutSetup)
     await quiet(() => drag({ x: -20, y: -20 }, { x: 240, y: 60 }))
     check('the three selected', ids(await selection()) === ids(L), JSON.stringify(await selection()))
     const before = await Promise.all(L.map(box))
@@ -701,6 +740,7 @@ try {
 
   // 25. The padding band dragged on the canvas, or the panel's field.
   await item(25, 'Gap and padding', '1–3', async () => {
+    await quiet(autoLayoutSetup)
     const zone = kit.getByTestId('design-al-padding-3')
     await until(async () => (await zone.count()) === 1, 40)
     const z = await zone.boundingBox()
@@ -717,6 +757,7 @@ try {
   // 26. Hug from the W menu, or a double-click on the frame's edge; Alt+double-click on a child's
   // edge fills.
   await item(26, 'Fill and hug', '2 / 1', async () => {
+    await quiet(autoLayoutSetup)
     await quiet(async () => {
       await select([AL])
       await run('node.set', { id: AL, props: { sizingH: 'fixed', width: 400 } })
