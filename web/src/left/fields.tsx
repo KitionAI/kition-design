@@ -47,7 +47,22 @@ export function SearchRow({ value, placeholder, onChange, onClose, testId }: { v
  * 2 px around the text's box, the whole name selected. Enter or a blur commits a change that is not
  * blank; Escape cancels; Tab and Shift+Tab commit and ask for the next or previous row.
  */
-export function RenameInput({ value, onDone, onTab, style, bold, testId }: { value: string; onDone: (name: string | null) => void; onTab?: (back: boolean) => void; style: CSSProperties; bold?: boolean; testId?: string }) {
+export function RenameInput({
+  value,
+  onDone,
+  onTab,
+  style,
+  bold,
+  testId,
+}: {
+  value: string
+  /** The name to keep (null: none); `going` is true when Tab goes on to rename another row. */
+  onDone: (name: string | null, going?: boolean) => void
+  onTab?: (back: boolean) => void
+  style: CSSProperties
+  bold?: boolean
+  testId?: string
+}) {
   const [text, setText] = useState(value)
   const input = useRef<HTMLInputElement>(null)
   const done = useRef(false)
@@ -57,10 +72,10 @@ export function RenameInput({ value, onDone, onTab, style, bold, testId }: { val
     el.focus({ preventScroll: true })
     el.select()
   }, [])
-  const finish = (commit: boolean) => {
+  const finish = (commit: boolean, going = false) => {
     if (done.current) return
     done.current = true
-    onDone(commit && text !== value && text.trim() !== '' ? text : null)
+    onDone(commit && text !== value && text.trim() !== '' ? text : null, going)
   }
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     event.stopPropagation()
@@ -72,7 +87,7 @@ export function RenameInput({ value, onDone, onTab, style, bold, testId }: { val
       finish(false)
     } else if (event.key === 'Tab' && onTab) {
       event.preventDefault()
-      finish(true)
+      finish(true, true)
       onTab(event.shiftKey)
     }
   }

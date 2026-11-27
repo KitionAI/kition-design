@@ -6,7 +6,8 @@
 // Shift+1 fits the content. At 100 % and 200 % the view sits on whole device pixels, also when it
 // was put half a pixel off (M5: the canvas copies its frame pixel for pixel, and half a pixel off
 // the GPU dropped rows: steps on round edges, broken thin lines), and a slanted line drawn there
-// has ink in every column on the screen. Prints PASS or FAIL per step.
+// has ink in every column on the screen. Each page keeps its own view when another is shown and it
+// comes back (B14). Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -193,6 +194,32 @@ try {
     const z = await toPage(b.x + b.width, b.y + b.height)
     const inView = a.x >= surface.x - 1 && a.y >= surface.y - 1 && z.x <= surface.x + surface.width + 1 && z.y <= surface.y + surface.height + 1
     step('Shift+1 fits the page’s content in view', inView && z.y - a.y > surface.height * 0.5, `${JSON.stringify(a)} ${JSON.stringify(z)} in ${JSON.stringify(surface)}`)
+  })
+
+  // B14: each page keeps its view: 200 % on one page, another page added and shown, and back.
+  await part('B14', async () => {
+    const here = (await inspect()).page
+    await viewAt(2, 150, 300)
+    const centre = { x: surface.x + surface.width / 2, y: surface.y + surface.height / 2 }
+    const before = await toDoc(centre.x, centre.y)
+    const pages = (await inspect()).pages.length
+    await kit.getByTestId('design-pages-add').click()
+    await until(async () => (await inspect()).pages.length === pages + 1, 60)
+    await page.keyboard.press('Escape')
+    await settle()
+    const other = (await inspect()).page
+    await viewAt(0.5, 0, 0)
+    await kit.getByTestId(`design-page-${here}`).click()
+    await until(async () => (await inspect()).page === here, 60)
+    await page.waitForTimeout(600)
+    await settle()
+    const back = await view()
+    const at = await toDoc(centre.x, centre.y)
+    step('B14 going back to a page shows its view as it was left', back.zoom === 2 && near(at.x, before.x, 1) && near(at.y, before.y, 1), `zoom ${back.zoom}, centre ${Math.round(at.x)},${Math.round(at.y)} (was ${Math.round(before.x)},${Math.round(before.y)})`)
+    await kit.getByTestId(`design-page-${other}`).click()
+    await until(async () => (await inspect()).page === other, 60)
+    await page.waitForTimeout(600)
+    step('B14 the other page keeps its own view', (await view()).zoom === 0.5, `zoom ${(await view()).zoom}`)
   })
   await finish()
 } catch (error) {

@@ -103,9 +103,26 @@ type TilesProps = {
 
 /** Folder headings and two-column tiles (`folders`, `tiles` in `assets_panel.rs`). */
 function TileFolders({ source, folders, tile, query, library, onDown, onPlace, onMenu }: TilesProps) {
-  const { t } = useDesignKit()
+  const { t, inspect } = useDesignKit()
   const left = useLeft()
   const tiles = useMemo(() => folders.flatMap((f) => f.tiles), [folders])
+  // This file's components that share a name with one on another page show their page's name
+  // (two Buttons on two pages are told apart).
+  const pageOf = useMemo(() => {
+    const out = new Map<number, string>()
+    if (library) return out
+    const pages = new Map(inspect.pages.map((page) => [page.id, page.name]))
+    const byLabel = new Map<string, Tile[]>()
+    for (const item of tiles) byLabel.set(item.label, [...(byLabel.get(item.label) ?? []), item])
+    for (const same of byLabel.values()) {
+      if (new Set(same.map((item) => item.page)).size < 2) continue
+      for (const item of same) {
+        const name = pages.get(item.page)
+        if (name) out.set(item.id, name)
+      }
+    }
+    return out
+  }, [inspect.pages, library, tiles])
   const thumbs = useThumbnails(tiles, Math.round(tile * Math.min(window.devicePixelRatio || 1, 2)), library)
   const toggleFolder = (key: string) =>
     setLeft((now) => {
@@ -164,7 +181,10 @@ function TileFolders({ source, folders, tile, query, library, onDown, onPlace, o
                           </span>
                         ) : null}
                       </span>
-                      <span className="design-asset-label design-r11">{item.label}</span>
+                      <span className="design-asset-label design-r11">
+                        {item.label}
+                        {pageOf.has(item.id) ? <span className="design-asset-page" data-testid={`design-asset-page-${item.id}`}>{` · ${pageOf.get(item.id)}`}</span> : null}
+                      </span>
                     </div>
                   )
                 })}

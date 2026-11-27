@@ -1,4 +1,4 @@
-use super::handles::{PATH_REACH_PX, label_at, locked_in, path_candidates, readable_text_fills};
+use super::handles::{PATH_REACH_PX, handle_at, label_at, locked_in, path_candidates, readable_text_fills};
 use super::*;
 
 impl Session {
@@ -17,6 +17,29 @@ impl Session {
             Some(field) => textedit::begin(self, field, None, false).map(|()| true),
             None => Ok(false),
         }
+    }
+
+    /// A double-click on an edge of the one selected layer's box sizes it on that axis: an auto
+    /// layout frame hugs its contents, and with Alt a layer in an auto layout frame (in its flow)
+    /// fills it. A left or right edge sizes the width, the top or bottom the height. Whether it
+    /// applied; anywhere else the double-click does what it always does.
+    fn edge_sizing(&mut self, doc: &Document, sel: &[NodeId], ev: &PointerEvent) -> Result<bool> {
+        let [id] = sel[..] else { return Ok(false) };
+        let Some(Handle::Edge(side)) = handle_at(doc, sel, ev.p(), ev.zoom) else { return Ok(false) };
+        let Some(n) = doc.node(id) else { return Ok(false) };
+        let sizes = if ev.alt {
+            !n.child_layout.absolute && n.parent.and_then(|p| doc.node(p)).is_some_and(|p| p.layout.is_some())
+        } else {
+            n.layout.is_some()
+        };
+        if !sizes {
+            return Ok(false);
+        }
+        // Edges go top, right, bottom, left: right and left (odd) size the width.
+        let mut props = serde_json::Map::new();
+        props.insert(if side % 2 == 1 { "sizingH" } else { "sizingV" }.to_owned(), json!(if ev.alt { "fill" } else { "hug" }));
+        self.execute("node.set", &json!({"id": id, "props": props}))?;
+        Ok(true)
     }
 
     pub(super) fn double_click(&mut self, ev: &PointerEvent) -> Result<()> {
@@ -57,6 +80,9 @@ impl Session {
             self.tool.gesture = Gesture::None;
             self.tool.overlay.marquee = None;
             self.cancel_interaction()?;
+        }
+        if edits && matches!(self.tool.tool, ToolId::Move | ToolId::Scale) && !(ev.shift || ev.cmd) && self.edge_sizing(&doc, &sel, ev)? {
+            return Ok(());
         }
         let hit_here = self.hit(&doc, page, ev.p(), ev.tol() * 2.0);
         // A double-click anywhere on the one selected shape edits its points, like Enter: also

@@ -549,9 +549,12 @@ export function Layers() {
                     value={row.name}
                     style={{ left: x0 + 30, right: 10, top: 2, bottom: 2 }}
                     testId="design-layer-rename"
-                    onDone={(next) => {
+                    onDone={(next, going) => {
                       setLeft({ rename: null })
                       if (next != null) void run('object.rename', { ids: [row.id], name: next })
+                      // Tab goes on to the next row's name: the keyboard stays with its field
+                      // (giving it to this row would end that rename at once, E4).
+                      if (going) return
                       requestAnimationFrame(() => scroller.current?.querySelector<HTMLElement>(`[data-row-id='${row.id}']`)?.focus({ preventScroll: true }))
                     }}
                     onTab={(back) => {

@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-g9-alt-drag-variant
+feature: design.editor.canvas-picking
+intent: >-
+  Alt+dragging a variant out of its component set onto a screen gives an instance of that
+  variant there, at the variant's size, and leaves the set, the variant and their sizes as they
+  were; dropped inside the set's box, the copy is a new variant of the set. Before, the copy was
+  a variant moved out of its set (a loose component) or stayed in the set, and the person had to
+  undo and drag the component from the Assets panel instead (walkthrough G9, the login page's
+  last stall). The engine test drives the session's pointer; web/tests/hand/gestures.mjs does it
+  with a real mouse and Alt key.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings G7 and G9 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "hand_select_tests::alt_dragging_a_variant_out_of_its_set_places_an_instance" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

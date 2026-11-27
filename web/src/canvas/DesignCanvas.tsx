@@ -15,7 +15,7 @@ import type { DesignChrome } from '../kit/types'
 import { chromeDecoration, readTheme, type ZoneKey } from './chrome'
 import { CanvasOverlays } from './overlays'
 import { setCanvasPage, setSizePill } from './engineOverlays'
-import { contentBounds, raster } from './view'
+import { contentBounds, raster, rememberPageView, rememberedPageView } from './view'
 import { useAreaOriginKept, useCanvasInput } from './input'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
 import { DevCanvasLayer } from '../dev/DevCanvasLayer'
@@ -79,6 +79,26 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
     fitted.current = doc
     void designKit.viewTo('view.zoomFit')
   }, [doc, designKit, view])
+
+  // Each page keeps its view: the view of the page shown is remembered as it changes, and a page
+  // shown again goes back to where it was left (one shown for the first time keeps what the page
+  // list does, Zoom to fit).
+  const shownPage = useRef<{ doc: unknown; page: number } | null>(null)
+  useLayoutEffect(() => {
+    if (!doc || !view) return
+    const was = shownPage.current
+    shownPage.current = { doc, page: inspect.page }
+    if (was && was.doc === doc && was.page !== inspect.page) {
+      const back = rememberedPageView(doc, inspect.page)
+      const handle = canvas.current
+      if (back && handle) {
+        handle.zoomTo(back.zoom)
+        handle.panTo(back.x - inspect.area.x, back.y - inspect.area.y)
+      }
+      return
+    }
+    rememberPageView(doc, inspect.page, view, inspect.area)
+  }, [canvas, doc, inspect.area, inspect.page, view])
 
   // The chrome, asked again after every change and zoom; during a gesture, and when the hovered
   // layer changes (the labels' colour), it comes with the engine's answer (`canvas.chrome`).

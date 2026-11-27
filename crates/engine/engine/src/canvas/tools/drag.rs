@@ -87,9 +87,17 @@ impl Session {
         // inside, the frame or canvas behind it, or a layer stacked below the selected layer the
         // press is in) drags the selection. In a gap between selected layers, what's there is hit.
         let in_own_box = |s: NodeId| selection_box(&doc, &[s]).is_some_and(|q| in_quad(&q, ev.p()));
+        // A layer inside a selected one (a child of a selected frame): the press drags the
+        // selection, and a click that never became a drag selects that layer. Cmd still picks deep.
+        let inside_selected = |t: NodeId| !ev.cmd && sel.iter().any(|s| *s != t && doc.is_ancestor(*s, t));
         let behind_sel = |t: Option<NodeId>| {
-            t.is_none_or(|t| sel.iter().any(|s| *s != t && (doc.is_ancestor(t, *s) || (in_own_box(*s) && paints_below(&doc, t, *s)))))
+            t.is_none_or(|t| {
+                inside_selected(t) || sel.iter().any(|s| *s != t && (doc.is_ancestor(t, *s) || (in_own_box(*s) && paints_below(&doc, t, *s))))
+            })
         };
+        // What the press itself hit, before a press inside the selection's box gives the drag to
+        // the selection.
+        let pressed = target;
         let target = match sel.iter().copied().find(|s| !locked_in(&doc, *s)) {
             Some(first) if label.is_none() && !ev.shift && behind_sel(target) && selection_box(&doc, &sel).is_some_and(|q| in_quad(&q, ev.p())) => {
                 Some(first)
@@ -104,7 +112,16 @@ impl Session {
                 // drag; a drag moves the selection with it. Where no drag can start, it goes now.
                 let deselect = (ev.shift && sel.contains(&target)).then_some(target);
                 let without_target = || sel.iter().copied().filter(|x| *x != target).collect::<Vec<_>>();
-                let new_sel = if in_sel_box && (sel.contains(&target) || sel.iter().any(|s| doc.is_ancestor(*s, target))) {
+                // The layer a click (a press and release without a drag) selects on its own: one
+                // layer of a multi-selection pressed inside its box, a selected frame's name label,
+                // or a layer inside a selected one. A drag moves the whole selection.
+                let narrow = pressed.filter(|p| {
+                    !ev.cmd
+                        && !ev.shift
+                        && (inside_selected(*p)
+                            || ((in_sel_box || label.is_some()) && (sel.contains(p) || sel.iter().any(|s| doc.is_ancestor(*s, *p)))))
+                });
+                let new_sel = if narrow.is_some() || (in_sel_box && (sel.contains(&target) || sel.iter().any(|s| doc.is_ancestor(*s, target)))) {
                     sel.clone()
                 } else if ev.shift && deselect.is_none() {
                     let mut s2 = sel.clone();
@@ -120,6 +137,8 @@ impl Session {
                 if !edits {
                     if deselect.is_some() {
                         self.set_selection(without_target());
+                    } else if let Some(one) = narrow {
+                        self.set_selection(vec![one]);
                     }
                     return Ok(());
                 }
@@ -128,6 +147,9 @@ impl Session {
                 if new_sel.is_empty() || doc.node(target).is_some_and(|n| n.locked) || ids.is_empty() {
                     if deselect.is_some() {
                         self.set_selection(without_target());
+                    } else if let Some(one) = narrow {
+                        // Nothing can be dragged here: the click narrows the selection now.
+                        self.set_selection(vec![one]);
                     }
                     return Ok(());
                 }
@@ -144,7 +166,7 @@ impl Session {
                     }
                     return Err(e);
                 }
-                self.tool.gesture = Gesture::Move { start: ev.p(), ids, targets, duplicate: ev.alt, moved: false, deselect };
+                self.tool.gesture = Gesture::Move { start: ev.p(), ids, targets, duplicate: ev.alt, moved: false, deselect, narrow };
                 self.tool.overlay.cursor = if ev.alt { Cursor::Copy } else { Cursor::Default };
             }
             None => {
@@ -159,7 +181,28 @@ impl Session {
     }
 
     pub(super) fn drag(&mut self, ev: &PointerEvent) -> Result<()> {
-        let g = std::mem::take(&mut self.tool.gesture);
+        let mut g = std::mem::take(&mut self.tool.gesture);
+        // Alt decides, sample by sample, whether a move drags a copy or the layers themselves:
+        // pressed during the drag it leaves the originals and takes copies, let go it moves the
+        // originals again. A copy also snaps to the layers it came from.
+        if let Gesture::Move { targets, duplicate, .. } = &mut g
+            && *duplicate != ev.alt
+        {
+            *duplicate = ev.alt;
+            if let Some(own) = targets.moving {
+                if ev.alt {
+                    targets.add_box(own);
+                } else {
+                    targets.remove_box(own);
+                }
+            }
+            if let Ok(ds) = self.ds_mut()
+                && let Some(it) = ds.interaction.as_mut()
+            {
+                it.label = if ev.alt { "Duplicate" } else { "Move" }.to_owned();
+            }
+            self.tool.overlay.cursor = if ev.alt { Cursor::Copy } else { Cursor::Default };
+        }
         let res = match &g {
             Gesture::None => return self.hover(ev),
             Gesture::Marquee { start, additive, base, within } => {
@@ -206,6 +249,17 @@ impl Session {
                         let mut copies = Vec::new();
                         for i in &ids {
                             let parent = doc.get(*i)?.parent.unwrap_or(page);
+                            let in_set = doc.node(parent).is_some_and(|n| matches!(n.kind, NodeKind::ComponentSet { .. }));
+                            // A variant copied inside its set's box is a new variant; one the
+                            // pointer takes out of the set is an instance of it (the set and the
+                            // variant stay as they were).
+                            if in_set && !doc.world_bounds(parent).is_some_and(|b| b.contains(ev.p())) {
+                                let world = doc.world_transform(*i);
+                                let instance = crate::components::create_instance_at(doc, *i, page, 0.0, 0.0, None)?;
+                                doc.get_mut(instance)?.transform = world;
+                                copies.push(instance);
+                                continue;
+                            }
                             let idx = doc.index_in_parent(*i).map(|x| x + 1);
                             copies.push(crate::components::copy_in_file(doc, *i, parent, idx)?);
                         }

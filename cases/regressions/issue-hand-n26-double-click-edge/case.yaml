@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-n26-double-click-edge
+feature: design.editor.canvas-picking
+intent: >-
+  A double-click on an edge of the one selected auto layout frame's box makes it hug its contents
+  on that axis (the left or right edge: the width; the top or bottom: the height); Alt+double-click
+  on an edge of a layer in an auto layout frame makes it fill the frame on that axis. Each is one
+  undo step; on a layer without auto layout the double-click does what it did. It did nothing
+  (the first ten minutes' task 26; gap R6). The engine test drives the session's pointer;
+  web/tests/hand/gestures.mjs does it with a real double-click.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, reference list N 26 and root cause R6 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "hand_select_tests::a_double_click_on_an_edge_hugs_and_with_alt_fills" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

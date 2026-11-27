@@ -7,12 +7,16 @@
 // original and drags a copy, Cmd+D duplicates again; Delete removes and Cmd+Z brings it back. S3:
 // with Alt held over the other layer the distance shows, and once the pointer leaves the canvas
 // the hover outline and the distance go (A16; kit-editor's `pointerLeft`). The results are read
-// back from the engine (`inspect`, `query`). Prints PASS or FAIL per step.
+// back from the engine (`inspect`, `query`). Stage 5: Alt pressed or let go during a drag switches
+// between copy and move; with a frame selected a press on a layer in it drags the frame and a
+// click selects the layer; a double-click on an auto layout edge hugs (Alt: fills); Alt+drag of a
+// variant out of its set gives an instance; Assets names the page of same-named components.
+// Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
 const hand = await openHand('hand-gestures', which)
-const { page, kit, designKit, step, until, part, finish, mod, inspect, node, toPage, viewAt, settle } = hand
+const { page, kit, designKit, step, until, part, finish, mod, inspect, run, node, toPage, viewAt, settle } = hand
 
 const near = (a, b, within = 1) => Math.abs(a - b) <= within
 const box = async (id) => {
@@ -218,6 +222,141 @@ try {
     step('delete Delete removes the selected layer', (await inspect()).layers === layers - 1 && !(await designKit((id) => window.designKit.query('node', { id }).then(() => true, () => false), gone)), `${(await inspect()).layers} layers`)
     await undo()
     step('delete Cmd+Z brings it back', (await inspect()).layers === layers, `${(await inspect()).layers} layers`)
+  })
+
+  // Stage 5. A24: Alt pressed during a drag makes it a copy (the original stays); let go, the
+  // original moves and no copy is left. The release decides.
+  await part('alt during a drag', async () => {
+    const layers = (await inspect()).layers
+    await click(600, 400)
+    await click(150, 150)
+    const original = await box(A)
+    const steps = async (from, to, altAt) => {
+      const a = await toPage(from.x, from.y)
+      const b = await toPage(to.x, to.y)
+      await page.mouse.move(a.x, a.y)
+      if (altAt === 0) await page.keyboard.down('Alt')
+      await page.mouse.down()
+      for (let i = 1; i <= 12; i += 1) {
+        if (i === 6) await page.keyboard[altAt === 0 ? 'up' : 'down']('Alt')
+        await page.mouse.move(a.x + ((b.x - a.x) * i) / 12, a.y + ((b.y - a.y) * i) / 12)
+        await page.waitForTimeout(16)
+      }
+      await page.mouse.up()
+      if (altAt !== 0) await page.keyboard.up('Alt')
+      await settle(300)
+    }
+    await steps({ x: 150, y: 150 }, { x: 150, y: 330 }, 6)
+    const copy = (await selection())[0]
+    const dragged = copy !== undefined && copy !== A ? await box(copy) : null
+    step('alt during a drag Alt pressed midway drags a copy', (await inspect()).layers === layers + 1 && dragged !== null && near(dragged.y, original.y + 180, 2), dragged ? show(dragged) : JSON.stringify(await selection()))
+    step('alt during a drag the original stays', near((await box(A)).y, original.y, 0.01), show(await box(A)))
+    await undo()
+    await click(150, 150)
+    await steps({ x: 150, y: 150 }, { x: 330, y: 150 }, 0)
+    step('alt during a drag Alt let go midway moves the original, no copy', (await inspect()).layers === layers && near((await box(A)).x, original.x + 180, 2), `${(await inspect()).layers} layers, ${show(await box(A))}`)
+    await undo()
+  })
+
+  // R-A22: with a frame selected, a press on a layer in it drags the frame; a click selects that layer.
+  let row = null
+  let child = null
+  await part('press in the selection', async () => {
+    row = await run('frame.add', { x: 600, y: 100, width: 300, height: 100, name: 'Row' })
+    row = row?.id ?? (await selection())[0]
+    await run('node.set', { id: row, props: { fill: '#ffffff' } })
+    const inside = await run('shape.rectangle', { x: 20, y: 20, width: 40, height: 30, parent: row })
+    child = inside?.id ?? (await selection())[0]
+    await run('shape.rectangle', { x: 80, y: 20, width: 40, height: 30, parent: row })
+    await run('select.set', { ids: [row] })
+    await settle()
+    await drag({ x: 640, y: 135 }, { x: 680, y: 135 })
+    const moved = await box(row)
+    step('press in the selection a drag on a layer in the selected frame moves the frame', near(moved.x, 640, 1) && JSON.stringify(await selection()) === JSON.stringify([row]), `${show(moved)}, ${JSON.stringify(await selection())}`)
+    await undo()
+    await run('select.set', { ids: [row] })
+    await settle()
+    await click(640, 135)
+    step('press in the selection a click there selects that layer', JSON.stringify(await selection()) === JSON.stringify([child]), JSON.stringify(await selection()))
+  })
+
+  // Double-click on an auto layout object's edge: the right edge hugs the width; Alt on a child's
+  // edge fills it.
+  await part('double-click an edge', async () => {
+    await run('layout.add', { ids: [row], direction: 'horizontal' })
+    await run('node.set', { id: row, props: { padding: 10, gap: 10, sizingH: 'fixed', sizingV: 'fixed', width: 300, height: 100 } })
+    await run('select.set', { ids: [row] })
+    await viewAt(1, 750, 300)
+    await settle()
+    const r = await box(row)
+    const edge = await toPage(r.x + r.w, r.y + r.h / 2)
+    await page.mouse.move(edge.x - 20, edge.y)
+    await page.mouse.move(edge.x, edge.y, { steps: 4 })
+    await settle(200)
+    await page.mouse.dblclick(edge.x, edge.y)
+    await settle(300)
+    const hugged = await box(row)
+    step('double-click an edge the right edge of an auto layout frame hugs its width', Math.round(hugged.w) === 110 && Math.round(hugged.h) === 100, `${show(r)} -> ${show(hugged)} (10 + 40 + 10 + 40 + 10 wide), undo ${JSON.stringify((await hand.undoStack()).slice(0, 2))}`)
+    await run('node.set', { id: row, props: { sizingH: 'fixed', width: 300 } })
+    const kidId = child
+    await run('select.set', { ids: [kidId] })
+    await settle()
+    const k = await box(kidId)
+    const kidEdge = await toPage(k.x + k.w, k.y + k.h / 2)
+    await page.mouse.move(kidEdge.x - 10, kidEdge.y)
+    await page.mouse.move(kidEdge.x, kidEdge.y, { steps: 3 })
+    await settle(200)
+    await page.keyboard.down('Alt')
+    await page.mouse.dblclick(kidEdge.x, kidEdge.y)
+    await page.keyboard.up('Alt')
+    await settle(300)
+    const filled = await box(kidId)
+    step('double-click an edge Alt on a child\'s edge fills the frame', filled.w > k.w + 50, `${show(k)} -> ${show(filled)}`)
+  })
+
+  // G9: Alt+drag of a variant out of its set gives an instance where it is dropped; the set stays.
+  // G8: Assets tells same-named components on different pages apart by the page's name.
+  await part('variant out of its set', async () => {
+    const button = await run('frame.add', { x: 100, y: 500, width: 160, height: 40, name: 'Button' })
+    let main = button?.id ?? (await selection())[0]
+    await run('node.set', { id: main, props: { fill: '#2563eb' } })
+    const made = await run('component.add', { ids: [main] })
+    main = made?.id ?? (await selection())[0]
+    await run('select.set', { ids: [main] })
+    await run('component.addVariant', {})
+    const set = (await node(main)).parent
+    const setBox = await box(set)
+    const screen = await run('frame.add', { x: 500, y: 500, width: 300, height: 300, name: 'Screen' })
+    const screenId = screen?.id ?? (await selection())[0]
+    await run('node.set', { id: screenId, props: { fill: '#ffffff' } })
+    await run('select.set', { ids: [main] })
+    await viewAt(1, 450, 620)
+    await settle()
+    const b = await box(main)
+    await page.keyboard.down('Alt')
+    await drag({ x: b.x + 20, y: b.y + 20 }, { x: 600, y: 600 }, { steps: 16 })
+    await page.keyboard.up('Alt')
+    await settle(300)
+    const copy = (await selection())[0]
+    const n = copy !== undefined ? await node(copy) : null
+    const parent = n?.parent && typeof n.parent === 'object' ? n.parent.id : n?.parent
+    step('variant out of its set Alt+drag gives an instance in the frame it is dropped in', n?.type === 'INSTANCE' && String(parent) === String(screenId), JSON.stringify(n && { type: n.type, parent }))
+    const after = await box(set)
+    step('variant out of its set the set keeps its size and its two variants', near(after.w, setBox.w, 0.5) && near(after.h, setBox.h, 0.5) && (await node(set)).childCount === 2, `${show(setBox)} -> ${show(after)}`)
+    // Another Button on another page, then the Assets panel.
+    const here = (await inspect()).page
+    const other = await run('page.add', { name: 'Other' })
+    const second = await run('frame.add', { x: 0, y: 0, width: 100, height: 40, name: 'Button' })
+    await run('component.add', { ids: [second?.id ?? (await selection())[0]] })
+    await run('page.select', { id: here })
+    await settle()
+    await kit.getByTestId('design-rail-assets').click()
+    await until(async () => (await kit.locator('.design-asset-page').count()) >= 2, 60)
+    const labels = await kit.locator('.design-asset-tile .design-asset-label').allInnerTexts()
+    const pagesNamed = labels.filter((l) => /Button/.test(l))
+    step('variant out of its set Assets shows the page of each of two same-named components', pagesNamed.some((l) => /Other/.test(l)) && pagesNamed.length >= 2 && pagesNamed.every((l) => / · /.test(l)), JSON.stringify(labels.slice(0, 12)))
+    await kit.getByTestId('design-rail-file').click().catch(() => undefined)
+    void other
   })
 } catch (error) {
   await finish(error)

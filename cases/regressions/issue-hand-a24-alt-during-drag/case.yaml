@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-a24-alt-during-drag
+feature: design.editor.canvas-picking
+intent: >-
+  Alt decides, until the release, whether a move drags a copy or the layers themselves: Alt
+  pressed halfway through a drag leaves the original and drags a copy (one Duplicate step, and
+  Cmd+D then repeats its offset); pressed at the start and let go halfway, the original moves and
+  no copy is left; let go after the last move, the release makes it a move. Before, the press
+  decided for the whole drag (walkthrough gap R6). The engine test drives the session's pointer;
+  web/tests/hand/gestures.mjs does it with a real mouse and Alt key.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, root cause R6 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "hand_select_tests::alt_during_a_drag_switches_between_copy_and_move" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

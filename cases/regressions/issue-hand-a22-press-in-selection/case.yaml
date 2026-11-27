@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-a22-press-in-selection
+feature: design.editor.canvas-picking
+intent: >-
+  A press inside the selection drags the selection, and a click there (a press and release with
+  no drag) picks the layer pressed: with a frame selected, dragging from a layer in it moved that
+  layer instead of the frame; with two layers selected, a click on one kept both selected. Now
+  the frame moves with its contents and a click selects the layer in it; a click on one of
+  several selected layers keeps just it (walkthrough A7's last case). The engine test drives the
+  session's pointer; web/tests/hand/gestures.mjs does it with a real mouse.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding A7 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "hand_select_tests::a_press_inside_the_selection_drags_it_and_a_click_narrows_it" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

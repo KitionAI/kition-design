@@ -98,6 +98,10 @@ impl Session {
     }
 
     pub(super) fn up(&mut self, ev: &PointerEvent) -> Result<()> {
+        // Alt pressed or let go after the last move: the release decides copy or move.
+        if matches!(&self.tool.gesture, Gesture::Move { moved: true, duplicate, .. } if *duplicate != ev.alt) {
+            self.drag(ev)?;
+        }
         let g = std::mem::take(&mut self.tool.gesture);
         self.tool.overlay.marquee = None;
         self.tool.overlay.guides.clear();
@@ -109,7 +113,7 @@ impl Session {
         self.tool.overlay.drop_cell = None;
         let drop_target = self.tool.overlay.drop_target.take();
         match g {
-            Gesture::Move { ids, moved, duplicate, start, deselect, .. } => {
+            Gesture::Move { ids, moved, duplicate, start, deselect, narrow, .. } => {
                 if moved {
                     // A free move lands in the frame under the pointer (or the page) where it was
                     // dropped; layers in an auto layout frame already sit in their slot.
@@ -154,6 +158,10 @@ impl Session {
                     if let Some(d) = deselect {
                         let sel = self.selection().into_iter().filter(|x| *x != d).collect();
                         self.set_selection(sel);
+                    } else if let Some(one) = narrow
+                        && self.selection() != [one]
+                    {
+                        self.set_selection(vec![one]);
                     }
                     if deselect.is_none() && !(ev.shift || ev.cmd || duplicate) {
                         self.widget_click(start, ev.tol() * 2.0)?;

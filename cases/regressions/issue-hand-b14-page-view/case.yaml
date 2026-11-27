@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-b14-page-view
+feature: design.editor.canvas-picking
+intent: >-
+  Each page keeps its view while the document is open: zoomed to 200 % on one page, another page
+  shown and the first one picked again, the canvas is back at 200 % on the same spot; the other
+  page keeps its own. It went back to Zoom to fit (35 %) every time (walkthrough B14). The views
+  are the session's, never the file's. web/tests/hand/view.mjs switches pages with real clicks in
+  the Pages panel.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding B14 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/view.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

@@ -49,3 +49,26 @@ export function onDevicePixels(view: { x: number; y: number; zoom: number }, dpr
   const y = Math.round(view.y * whole) / whole
   return Math.abs(x - view.x) > 1e-9 || Math.abs(y - view.y) > 1e-9 ? { x, y } : null
 }
+
+/**
+ * Each page's last view while the document is open (session state, never in the file): a page
+ * opened again shows what it showed when it was left (B14). In document pixels, since each page
+ * has its own document area.
+ */
+const pageViews = new WeakMap<object, Map<number, { x: number; y: number; zoom: number }>>()
+
+/** Keeps `view` (the canvas's, on `area`) as page `page`'s of document `doc`. */
+export function rememberPageView(doc: object, page: number, view: KitCanvasView, area: Rect) {
+  if (![view.x, view.y, view.zoom].every(Number.isFinite) || !(view.zoom > 0)) return
+  let views = pageViews.get(doc)
+  if (!views) {
+    views = new Map()
+    pageViews.set(doc, views)
+  }
+  views.set(page, { x: view.x + area.x, y: view.y + area.y, zoom: view.zoom })
+}
+
+/** The view page `page` of `doc` was left at, if it was shown before. */
+export function rememberedPageView(doc: object | null, page: number) {
+  return doc ? (pageViews.get(doc)?.get(page) ?? null) : null
+}

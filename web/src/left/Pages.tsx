@@ -9,6 +9,7 @@ import { Icon } from '../icons/Icon'
 import { ScrollBar } from '../ui/ScrollBar'
 import { Menu } from '../ui/Menu'
 import { RenameInput, SearchRow } from './fields'
+import { rememberedPageView } from '../canvas/view'
 import { devRefuses } from './dev'
 import { setLeft, useLeft } from './store'
 
@@ -65,7 +66,9 @@ export function Pages({ room }: { room: number }) {
   const select = (page: PageRow) => {
     setLeft({ pagesFocus: true })
     if (page.divider || page.id === current) return
-    void run('page.select', { id: page.id }).then(() => designKit.viewTo('view.zoomFit'))
+    // A page shown before goes back to its own view (the canvas restores it); a new one fits.
+    const fits = rememberedPageView(designKit.doc, page.id) == null
+    void run('page.select', { id: page.id }).then(() => (fits ? designKit.viewTo('view.zoomFit') : undefined))
   }
 
   const deletePage = async (id: number) => {
@@ -142,7 +145,12 @@ export function Pages({ room }: { room: number }) {
           data-testid="design-pages-add"
           onClick={() => {
             setLeft({ pagesFocus: true })
-            if (!devRefuses(designKit, 'page.add')) void run('page.add', {})
+            if (devRefuses(designKit, 'page.add')) return
+            // The new page's name is open for typing (Enter keeps it), so a name typed right
+            // away names it instead of pressing the + button again.
+            void run<{ id?: number; divider?: boolean }>('page.add', {}).then((added) => {
+              if (typeof added?.id === 'number' && !added.divider) setLeft({ renamePage: added.id })
+            })
           }}
         >
           <Icon name="Plus" size={14} />

@@ -427,6 +427,9 @@ pub(crate) enum Gesture {
         /// A Shift-press on this selected layer: it leaves the selection on release, unless the
         /// press became a drag.
         deselect: Option<NodeId>,
+        /// The layer a release without a drag selects alone (pressed inside the selection: one
+        /// of several selected layers, or a layer inside a selected one).
+        narrow: Option<NodeId>,
     },
     Resize {
         start: Point,

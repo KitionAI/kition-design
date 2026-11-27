@@ -249,6 +249,54 @@ try {
     step('Shift+A right after the inline rename adds auto layout to the empty frame', await until(async () => (await mode()) !== 'none', 40), `${await mode()}, focus ${await focused()}`)
   })
 
+  // E4: renaming a layer, Tab saves the name and goes on renaming the next row; Shift+Tab the row before.
+  await part('E4', async () => {
+    await page.keyboard.press('Escape')
+    const rows = await kit.locator('.design-layer-row').evaluateAll((els) => els.filter((el) => el.offsetParent && el.style.visibility !== 'hidden').map((el) => Number(el.getAttribute('data-row-id'))))
+    const [first, second] = rows
+    const names = [(await node(first)).name, (await node(second)).name]
+    await kit.locator(`[data-row-id='${first}'] .design-layer-name`).dblclick()
+    await until(async () => (await kit.getByTestId('design-layer-rename').count()) === 1)
+    await page.keyboard.type('Renamed one')
+    await page.keyboard.press('Tab')
+    await page.waitForTimeout(400)
+    const field = kit.getByTestId('design-layer-rename')
+    const next = (await field.count()) === 1 ? await field.inputValue() : null
+    step('E4 Tab saves the name and renames the next row', (await node(first)).name === 'Renamed one' && next === names[1] && (await focused()).includes('design-layer-rename'), `first ${(await node(first)).name}, field ${next}, focus ${await focused()}`)
+    await page.keyboard.type('Renamed two')
+    await page.keyboard.press('Shift+Tab')
+    await page.waitForTimeout(400)
+    const back = (await field.count()) === 1 ? await field.inputValue() : null
+    step('E4 Shift+Tab saves it and goes back a row', (await node(second)).name === 'Renamed two' && back === 'Renamed one', `second ${(await node(second)).name}, field ${back}`)
+    await page.keyboard.press('Escape')
+    await until(async () => (await kit.getByTestId('design-layer-rename').count()) === 0)
+    for (const [id, name] of [[first, names[0]], [second, names[1]]]) await run('object.rename', { ids: [id], name })
+  })
+
+  // E10: a new page starts with its name to type; Enter keeps it and adds no second page.
+  await part('E10', async () => {
+    const pages = async () => (await designKit(() => window.designKit.query('pages'))).pages
+    const count = (await pages()).length
+    const was = (await inspect()).page
+    await kit.getByTestId('design-pages-add').click()
+    const opened = await until(async () => (await kit.getByTestId('design-page-rename').count()) === 1 && (await focused()).includes('design-page-rename'), 40)
+    step('E10 a new page opens its name for typing', opened, `focus ${await focused()}`)
+    await page.keyboard.type('Login')
+    await page.keyboard.press('Enter')
+    await until(async () => (await pages()).some((p) => p.name === 'Login'), 40)
+    await page.waitForTimeout(300)
+    const now = await pages()
+    step('E10 the name typed is the page\'s, and Enter adds no other page', now.length === count + 1 && now.some((p) => p.name === 'Login'), now.map((p) => p.name).join(', '))
+    await page.keyboard.press('r')
+    step('E10 after Enter the keys are the canvas\'s again', await until(() => toolIs('rectangle'), 40), `${JSON.stringify(await tool())}, focus ${await focused()}`)
+    await page.keyboard.press('v')
+    await until(() => toolIs('move'), 40)
+    const before = new Set((await designKit(() => window.designKit.query('pages'))).pages.slice(0, count).map((p) => p.id))
+    if ((await inspect()).page !== was) await run('page.select', { id: was })
+    for (const p of await pages()) if (!before.has(p.id)) await run('page.delete', { id: p.id })
+    await page.waitForTimeout(400)
+  })
+
   // A21: the number keys set the selection's opacity (1…9: 10 %…90 %, 0: 100 %, two quick digits: exact).
   await part('A21', async () => {
     await page.keyboard.press('Escape')
