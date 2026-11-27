@@ -338,7 +338,11 @@ try {
     for (let i = 1; i <= 12; i += 1) await page.mouse.move(start.x + ((edge.x - start.x) * i) / 12, start.y)
     await page.waitForTimeout(900)
     const during = await view()
-    const pointerDoc = await toDoc(edge.x, edge.y)
+    // Out of the edge zone, so the view stops, then where the pointer and the frame are.
+    const still = { x: edge.x - 40, y: edge.y }
+    await page.mouse.move(still.x, still.y)
+    await page.waitForTimeout(400)
+    const pointerDoc = await toDoc(still.x, still.y)
     const b1 = (await node(shown)).absoluteBounds
     await page.mouse.up()
     await settle(400)
