@@ -9,6 +9,21 @@
 
 /** The text Copy or Cut took last in this editor, for Paste in a text. */
 let copied: string | null = null
+/**
+ * The Copy or Cut still reading the selection from the engine: a Paste pressed right after it
+ * (Cmd+C, End, Cmd+V typed quickly, or a busy engine) waits for it instead of finding nothing.
+ */
+let copying: Promise<unknown> = Promise.resolve()
+
+/** The characters `text.edit.selection` answered, or '' (none selected, or no answer). */
+function selectedText(answer: string | null): string {
+  try {
+    const selection = answer ? (JSON.parse(answer) as { text?: unknown } | null) : null
+    return typeof selection?.text === 'string' ? selection.text : ''
+  } catch {
+    return ''
+  }
+}
 
 type Run = (command: string, params?: Record<string, unknown>) => Promise<string | null>
 
@@ -26,19 +41,18 @@ export async function runInText(id: string, params: Record<string, unknown> | un
       return run('text.edit.key', { key: 'SelectAll' })
     case 'edit.copy':
     case 'edit.cut': {
-      const answer = await run('text.edit.selection', {})
-      let text = ''
-      try {
-        const selection = answer ? (JSON.parse(answer) as { text?: unknown } | null) : null
-        text = typeof selection?.text === 'string' ? selection.text : ''
-      } catch {
-        text = ''
-      }
+      const reading = run('text.edit.selection', {}).then((answer) => ({ answer, text: selectedText(answer) }))
+      // Paste waits for this one; the copied text is kept before it goes on.
+      copying = reading.then(({ text }) => {
+        if (text) copied = text
+      }, () => undefined)
+      const { answer, text } = await reading
+      await copying
       if (!text) return answer
-      copied = text
       return id === 'edit.cut' ? run('text.edit.key', { key: 'Backspace' }) : answer
     }
     case 'edit.paste':
+      await copying
       return copied ? run('text.edit.insert', { text: copied }) : null
     default:
       return undefined

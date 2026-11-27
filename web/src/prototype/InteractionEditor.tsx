@@ -89,7 +89,9 @@ function TriggerRows({ interaction, patch, node, index }: { interaction: Interac
     </Row>
   )
   // Key capture: the next key press (with held modifiers) is the trigger's key; Escape cancels unless the key is empty.
-  useEffect(() => {
+  // Listening from the same commit that shows "Press a key…" (a layout effect): a key pressed as soon as
+  // it shows went to the canvas, and capture then took the next key instead (Enter in another field).
+  useLayoutEffect(() => {
     if (!capturing || trigger.type !== 'keyPress') return undefined
     const key = (event: KeyboardEvent) => {
       const combo = keyCombo(event)
