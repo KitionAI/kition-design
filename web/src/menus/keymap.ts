@@ -11,7 +11,8 @@
  * delete; Home and End go to a frame with a selection too), plain keys the frame leaves (I pick
  * color), and the editor's own commands, in the capture phase so a key is never run twice.
  * `keymapKeyDown`, the frame's own key handler (before its command shortcuts), runs every other
- * second or later key of a binding (A for the Frame tool), so none of them needs a row here.
+ * second or later key of a binding (A for the Frame tool), and off the Mac a first key the frame
+ * was not given (it binds the Mac's), so none of them needs a row here.
  */
 import { useMemo } from 'react'
 import { isMac, shortcutMatches } from '@kition/sdk/editor'
@@ -163,6 +164,8 @@ function isField(target: EventTarget | null) {
  * counts too). Off the Mac, Cmd and Ctrl are both the Ctrl key.
  */
 function matches(spec: string, event: KeyboardEvent, mac: boolean) {
+  // Off the Mac the keymap's Ctrl is the Ctrl key, which kit-editor calls Cmd there.
+  if (!mac && /(^|\+)Ctrl\+/.test(spec)) spec = spec.replace(/(^|\+)Ctrl\+/, '$1Cmd+').replace(/Cmd\+(.*)Cmd\+/, 'Cmd+$1')
   if (spec.endsWith('+?') || spec === '?') {
     const mods = spec.slice(0, -1)
     const want = { cmd: mods.includes('Cmd'), ctrl: mods.includes('Ctrl'), alt: mods.includes('Alt') }
@@ -228,7 +231,11 @@ export function keymapKeyDown(designKit: DesignKit, keymap: Keymap, event: React
   for (const binding of keymap.bindings) {
     if (binding.context === 'text' && !text) continue
     if (binding.context === 'canvas' && text) continue
-    const later = binding.keys.slice(1).filter((spec) => !EDITING_KEYS.test(spec))
+    // kit-editor's frame binds the Mac's first key (the engine's catalog); off the Mac a binding
+    // whose first key differs from it (Alt+Shift+H for Ctrl+Alt+H) is run here too.
+    const frameKey = designKit.editor.byId.get(binding.id)?.shortcut
+    const from = !mac && frameKey !== undefined && binding.keys[0] !== frameKey ? 0 : 1
+    const later = binding.keys.slice(from).filter((spec) => !EDITING_KEYS.test(spec))
     if (!later.some((spec) => matches(spec, native, mac))) continue
     if (runBinding(designKit, binding.id)) return true
   }

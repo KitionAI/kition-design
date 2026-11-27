@@ -79,7 +79,7 @@ Not done or cut:
   input method's own cursor inside a composition shows at its end.
 - Libraries are not updated item by item; variables are not reordered by dragging; style folders
   are not deleted.
-- The Windows and Linux keys and Firefox are not checked by hand.
+- Firefox is not checked; the Windows and Linux keys are checked with the page reporting Linux (`web/tests/hand/other-platform-keys.mjs`, and every hand test in CI's Linux browsers), not on Windows itself.
 
 Waiting for the owner:
 

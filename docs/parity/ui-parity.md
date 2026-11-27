@@ -179,7 +179,7 @@ in the table.
   Cmd+'), letter spacing (Alt or Cmd with < >; Cmd would be the font size keys, Alt bound),
   Windows remove fill (Alt+/ or Alt+,; Alt+, is letter spacing), the Layers panel on Windows (Alt+1
   or Ctrl+1), send to back / bring to front (one table shows only the bracket).
-- **Platform keys:** macOS rows use Cmd and Option, Windows/Linux rows Ctrl and Alt (tested: no
+- **Platform keys:** in the editor every Windows/Linux key runs its command, also the eight whose key differs from the Mac's (Alt+Shift+H / V distribute, Ctrl+Alt+Shift+T, Ctrl+Alt+P, Ctrl+Alt+M, Ctrl+Shift+] / [, Ctrl+Alt+Shift+A), which kit-editor's frame, binding the Mac's keys, left without a handler (`web/tests/hand/other-platform-keys.mjs`, the page reporting Linux). macOS rows use Cmd and Option, Windows/Linux rows Ctrl and Alt (tested: no
   macOS glyph on Windows/Linux keycaps, no "Ctrl"/"Alt" words on macOS); no default binding uses a
   chord the system keeps (Cmd+H/M/Q/Tab/Space, Ctrl+Space and the screenshot keys on macOS;
   Alt+Space/Tab/F4, Ctrl+Esc, Ctrl+Alt+Delete and Linux workspace and terminal-switch keys).
