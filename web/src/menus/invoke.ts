@@ -54,6 +54,12 @@ function devModeRefuses(designKit: DesignKit, id: string) {
   if (designKit.ui.rightTab !== 'inspect') return false
   const command = designKit.editor.byId.get(id)
   if (!command?.mutates || id === 'edit.undo' || id === 'edit.redo' || DEV_MODE_OWN.some((prefix) => id.startsWith(prefix))) return false
+  return refusedInDevMode(designKit)
+}
+
+/** In Dev Mode an edit is refused with a note (a paste from the clipboard, a dropped file): answers whether it was. */
+export function refusedInDevMode(designKit: DesignKit) {
+  if (designKit.ui.rightTab !== 'inspect') return false
   showToast(designKit.t('Dev Mode only inspects: switch to Design (Shift+D) to edit'))
   return true
 }
@@ -274,19 +280,35 @@ async function exportFramesPdf(designKit: DesignKit) {
 const IMPORT_TYPES = ['kdesign', 'fig', 'json', 'svg', 'sketch', 'png', 'jpg', 'jpeg', 'gif', 'webp']
 const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']
 
-/** File > Import from file… and Place image…: the host's picker, then `file.import` / `file.placeImage` with the bytes. */
-async function importFile(designKit: DesignKit, image: boolean) {
+/**
+ * A file the person picks through the host (its picker, then `host/read`): its name and bytes, or
+ * null when they picked none or the host can't pick (a toast says so). The editor has no file
+ * field of its own: files go only through the host.
+ */
+export async function pickFile(designKit: DesignKit, purpose: string, accept: string[]): Promise<{ name: string; bytes: Uint8Array } | null> {
   const { host } = designKit.editor
   if (!host.init.capabilities.includes('pick-file')) {
     showToast(own(designKit, 'import.noPicker'))
-    return
+    return null
   }
   try {
-    const path = await host.pick(image ? 'image' : 'import', image ? IMAGE_TYPES : IMPORT_TYPES)
-    if (!path) return
+    const path = await host.pick(purpose, accept)
+    if (!path) return null
     const { bytes } = await host.files.read(path)
-    const name = path.split('/').pop() ?? path
-    const data = toBase64(new Uint8Array(bytes))
+    return { name: path.split('/').pop() ?? path, bytes: new Uint8Array(bytes) }
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : String(error))
+    return null
+  }
+}
+
+/** File > Import from file… and Place image…: the host's picker, then `file.import` / `file.placeImage` with the bytes. */
+async function importFile(designKit: DesignKit, image: boolean) {
+  const picked = await pickFile(designKit, image ? 'image' : 'import', image ? IMAGE_TYPES : IMPORT_TYPES)
+  if (!picked) return
+  const { name } = picked
+  try {
+    const data = toBase64(picked.bytes)
     const view = designKit.canvas.current?.view()
     // The view's centre, in page coordinates (document pixels plus the area's origin).
     const area = designKit.inspect.area

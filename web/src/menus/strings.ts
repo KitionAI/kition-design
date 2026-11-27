@@ -11,6 +11,12 @@ const enUS: Record<string, string> = {
   'import.notes': 'Kition Design doesn’t support every feature of these files yet. The notes list what was left out or changed in the imported copy; the original file is unchanged.',
   'missing.fonts': 'This file uses fonts this editor doesn’t have. Their text is drawn in a fallback font.',
   'preferences.host': 'Theme, language, interface size, motion and your name follow Kition’s settings.',
+  'paste.tooLarge': 'The image is too large to paste (at most 256 MB)',
+  'import.partly': 'Imported, leaving out {n} unsupported parts',
+  'drop.import': 'Drop to import',
+  'drop.open': 'Drop to open',
+  'drop.document': 'Open {name} from Kition: a document dropped here is not opened in this one',
+  'drop.unsupported': '{name} is not an image or SVG this editor can import',
 }
 
 const zhCN: Record<string, string> = {
@@ -20,6 +26,12 @@ const zhCN: Record<string, string> = {
   'import.notes': 'Kition Design 尚不支持这些文件的所有功能。注释列出了导入副本中被省略或更改的内容；原始文件保持不变。',
   'missing.fonts': '此文件使用了此编辑器没有的字体。其文本以后备字体绘制。',
   'preferences.host': '主题、语言、界面大小、动效和你的名字遵循 Kition 的设置。',
+  'paste.tooLarge': '图片太大，无法粘贴（最多 256 MB）',
+  'import.partly': '已导入，省略了 {n} 处不支持的内容',
+  'drop.import': '松开以导入',
+  'drop.open': '松开以打开',
+  'drop.document': '请从 Kition 打开 {name}：拖到这里的文档不会在当前文档中打开',
+  'drop.unsupported': '{name} 不是此编辑器能导入的图片或 SVG',
 }
 
 const CATALOGS: Record<string, Record<string, string>> = { 'en-US': enUS, 'zh-CN': zhCN }

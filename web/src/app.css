@@ -349,6 +349,28 @@
   color: var(--design-text-secondary);
 }
 
+/* Files dragged over the canvas: a hint over all of it. */
+.design-drop-hint {
+  position: absolute;
+  inset: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--design-accent-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--design-accent) 8%, transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.design-drop-hint > span {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--design-toast);
+  color: #fff;
+  font-size: 12px;
+}
+
 /* Auto layout handles over the canvas (2.5 §4): invisible until hovered. */
 .design-al-zone {
   position: absolute;

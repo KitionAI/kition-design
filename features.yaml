@@ -92,7 +92,7 @@ features:
     status: has
     commands: [text.edit.key, text.edit.selection, text.edit.insert, text.edit.selectLine, layout.add]
     paths: [web/src/kit/textEditing.ts, web/src/App.tsx, crates/engine/engine/src/canvas/textedit.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/cmd/structure.rs, web/src/canvas/input.ts, web/src/canvas/DesignCanvas.tsx, web/src/kit/focus.ts, web/src/canvas/view.ts, web/tests/hand/text.mjs, web/tests/hand/view.mjs]
-    gap: "Copy and paste while editing use the editor's own text clipboard, not the system clipboard. Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). At zooms whose device scale is not a whole number (150 % on a 1x screen) the canvas can still copy its frame half a pixel off: kit-editor places the frame, the editor only moves the view."
+    gap: "Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). At zooms whose device scale is not a whole number (150 % on a 1x screen) the canvas can still copy its frame half a pixel off: kit-editor places the frame, the editor only moves the view."
     cases: [regressions/issue-hand-b15-view-jump, regressions/issue-hand-d6-select-all-in-text, regressions/issue-hand-d8-text-clipboard, regressions/issue-hand-d10-empty-text-undo, regressions/issue-hand-f11-auto-layout-size, regressions/issue-hand-text-keys-after-editing, regressions/issue-hand-m5-device-pixels]
     since: "2026-11-26"
   - id: design.editor.input-method
@@ -104,6 +104,26 @@ features:
     paths: [web/src/canvas/inputMethod.ts, web/src/canvas/DesignCanvas.tsx, crates/support/text/src/fontdb.rs, web/src/menus/keymap.ts, web/src/shell/keys.ts, bindings/wasm/src/query.rs, bindings/wasm/src/overlays.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/tests/input_method.rs, web/tests/hand/ime.mjs]
     gap: "Checked in dev.html with Chromium's DevTools input method (compositions, key code 229, the finished text) and with real typing for the field's place; a real input method on a Mac or Windows, and Kition Desktop's frame, are not checked. The input method's own cursor inside a composition shows at the composition's end until the field reports it. kit-editor's text sink still gives the editor's commands the keys of a composition (the editor stops them before it); it sends no composition updates and does not place itself at the caret (the editor does both)."
     cases: [regressions/issue-hand-d9-ime-composition, regressions/issue-hand-d9-ime-keys, regressions/issue-hand-text-keys-platform, regressions/issue-hand-d9-chinese-glyphs]
+    since: "2026-11-27"
+  - id: design.editor.system-clipboard
+    title: "Copy, Cut and Paste use the system clipboard: Cmd+V pastes an image another app copied as an image layer, SVG text as an editable frame and other text as a text layer, in the middle of the view (Paste here: at the pointer), and layers another design app copied; a copy of layers puts the editor's mark and then the layers' SVG (their characters when all are text) on the clipboard, and its paste is the layers again, in place or in the middle of the view when the original is out of it; while a text is edited, Copy and Cut put the selected characters on the clipboard and Paste types its text; Shift+Cmd+V and Alt+Cmd+V paste the editor's own"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [edit.copy, edit.cut, edit.paste, edit.pasteDesignLayers, image.place, file.import, text.add, text.edit.insert]
+    paths: [web/src/menus/clipboard.ts, web/src/menus/MenusHost.tsx, web/src/menus/invoke.ts, web/src/kit/textEditing.ts, web/src/App.tsx, web/tests/hand/clipboard.mjs]
+    gap: "Checked in dev.html with the paste and copy events a browser sends and, in Chromium, real Cmd+C and Cmd+V with the clipboard allowed; Safari and Kition Desktop's frame (whether it lets the editor's frame use the clipboard) are not checked, nor copying between apps by hand. The copy event carries the editor's mark at once; the SVG or text other apps get follows from the engine a moment later, through the asynchronous clipboard (a browser that refuses it keeps the mark, and a paste of it is the editor's copy). The menus' Paste reads the system clipboard only where the browser allows it without asking; else it pastes the editor's copy. An image pasted with one layer selected makes a new layer (the reference makes it that layer's fill). Layers copied in one document paste into another as their SVG, not as layers."
+    cases: [regressions/issue-hand-l5-paste-external]
+    since: "2026-11-27"
+  - id: design.editor.file-drop
+    title: "Files dragged onto the canvas: a hint covers the canvas while they are over it; images and SVG files dropped are imported with their top-left where they land, one undo step each; a dropped document is left to Kition to open; a file dropped beside the canvas does not replace the editor. Choose image in the colour picker and Import in Local variables take the file through the host's picker, and the variables export is written through the host"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [image.place, file.import, variable.import, variable.export]
+    paths: [web/src/canvas/fileDrop.tsx, web/src/canvas/DesignCanvas.tsx, web/src/paint/PaintPicker.tsx, web/src/left/VariablesWindow.tsx, web/src/app.css, web/tests/hand/clipboard.mjs, web/tests/paint.mjs]
+    gap: "Checked with drag events carrying files in dev.html; a real drag from the desktop and Kition Desktop's frame are not checked. A dropped document is not opened (the Kit UI protocol has no request for the host to open a dropped file): the editor says to open it from Kition. An image dragged onto the colour picker's image area does not replace it."
+    cases: [regressions/issue-hand-l4-drop-file]
     since: "2026-11-27"
   - id: design.editor.gesture-cost
     title: "A drag sample and a hover cost one trip to the engine and repaint only what they changed: the panels hold their queries while a pointer gesture runs and ask once after it, the Design panel's X, Y, W, H and rotation and the canvas chrome follow the drag from the engine's answers, a hover tells the editor only when the hovered layer changes, and the hover's outline and the distances Alt measured go when the pointer leaves the canvas, nothing re-renders the whole editor for an engine answer, every tool event's answer names the area it changed so the canvas repaints that area of its frame, and a zoomed-out frame is drawn at its own scale"

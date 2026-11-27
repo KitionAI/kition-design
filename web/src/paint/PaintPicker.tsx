@@ -14,7 +14,11 @@ import { ColorPicker, type ChangePhase, type ImagePreset, type PatternSource } f
 import { useSelectionData } from './data'
 import { type Paint, editColor, paintJson, readPaints, solid } from './paint'
 import { PaintHandles } from './PaintHandles'
+import { pickFile, toBase64 } from '../menus/invoke'
 import { closePicker, type PickerTarget, rememberRecent, setEyedropper, setStop, usePaintState } from './store'
+
+/** The images Choose image takes (the host's picker offers these). */
+const IMAGE_FILES = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'tif', 'tiff']
 
 type Variables = { variables: Array<{ id: string; name: string; resolvedType: string; values: Record<string, { type: string; value: unknown }> }> }
 type Styles = Array<{ id: string; name: string; type?: string; value?: unknown; paints?: unknown }> | { styles?: unknown }
@@ -224,24 +228,18 @@ export function TargetColorPicker() {
   const sources: PatternSource[] = (layers?.rows ?? []).filter((r) => !painted.includes(r.id)).slice(0, 64).map((r) => ({ id: r.id, name: r.name }))
   const presetList = Array.isArray(presets) ? presets : (presets?.presets ?? [])
 
-  // Choosing Image: a picked file becomes this fill, in place (`image.place { index }`, one undo step).
-  const fileInput = useRef<HTMLInputElement>(null)
+  // Choosing Image: the file the host's picker gives becomes this fill, in place (`image.place
+  // { index }`, one undo step).
   const chooseImage = () => {
     if (target?.kind !== 'paint' || !target.fills || target.ids.length !== 1) {
       designKit.toast(t('Choose image'))
       return
     }
-    fileInput.current?.click()
-  }
-  const placeImage = async (file: File) => {
-    if (target?.kind !== 'paint') return
-    const data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(reader.error)
-      reader.readAsDataURL(file)
+    const id = target.ids[0]
+    const index = target.index
+    void pickFile(designKit, 'image', IMAGE_FILES).then((picked) => {
+      if (picked) void run('image.place', { target: id, data: toBase64(picked.bytes), index })
     })
-    await run('image.place', { target: target.ids[0], data, index: target.index })
   }
 
   const imagePreset = (action: { apply: string } | { save: string; filters: Record<string, number> } | { remove: string }) => {
@@ -270,18 +268,6 @@ export function TargetColorPicker() {
         imagePresets={presetList}
         onImagePreset={imagePreset}
         imageProfile={imageProfile}
-      />
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,image/*"
-        style={{ display: 'none' }}
-        data-testid="design-color-picker-file"
-        onChange={(event) => {
-          const file = event.target.files?.[0]
-          event.target.value = ''
-          if (file) void placeImage(file)
-        }}
       />
       {target.kind === 'paint' && target.ids.length === 1 && (current.type === 'gradient' || (current.type === 'image' && current.image?.scale_mode === 'crop')) ? (
         <PaintHandles

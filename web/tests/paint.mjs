@@ -168,9 +168,13 @@ try {
   await until(async () => (await node(SAVE)).fills[0].color !== sampled)
   step('the eyedropper picks a colour off the canvas', (await node(SAVE)).fills[0].color !== sampled, `${sampled} → ${(await node(SAVE)).fills[0].color}`)
 
-  // Choose image: the file becomes this fill in place, one step (image.place { index }).
+  // Choose image: the file the host's picker gives becomes this fill in place, one step (image.place { index }).
   const fillsBefore = (await node(SAVE)).fills
-  await kit.getByTestId('design-color-picker-file').setInputFiles({ name: 'dots.png', mimeType: 'image/png', buffer: PNG })
+  await page.evaluate((png) => {
+    window.devHost.files.set('dots.png', { bytes: Uint8Array.from(atob(png), (c) => c.charCodeAt(0)).buffer, version: 1 })
+    window.devHost.scriptHostPick('dots.png')
+  }, PNG.toString('base64'))
+  await kit.getByTestId('design-color-picker-kind-image').click()
   await until(async () => (await node(SAVE)).fills[0].type === 'image')
   const imaged = (await node(SAVE)).fills
   step('a chosen image replaces the fill in place', imaged[0].type === 'image' && imaged.length === fillsBefore.length, `${fillsBefore.map((f) => f.type)} → ${imaged.map((f) => f.type)}`)

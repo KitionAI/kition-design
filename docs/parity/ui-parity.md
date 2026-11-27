@@ -140,7 +140,11 @@ in the table.
   nothing is selected, Control suspending snapping on macOS, and Space, N, C and F while
   presenting. The paint bucket's tooltip shows Shift+B (B still works).
 - **Paste:** Shift+Cmd/Ctrl+V (Paste over selection) and Alt+Cmd/Ctrl+V (Paste properties) act
-  as bound; Cmd/Ctrl+V pastes an image copied in another app.
+  as bound, on the editor's own copy; Cmd/Ctrl+V reads the system clipboard: an image, SVG text or
+  text copied in another app pastes as an image layer, an editable frame or a text layer in the
+  middle of the view, layers this editor copied paste as layers (`web/src/menus/clipboard.ts`,
+  `web/tests/hand/clipboard.mjs`). Files dropped on the canvas import where they land
+  (`web/src/canvas/fileDrop.tsx`).
 - **Where the documentation disagrees with itself** (noted per row): pixel grid (Shift+' or
   Cmd+'), letter spacing (Alt or Cmd with < >; Cmd would be the font size keys, Alt bound),
   Windows remove fill (Alt+/ or Alt+,; Alt+, is letter spacing), the Layers panel on Windows (Alt+1
@@ -161,7 +165,7 @@ in the table.
 | Keyboard navigation: F6 regions, Tab within, focus ring | done | |
 | The keyboard is the canvas's after a field, popup, menu, palette, comment, window or toolbar button; from the first key after opening | done | Enter or Escape in a field, a closed popup, menu, Actions palette, dialog, variables window or comment composer give the keyboard back to the editor; a key that still finds the page's body holding it is given to the editor once; a posted comment's thread opens without taking the keyboard; Escape after clicking a toolbar tool goes back to Move; a layer row keeps the arrows and leaves the tool letters to the tools (`web/src/kit/focus.ts`, `web/tests/hand/keys.mjs`) |
 | Every binding's second keys, the number keys for opacity, N / Shift+N, a double-click on a frame label | done | A for the Frame tool and every other second key of the keymap (`keymapKeyDown`); 1…9 / 0 and two quick digits set the selection's opacity; a double-click on a frame's or section's name label renames it in a field over the label (Enter, a press elsewhere; Escape keeps it); the toolbar shows a tool a command chose (`web/tests/hand/keys.mjs`) |
-| Typing a new text on the canvas | done | Cmd+A selects its characters (not the page's layers) and Cmd+B bolds them; Copy, Cut and Paste act on the selected characters as plain text and add no layer (the editor's own text clipboard: the system clipboard is not read yet); a triple-click selects the paragraph; T, a click, typing, Escape and one Cmd+Z take the new text away; an unnamed text is named after its first line (at most 64 characters) until it is renamed; the tools' letters work as soon as editing ends (`web/tests/hand/text.mjs`) |
+| Typing a new text on the canvas | done | Cmd+A selects its characters (not the page's layers) and Cmd+B bolds them; Copy, Cut and Paste act on the selected characters as plain text and add no layer (through the system clipboard: characters copied here reach other apps, text copied there types in); a triple-click selects the paragraph; T, a click, typing, Escape and one Cmd+Z take the new text away; an unnamed text is named after its first line (at most 64 characters) until it is renamed; the tools' letters work as soon as editing ends (`web/tests/hand/text.mjs`) |
 | Layers panel from the keyboard: arrows, F2 / Cmd+R rename (the row gets the keyboard back), Shift+F10 context menu; 10k-layer lists | done | |
 | Reduced motion | done | the system setting (`prefers-reduced-motion`) |
 | Tested with VoiceOver, NVDA, Narrator, Orca | missing | human QA |

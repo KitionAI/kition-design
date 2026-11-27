@@ -26,6 +26,7 @@ import { Shell } from './shell/Shell'
 import { shellKeyDown } from './shell/keys'
 import { LibraryFiles } from './left/libraryFiles'
 import { interceptCommand } from './menus/invoke'
+import { clipboardCommand, setPlainRun } from './menus/clipboard'
 import { DEFAULT_MENU } from './menus/catalog'
 import { NOT_OFFERED, keymapKeyDown, useKeymap } from './menus/keymap'
 import { useMenuTabs } from './menus/model'
@@ -48,23 +49,23 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
   // Commands only ask for UI (dialogs, panels): their answers' requests go to whoever shows it.
   // Whether a text is being edited on the canvas (the Edit commands then act on its characters).
   const editingText = useRef(false)
-  const editor = useMemo(
-    () => ({
-      ...base,
-      run: async (id: string, params?: Record<string, unknown>) => {
-        // Commands the editor shows a dialog for, or runs itself (the menus package).
-        if (interceptCommand(id, params)) return null
-        if (editingText.current) {
-          const inText = await runInText(id, params, base.run)
-          if (inText !== undefined) return inText
-        }
-        const answer = await base.run(id, params)
-        dispatchFromAnswer(answer)
-        return answer
-      },
-    }),
-    [base],
-  )
+  const editor = useMemo(() => {
+    const plain = async (id: string, params?: Record<string, unknown>) => {
+      // Commands the editor shows a dialog for, or runs itself (the menus package).
+      if (interceptCommand(id, params)) return null
+      if (editingText.current) {
+        const inText = await runInText(id, params, base.run)
+        if (inText !== undefined) return inText
+      }
+      const answer = await base.run(id, params)
+      dispatchFromAnswer(answer)
+      return answer
+    }
+    // Copy, Cut and Paste go through the system clipboard (menus/clipboard.ts), which runs its
+    // commands through `plain`.
+    setPlainRun(plain)
+    return { ...base, run: (id: string, params?: Record<string, unknown>) => clipboardCommand(id, params) ?? plain(id, params) }
+  }, [base])
   const tools = useEngineTools(session.tool, session.doc != null, session.change, {
     initial: 'move',
     hostTools: HOST_TOOLS,

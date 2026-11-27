@@ -23,6 +23,7 @@ import { colorCss } from './swatch'
 import { openVariablePicker } from './VariablePicker'
 import { cssHexOf, display, groupOf, groups, hexOf, resolve, SCOPES, unique, useVariables, valueJson, type Collection, type Variable, type VariableKind, type Variables } from './variables'
 import { releaseField, useKeyboardReturn } from '../kit/focus'
+import { fileName, pickFile, saveExport } from '../menus/invoke'
 
 const SIDEBAR_W = 200
 const NAME_W = 240
@@ -63,7 +64,6 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
   const [details, setDetails] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuAt | null>(null)
   const [color, setColor] = useState<{ variable: Variable; mode: string } | null>(null)
-  const file = useRef<HTMLInputElement>(null)
   const [size, setSize] = useState({ width: 880, height: 480 })
   useEffect(() => {
     const fit = () => setSize({ width: Math.max(480, Math.min(880, window.innerWidth - 80)), height: Math.max(240, Math.min(480, window.innerHeight - 120)) })
@@ -95,19 +95,16 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
   const exportAs = async (format: string) => {
     const answer = await run<{ text?: string }>('variable.export', { format })
     if (!answer?.text) return
-    const name = `${designKit.inspect.name}.variables.${format}`
-    const url = URL.createObjectURL(new Blob([answer.text], { type: 'text/plain' }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    a.click()
-    URL.revokeObjectURL(url)
-    designKit.toast(t('Exported {file}', { file: name }))
+    // A new file next to the document, through the host.
+    const name = await saveExport(designKit, fileName(`${designKit.inspect.name || 'Untitled'}.variables`, format), new TextEncoder().encode(answer.text))
+    if (name) designKit.toast(t('Exported {file}', { file: name }))
   }
 
-  const importFile = async (picked: File | undefined) => {
+  // Import…: the variables JSON the host's picker gives (the editor has no file field of its own).
+  const importFile = async () => {
+    const picked = await pickFile(designKit, 'import', ['json'])
     if (!picked) return
-    const text = await picked.text()
+    const text = new TextDecoder().decode(picked.bytes)
     const answer = await edit('variable.import', { variables: text }) as { variables?: number; updated?: number; warnings?: unknown[] } | null
     if (!answer) return
     let message = t('Imported {n} new variables, updated {updated}', { n: answer.variables ?? 0, updated: answer.updated ?? 0 })
@@ -147,7 +144,7 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
       <div className="design-vars-header">
         <span className="design-s13">{t('Local variables')}</span>
         <span style={{ flex: 1 }} />
-        <Button testId="design-variables-import" tip={t('Add or update collections from a variables JSON')} onClick={() => file.current?.click()}>
+        <Button testId="design-variables-import" tip={t('Add or update collections from a variables JSON')} onClick={() => void importFile()}>
           {t('Import…')}
         </Button>
         <Button
@@ -173,7 +170,6 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
         <button type="button" className="design-left-header-button" style={{ position: 'static', marginLeft: 4 }} aria-label={t('Close')} data-tip={t('Close')} onClick={onClose} data-testid="design-variables-close">
           <Icon name="Close" size={14} />
         </button>
-        <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0]).finally(() => (event.target.value = ''))} />
       </div>
       <div className="design-vars-body">
         <div className="design-vars-sidebar">

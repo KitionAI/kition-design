@@ -15,18 +15,23 @@ import { openContextMenu } from './contextMenuStore'
 import { openContextMenuAtSelection, setMenusDesignKit } from './invoke'
 import { focusEditor, keyboardFallback, keyboardLost } from '../kit/focus'
 import { menuKeyDown } from './keymap'
+import { clipboardKeyDown, useClipboard } from './clipboard'
 
 export function MenusHost() {
   const designKit = useDesignKit()
   setMenusDesignKit(designKit)
   const latest = useRef(designKit)
   latest.current = designKit
+  // The system clipboard: copy, cut and paste events.
+  useClipboard(designKit)
 
   // The keys the frame, the tools and the shell leave (keymap.ts), before any of them; first, a
   // key the page's body has goes to the editor's frame (kit/focus.ts).
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
       if (keyboardFallback(event)) return
+      // Cmd+C, Cmd+X and Cmd+V: the browser's clipboard events (clipboard.ts).
+      if (clipboardKeyDown(event)) return
       if (menuKeyDown(latest.current, event)) {
         event.preventDefault()
         event.stopPropagation()

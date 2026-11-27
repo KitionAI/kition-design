@@ -18,6 +18,7 @@ import { setCanvasPage, setSizePill } from './engineOverlays'
 import { contentBounds, raster, rememberPageView, rememberedPageView } from './view'
 import { useAreaOriginKept, useCanvasInput } from './input'
 import { useInputMethod } from './inputMethod'
+import { DropHint, useFileDrop } from './fileDrop'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
 import { DevCanvasLayer } from '../dev/DevCanvasLayer'
 
@@ -51,6 +52,8 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   useAreaOriginKept(designKit)
   const root = useRef<HTMLDivElement>(null)
   useCanvasInput(root, designKit, isMac())
+  // Files dropped on the canvas are imported where they land.
+  const dropHint = useFileDrop(root, designKit)
   // Input methods compose in the text at the caret, their candidate window beside it.
   useInputMethod(designKit)
   // The text keys move as this platform's do (Alt or Ctrl by word).
@@ -175,6 +178,7 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
           <CanvasOverlays />
           {view && designKit.ui.rightTab === 'prototype' ? <ProtoCanvasLayer view={view} /> : null}
           {view && designKit.ui.rightTab === 'inspect' ? <DevCanvasLayer view={view} /> : null}
+          <DropHint hint={dropHint} designKit={designKit} />
         </KitDocumentCanvas>
       ) : (
         <div className="design-canvas-message">{designKit.editor.session.failure ?? designKit.t('kit.opening')}</div>
