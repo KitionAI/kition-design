@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-f6-regions
+feature: design.editor.keyboard
+intent: >-
+  F6 and Shift+F6 move the keyboard to the next and previous region (toolbar, layers, canvas,
+  properties) from the canvas too. With the keyboard on the editor's root, where a click on the
+  canvas or Enter in a field leaves it, F6 did nothing: the regions' key handler sat on the shell
+  inside that root and never saw the key (the Keyboard shortcuts dialog's keys pressed one by one
+  in stage 11). web/tests/hand/keys.mjs clicks the canvas, presses F6, Escape and Shift+F6 and reads
+  which region has the keyboard.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design stage 11, the shortcuts dialog's keys pressed one by one (kition-plan kit-docs/design/walkthrough/scripts/probe21.mjs)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

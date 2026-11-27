@@ -424,6 +424,60 @@ try {
     step('the shortcuts dialog lists no keyboard marquee (F8)', (await kit.getByTestId('design-shortcut-row').count()) === 0, String(await kit.getByTestId('design-shortcut-row').count()))
     await kit.getByTestId('design-dialog-shortcuts-close').click()
   })
+
+  // Stage 11 (regressions/issue-hand-shortcuts-board-tools): in a design file the shortcuts dialog
+  // lists no whiteboard tool (Q sticky, M marker, …): their keys do nothing outside a board.
+  await part('board tools', async () => {
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press('Control+Shift+Slash')
+    await until(async () => (await kit.getByTestId('design-dialog-shortcuts').count()) === 1)
+    const rows = async (q) => {
+      await kit.getByTestId('design-shortcuts-search').fill(q)
+      await page.waitForTimeout(300)
+      return kit.getByTestId('design-shortcut-row').count()
+    }
+    const sticky = await rows('Sticky')
+    const marker = await rows('Marker')
+    const pen = await rows('Pen')
+    step('the shortcuts dialog of a design file lists no whiteboard tool', sticky === 0 && marker === 0, `sticky ${sticky}, marker ${marker}`)
+    step('and still lists the design tools', pen > 0, `pen ${pen}`)
+    await kit.getByTestId('design-dialog-shortcuts-close').click()
+    const before = (await inspect()).tool
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press('q')
+    await page.waitForTimeout(300)
+    step('(Q does nothing in a design file)', (await inspect()).tool === before, `${before} -> ${(await inspect()).tool}`)
+  })
+
+  // Stage 11 (regressions/issue-hand-shift-space-preview): Shift+Space previews the selected frame
+  // in the canvas, as the shortcuts dialog says (the Space of the hand took it).
+  await part('Shift+Space', async () => {
+    const frame = (await inspect()).tree.find((n) => n.type === 'FRAME')
+    await page.mouse.click(empty.x, empty.y)
+    await run('select.set', { ids: [frame.id] })
+    await page.waitForTimeout(300)
+    await page.keyboard.press('Shift+Space')
+    step('Shift+Space opens the preview of the selected frame', await until(async () => (await kit.getByTestId('design-proto-pane-frame').count()) === 1, 40), `${await kit.getByTestId('design-proto-pane-frame').count()} preview panes`)
+    await kit.getByTestId('design-proto-pane-close').click().catch(() => undefined)
+    await until(async () => (await kit.getByTestId('design-proto-pane-frame').count()) === 0, 20)
+  })
+
+  // Stage 11 (regressions/issue-hand-f6-regions): F6 and Shift+F6 move the keyboard between the
+  // regions from the canvas too, where the keyboard is the editor's root after a click; Escape
+  // brings it back to the canvas.
+  await part('F6', async () => {
+    const region = () => designKit(() => document.activeElement?.closest('[data-design-region]')?.getAttribute('data-design-region') ?? 'canvas')
+    await page.mouse.click(empty.x, empty.y)
+    await page.waitForTimeout(200)
+    await page.keyboard.press('F6')
+    step('F6 from the canvas goes to the properties', await until(async () => (await region()) === 'properties', 20), `${await region()}, focus ${await focused()}`)
+    await page.keyboard.press('Escape')
+    step('Escape brings the keyboard back to the canvas', await until(async () => (await region()) === 'canvas', 20), `${await region()}, focus ${await focused()}`)
+    await page.keyboard.press('Shift+F6')
+    step('Shift+F6 from the canvas goes to the layers', await until(async () => (await region()) === 'layers', 20), `${await region()}, focus ${await focused()}`)
+    await page.keyboard.press('Escape')
+    await until(async () => (await region()) === 'canvas', 20)
+  })
 } catch (error) {
   failures += 1
   shots.failed('error')

@@ -1,0 +1,28 @@
+format: 1
+id: design.editor.first-ten-minutes/thirty-things
+feature: design.editor.first-ten-minutes
+intent: >-
+  The thirty things a designer does in the first ten minutes, and six more, done by hand in
+  dev.html with real pointer and keys and the steps the acceptance list gives: frames from a drag
+  and a preset, shapes, text written and changed, select, move with snapping, marquee, deep select,
+  resize, exact sizes, rotate, duplicate, nudge, fill, stroke, radius, shadow, align, group, rename
+  and reorder layers, auto layout and its handles, hug and fill, a component and an instance with an
+  override, zoom and pan, undo, copy and paste, export, save, measuring, the pen, the Actions
+  palette, a prototype link and the presenter, placing an image, hiding and locking. Each thing's
+  steps are read back from the engine; one known difference (a marquee touching part of a top-level
+  frame) is reported, not failed.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/hand/first-ten-minutes.mjs (acceptance list of the plan 2026-11-26, section N)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/first-ten-minutes.mjs, webkit]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 900
+requires: [webkit]

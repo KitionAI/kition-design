@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-n12-tab-to-height
+feature: design.editor.first-ten-minutes
+intent: >-
+  Typing an exact size in the Design panel, Tab in the W field goes on to the H field. It went to
+  the field's Apply variable button, shown at the field's right while the pointer is over it (it
+  is, right after the field was clicked), so a value typed next went nowhere (acceptance list,
+  thing 12). web/tests/hand/first-ten-minutes.mjs clicks W, presses Tab and reads where the
+  keyboard is.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design acceptance run 2026-11-27, thing 12 of the first ten minutes (kition-plan kit-docs/design/walkthrough/acceptance.md)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/first-ten-minutes.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 900
+requires: [chromium]

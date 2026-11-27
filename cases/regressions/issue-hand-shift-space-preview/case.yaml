@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-shift-space-preview
+feature: design.editor.keyboard
+intent: >-
+  Shift+Space previews the selected frame in the canvas (Preview, `proto.preview`), the key the
+  Keyboard shortcuts dialog gives it. It did nothing: kit-editor takes Space for the hand and the
+  command's key never reached it (the shortcuts dialog's keys pressed one by one in stage 11).
+  web/tests/hand/keys.mjs selects a frame of the sample, presses Shift+Space and looks for the
+  preview.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design stage 11, the shortcuts dialog's keys pressed one by one (kition-plan kit-docs/design/walkthrough/scripts/probe21.mjs)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]
