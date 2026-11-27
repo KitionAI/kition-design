@@ -153,6 +153,16 @@ features:
     gap: "Checked in dev.html with real pointer and keys in Chromium and WebKit; a real mouse and trackpad by hand and Kition Desktop's frame are not checked. Alt while dragging a guide does not measure to the layers it crosses. A modifier pressed while hovering reaches the tool after 120 ms and not at all when it is part of a shortcut (kit-editor gives a key pressed while the engine answers back without its key code, so Shift+1 pressed during that answer would not fit). The mouse's side buttons do not pan; there is no preference for the wheel to zoom."
     cases: [regressions/issue-hand-b11-hold-z, regressions/issue-hand-g5-pasted-instance-pick, regressions/issue-hand-page-guide-undo]
     since: "2026-11-27"
+  - id: design.editor.auto-layout-handles
+    title: "Auto layout is adjusted on the canvas: dragging a padding band sets its side, with Alt or Shift the opposite side too and with both all four, and the sides it sets light up while hovered and dragged; a click on a padding or gap band types its value there (Enter sets it as one undo step, Escape keeps it, the keys are the canvas's again); dragging a gap band, or typing a gap in the Design panel, while the gap is Auto makes it a fixed gap at that value; a padding field takes two values at once (10, 30: above and below, then the sides); a child dragged past its neighbour reorders the auto layout"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [node.set, layout.add]
+    paths: [web/src/canvas/autoLayoutHandles.tsx, web/src/canvas/DesignCanvas.tsx, web/src/canvas/chrome.ts, web/src/design/Layout.tsx, web/src/ui/NumberField.tsx, web/src/ui/math.ts, bindings/wasm/src/chrome.rs, web/tests/hand/handles.mjs]
+    gap: "Checked in dev.html with real pointer and keys in Chromium and WebKit; a real mouse and trackpad by hand and Kition Desktop's frame are not checked. A drag starts anywhere on a band (the reference starts it only on the band's 20 x 12 px grip). The handles show for one selected, unrotated auto layout frame with the Move tool, as the reference's do; grid tracks have no handles of their own. There is no clickable constraints diagram beside the two constraint dropdowns (the reference has the dropdowns only)."
+    cases: [regressions/issue-hand-f5-padding-handles, regressions/issue-hand-auto-gap-fixed]
+    since: "2026-11-27"
   - id: design.platform.document-identity
     title: "A host reads the document id a .kdesign carries and forks a copied design into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"
     dimension: [platform, data-safety]

@@ -1,8 +1,8 @@
 /**
  * The canvas: kit-editor's canvas rendering the engine (zoom and pan, wheel and pinch, the
  * engine's tools and overlays), the page's background behind the document, the canvas chrome
- * drawn over it (`chrome.ts`), the auto layout padding and gap handles, which drag with
- * `node.set` as one undo step, the field that renames a frame on its name label, and the editor's
+ * drawn over it (`chrome.ts`), the auto layout padding and gap handles (`autoLayoutHandles.tsx`),
+ * the field that renames a frame on its name label, and the editor's
  * own canvas input (`input/`): the order its layers are offered presses in, the zoom tool while Z
  * is held, ruler guides, the pointer sent again for a modifier and at the edge, the wheel.
  */
@@ -24,6 +24,7 @@ import { ZoomArea, useZoomTool } from './input/zoomTool'
 import { GuidePreview, useRulerGuides } from './input/guides'
 import { useInputMethod } from './inputMethod'
 import { DropHint, useFileDrop } from './fileDrop'
+import { AutoLayoutHandles } from './autoLayoutHandles'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
 import { DevCanvasLayer } from '../dev/DevCanvasLayer'
 
@@ -193,7 +194,7 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
     >
       {fit ? (
         <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} initialArea={fit.area} framed={false} decorate={decorate} decorateUnder={decorateUnder} animated={wantsText} onView={onView} testId="design-canvas">
-          {chrome?.autoLayout && view && activeTool === 'move' ? <AutoLayoutHandles chrome={chrome} view={view} onHot={setHot} /> : null}
+          {chrome?.autoLayout && view && activeTool === 'move' ? <AutoLayoutHandles chrome={chrome} view={view} hot={hot} onHot={setHot} /> : null}
           {renaming && view && chrome ? <LabelRename id={renaming} chrome={chrome} view={view} onDone={() => setRenaming(null)} /> : null}
           <CanvasOverlays />
           {view && designKit.ui.rightTab === 'prototype' ? <ProtoCanvasLayer view={view} /> : null}
@@ -206,74 +207,6 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
         <div className="design-canvas-message">{designKit.editor.session.failure ?? designKit.t('kit.opening')}</div>
       )}
     </div>
-  )
-}
-
-/** The padding and gap bands (2.5 §4): invisible until hovered; dragging one sets the value. */
-function AutoLayoutHandles({ chrome, view, onHot }: { chrome: DesignChrome; view: KitCanvasView; onHot: (key: ZoneKey) => void }) {
-  const { interaction, t } = useDesignKit()
-  const al = chrome.autoLayout!
-  const dragging = useRef<string | null>(null)
-  const zones = [
-    ...al.padding.map((zone) => ({ key: `padding:${zone.side}`, prop: zone.key, value: zone.value, rect: zone.rect, axis: zone.side === 0 || zone.side === 2 ? ('y' as const) : ('x' as const), sign: zone.side === 0 || zone.side === 3 ? 1 : -1, gap: false, side: zone.side })),
-    ...al.gaps.map((zone, index) => ({ key: `gap:${index}`, prop: zone.key, value: zone.value, rect: zone.rect, axis: zone.vertical ? ('y' as const) : ('x' as const), sign: 1, gap: true, side: -1 })),
-  ]
-  return (
-    <>
-      {zones.map((zone) => {
-        const left = (zone.rect.x - view.x) * view.zoom
-        const top = (zone.rect.y - view.y) * view.zoom
-        return (
-          <div
-            key={zone.key}
-            className="design-al-zone"
-            data-testid={`design-al-${zone.key.replace(':', '-')}`}
-            style={{ left, top, width: zone.rect.width * view.zoom, height: zone.rect.height * view.zoom, cursor: zone.axis === 'y' ? 'ns-resize' : 'ew-resize' }}
-            onPointerEnter={() => onHot(zone.key)}
-            onPointerLeave={() => {
-              if (dragging.current !== zone.key) onHot(null)
-            }}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return
-              event.preventDefault()
-              event.stopPropagation()
-              const target = event.currentTarget
-              target.setPointerCapture(event.pointerId)
-              dragging.current = zone.key
-              const start = { x: event.clientX, y: event.clientY }
-              const drag = interaction(t(zone.gap ? 'interaction.gap' : 'interaction.padding'))
-              let last = zone.value
-              const move = (e: PointerEvent) => {
-                const delta = ((zone.axis === 'x' ? e.clientX - start.x : e.clientY - start.y) * zone.sign) / view.zoom
-                const next = Math.max(0, Math.round(zone.value + delta))
-                if (next === last) return
-                last = next
-                // Shift sets both sides of the axis.
-                const key = !zone.gap && e.shiftKey ? (zone.axis === 'y' ? 'paddingVertical' : 'paddingHorizontal') : zone.prop
-                drag.update('node.set', { ids: [al.id], props: { [key]: next } })
-              }
-              // A release commits; a press the browser cancels puts the padding back. Losing the
-              // capture without either (the zone went away) keeps what the drag did.
-              const end = (how: 'commit' | 'cancel') => () => {
-                target.removeEventListener('pointermove', move)
-                target.removeEventListener('pointerup', up)
-                target.removeEventListener('pointercancel', cancel)
-                target.removeEventListener('lostpointercapture', up)
-                dragging.current = null
-                onHot(null)
-                void (how === 'commit' ? drag.commit() : drag.cancel())
-              }
-              const up = end('commit')
-              const cancel = end('cancel')
-              target.addEventListener('pointermove', move)
-              target.addEventListener('pointerup', up)
-              target.addEventListener('pointercancel', cancel)
-              target.addEventListener('lostpointercapture', up)
-            }}
-          />
-        )
-      })}
-    </>
   )
 }
 

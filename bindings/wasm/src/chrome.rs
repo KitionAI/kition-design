@@ -29,10 +29,12 @@
 //!   autoLayout: null | {                    // one selected, unrotated auto layout frame
 //!     id,
 //!     padding: [{ side: 0..3 (top, right, bottom, left), key: "paddingTop"|…, value, rect }],
-//!     gaps: [{ key: "gap"|"crossGap", value, vertical, rect }],
+//!     gaps: [{ key: "gap"|"crossGap", value, vertical, auto, rect }],
 //!     tracks: [[[x, y], [x, y]]]            // grid layout: the tracks' edges
 //!   },                                      // rect: { x, y, width, height }; dragging one runs
-//!                                           //   node.set { ids: [id], props: { [key]: value } }
+//!                                           //   node.set { ids: [id], props: { [key]: value } };
+//!                                           //   an `auto` gap (spaced by its alignment) shows
+//!                                           //   the distance and is made fixed when it is set
 //!   grids: [{ frame, color, lines: bool, rects: [rect] }],
 //!                                           // layout grids (View > Layout grids): grid lines
 //!                                           //   (lines: true, rects are 0-wide/high lines) or
@@ -255,19 +257,20 @@ fn auto_layout(doc: &Document, ds: &kition_design_engine::DocState, area: &Area)
         .collect();
     let auto_main = al.main_align.is_auto_gap() && al.mode != LayoutMode::Grid;
     let auto_cross = al.wrap && al.content_align == ContentAlign::SpaceBetween;
-    let mut gaps: Vec<(Rect, &str, f64, bool)> = Vec::new();
+    // (band, key, value, vertical, auto)
+    let mut gaps: Vec<(Rect, &str, f64, bool, bool)> = Vec::new();
     let mut tracks: Vec<[Point; 2]> = Vec::new();
     if let Some(g) = kition_design_layout::grid_geometry(doc, id) {
         let (top, bottom) = (g.rows.first().map_or(pt, |r| r.0), g.rows.last().map_or(fh - pb, |r| r.1));
         let (left, right) = (g.columns.first().map_or(pl, |c| c.0), g.columns.last().map_or(fw - pr, |c| c.1));
         for pair in g.columns.windows(2) {
             if let [a, b] = pair {
-                gaps.push((band(a.1, top, b.0, bottom), "gap", al.gap, false));
+                gaps.push((band(a.1, top, b.0, bottom), "gap", al.gap, false, false));
             }
         }
         for pair in g.rows.windows(2) {
             if let [a, b] = pair {
-                gaps.push((band(left, a.1, right, b.0), "crossGap", al.cross_gap, true));
+                gaps.push((band(left, a.1, right, b.0), "crossGap", al.cross_gap, true, false));
             }
         }
         for c in &g.columns {
@@ -300,14 +303,20 @@ fn auto_layout(doc: &Document, ds: &kition_design_engine::DocState, area: &Area)
             let (y0, y1) = if al.wrap { span(line) } else { (cp0, cw - cp1) };
             for pair in line.windows(2) {
                 if let [ra, rb] = pair {
-                    gaps.push((fband(ra.x1, y0, rb.x0, y1), "gap", if auto_main { rb.x0 - ra.x1 } else { al.gap }, vertical));
+                    gaps.push((fband(ra.x1, y0, rb.x0, y1), "gap", if auto_main { rb.x0 - ra.x1 } else { al.gap }, vertical, auto_main));
                 }
             }
         }
         for pair in lines.windows(2) {
             if let [a, b] = pair {
                 let dist = span(b).0 - span(a).1;
-                gaps.push((fband(mp0, span(a).1, mw - mp1, span(b).0), "crossGap", if auto_cross { dist } else { al.cross_gap }, !vertical));
+                gaps.push((
+                    fband(mp0, span(a).1, mw - mp1, span(b).0),
+                    "crossGap",
+                    if auto_cross { dist } else { al.cross_gap },
+                    !vertical,
+                    auto_cross,
+                ));
             }
         }
     }
@@ -319,7 +328,10 @@ fn auto_layout(doc: &Document, ds: &kition_design_engine::DocState, area: &Area)
     json!({
         "id": id,
         "padding": padding,
-        "gaps": gaps.iter().map(|(r, key, value, vertical)| json!({ "key": key, "value": value, "vertical": vertical, "rect": rect(*r) })).collect::<Vec<_>>(),
+        "gaps": gaps
+            .iter()
+            .map(|(r, key, value, vertical, auto)| json!({ "key": key, "value": value, "vertical": vertical, "auto": auto, "rect": rect(*r) }))
+            .collect::<Vec<_>>(),
         "tracks": tracks.iter().map(|[a, b]| json!([point(*a), point(*b)])).collect::<Vec<_>>(),
     })
 }

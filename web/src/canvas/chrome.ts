@@ -32,7 +32,10 @@ export function readTheme(): ChromeTheme {
   }
 }
 
-/** Which auto layout band the pointer is over or drags (`padding:<side>` or `gap:<index>`). */
+/**
+ * The auto layout bands the pointer is over or drags, space-separated (`padding:<side>` or
+ * `gap:<index>`): with Alt or Shift a padding band lights its opposite side too, with both all four.
+ */
 export type ZoneKey = string | null
 
 // Icons drawn on the canvas, as images per colour.
@@ -208,7 +211,7 @@ export function chromeDecoration(chrome: DesignChrome, theme: ChromeTheme, hot: 
       }
       context.setLineDash([])
       const band = (key: string, rect: { x: number; y: number; width: number; height: number }, value: number, gap: boolean) => {
-        if (key !== hot) return
+        if (!hot?.split(' ').includes(key)) return
         const a = toScreen(rect.x, rect.y)
         const b = toScreen(rect.x + rect.width, rect.y + rect.height)
         context.fillStyle = gap ? 'rgba(242, 72, 140, 0.3)' : 'rgba(242, 72, 140, 0.25)'

@@ -116,6 +116,18 @@ export function parseEdit(text: string, current: number | null): NumberEdit | nu
   return value === null ? null : { kind: 'set', value }
 }
 
+/**
+ * Two numbers typed into one field, `10, 30` or `10 30`: separated by a comma with a space after
+ * or before it, or by spaces alone. A comma between digits (`10,5`) is a decimal comma, not a pair.
+ */
+export function parsePair(text: string): [number, number] | null {
+  const match = /^\s*(-?\d+(?:\.\d+)?)(?:\s*,\s+|\s+,\s*|\s+)(-?\d+(?:\.\d+)?)\s*$/.exec(text)
+  if (!match) return null
+  const first = Number(match[1])
+  const second = Number(match[2])
+  return Number.isFinite(first) && Number.isFinite(second) ? [first, second] : null
+}
+
 /** A number as fields show it: up to `decimals` places, no trailing zeros. */
 export function formatNumber(value: number, decimals = 2) {
   if (!Number.isFinite(value)) return ''

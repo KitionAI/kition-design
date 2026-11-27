@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-hand-f5-padding-handles
+feature: design.editor.auto-layout-handles
+intent: >-
+  The padding bands on the canvas only half worked (walkthrough F5): Alt while dragging the left
+  padding changed the left side alone, and a click on a band did nothing, so a value could only be
+  dragged, not typed. Now Alt or Shift while dragging a padding band sets the opposite side too and
+  Alt+Shift all four, the sides it sets light up while hovered and dragged (also when the key goes
+  down with the pointer still), and a click on a padding or gap band opens a field there with the
+  value selected: Enter sets it as one undo step, Escape keeps it, and the keys are the canvas's
+  again after either. web/tests/hand/handles.mjs does it with a real mouse and keyboard (its drag
+  and type parts) and reads the layout back from the engine.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding F5 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/handles.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

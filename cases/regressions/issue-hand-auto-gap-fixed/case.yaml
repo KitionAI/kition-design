@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-hand-auto-gap-fixed
+feature: design.editor.auto-layout-handles
+intent: >-
+  A gap set while the auto layout's gap was Auto (space between, evenly or around) changed nothing
+  on screen (gap analysis, section F): the Design panel's gap field and the canvas's gap band wrote
+  only `gap`, and the alignment kept spacing the children by the free space. Typing a gap in the
+  panel, or dragging the gap band, now makes the gap fixed at that value (`mainAlign: min`; a
+  wrapped layout's row gap `contentAlign: auto`) in one undo step, and the children move to it.
+  The band shows the distance the Auto gap gives while it is Auto. web/tests/hand/handles.mjs does
+  both with a real mouse and keyboard (its auto-gap part) and reads the layout and the children's
+  places back from the engine.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, gap analysis section F (kition-plan kit-docs/design/walkthrough/gap-kition-design.md)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/handles.mjs, webkit]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [webkit]

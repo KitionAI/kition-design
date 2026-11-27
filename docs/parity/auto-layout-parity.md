@@ -56,14 +56,14 @@ pins the current behaviour).
 |---|---|---|
 | Horizontal, vertical, wrap (both directions) | done | `crates/engine/layout` |
 | Grid auto layout: fixed / hug / `fr` tracks, cells, spans, gaps, cell alignment | done | `fr` like CSS `fr` |
-| Gap, auto gap (between / evenly / around), padding (per side), alignment 3×3 | done | |
+| Gap, auto gap (between / evenly / around), padding (per side), alignment 3×3 | done | a gap typed while it is auto becomes a fixed gap; a padding field takes two values at once (`10, 30`: above and below, then the sides; a comma between digits stays a decimal comma) |
 | Text baseline alignment | done | |
 | Hug / Fill / Fixed sizing with coherent rules (Fill turns a hugging parent Fixed) | done | `al_nesting_tests.rs`, `al_behaviour_tests.rs` |
 | Min/max width and height, redistribution | done | hugging text wraps at its max |
 | Nested hug/fill settling in one pass (three levels, wrapping fill text, grid rows) | done | |
 | Absolute position (ignore auto layout) with constraints | done | |
 | Strokes included in layout (inside strokes), canvas stacking | done | |
-| On-canvas padding and gap handles, incl. wrap row/column gap and grid gaps | done | an automatic gap's handle shows the distance it has; dragging it fixes the gap from there (silent in the documentation) |
+| On-canvas padding and gap handles, incl. wrap row/column gap and grid gaps | done | an automatic gap's handle shows the distance it has; dragging it, or typing a gap in the panel, fixes the gap at that value (silent in the documentation); Alt or Shift on a padding handle sets the opposite side too, Alt+Shift all four; a click on a handle types its value (`web/tests/hand/handles.mjs`) |
 | Drag to reorder (wrap-aware, by row or column), into grid cells, across nested frames | done | `al_drag_tests.rs` |
 | Arrow keys move children one place (flows, rows, columns, grid cells, into neighbours) | done | `al_keys_tests.rs` |
 | Constraints: left, right, left and right, centre, scale; top/bottom likewise | done | |

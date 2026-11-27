@@ -7,7 +7,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon, type IconName } from '../icons/Icon'
-import { formatNumber, parseEdit, type NumberEdit } from './math'
+import { formatNumber, parseEdit, parsePair, type NumberEdit } from './math'
 import { releaseField } from '../kit/focus'
 
 export type ScrubHandlers = {
@@ -63,6 +63,11 @@ export type NumberFieldProps = {
   disabled?: boolean
   /** A typed or stepped value. */
   onCommit: (edit: NumberEdit) => void
+  /**
+   * Two numbers typed at once, `10, 30` or `10 30` (a comma with no space stays a decimal comma):
+   * they go here instead of `onCommit`, each kept within `min` and `max`.
+   */
+  onPair?: (first: number, second: number) => void
   /** Scrubbing; without it the lead does not scrub. */
   scrub?: ScrubHandlers
   /** Shown at the right while hovered (the variable button). */
@@ -92,6 +97,7 @@ export function NumberField({
   width,
   disabled = false,
   onCommit,
+  onPair,
   scrub,
   addon,
   tip,
@@ -128,6 +134,11 @@ export function NumberField({
     const raw = text.trim()
     const stripped = suffix && raw.endsWith(suffix) ? raw.slice(0, -suffix.length) : raw
     if (raw === display || stripped === (shown === null ? '' : formatNumber(shown, decimals))) return
+    const pair = onPair ? parsePair(stripped) : null
+    if (pair && onPair) {
+      onPair(clamp(pair[0], min, max), clamp(pair[1], min, max))
+      return
+    }
     const edit = parseEdit(stripped, current)
     if (!edit) return
     onCommit(edit.kind === 'set' ? { kind: 'set', value: clamp(edit.value, min, max) } : { ...edit, apply: (v) => clamp(edit.apply(v), min, max) })

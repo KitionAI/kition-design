@@ -86,7 +86,8 @@ export type DesignChrome = {
   autoLayout: {
     id: number
     padding: Array<{ side: number; key: string; value: number; rect: Rect }>
-    gaps: Array<{ key: string; value: number; vertical: boolean; rect: Rect }>
+    /** `auto`: spaced by the alignment (Auto gap); `value` is then the distance shown. */
+    gaps: Array<{ key: string; value: number; vertical: boolean; auto: boolean; rect: Rect }>
     tracks: Array<[Point, Point]>
   } | null
   grids: Array<{ frame: number; color: string; lines: boolean; rects: Rect[] }>

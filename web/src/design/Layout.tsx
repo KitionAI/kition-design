@@ -202,7 +202,8 @@ function Alignment({ layout }: { layout: AutoLayout }) {
   const curMain = auto ? 9 : ['min', 'center', 'max'].indexOf(layout.mainAlign)
   const spread = !grid && layout.wrap && layout.contentAlign === 'spaceBetween'
   const curCross = spread ? 9 : layout.crossAlign === 'baseline' ? 0 : ['min', 'center', 'max'].indexOf(layout.crossAlign)
-  const gap = usePropField(ids, 'gap')
+  // A gap typed or scrubbed while it is Auto makes it fixed at that value (the canvas's gap band does the same).
+  const gap = useCommandField((v) => ({ command: 'node.set', params: { ids, props: auto && !grid ? { gap: v, mainAlign: 'min' } : { gap: v } } }))
   const columnGap = usePropField(ids, 'columnGap', { map: (v) => Math.max(0, v) })
   const rowGap = usePropField(ids, 'rowGap', { map: (v) => Math.max(0, v) })
   const cells = []
@@ -274,6 +275,8 @@ function Padding({ layout }: { layout: AutoLayout }) {
     paddingBottom: usePropField(ids, 'paddingBottom', clamp),
   }
   const crossGap = useCommandField((v) => ({ command: 'node.set', params: { ids, props: { crossGap: Math.max(0, v), contentAlign: 'auto' } } }))
+  // `10, 30` in any padding field: 10 above and below, 30 left and right (one undo step).
+  const pair = (vertical: number, horizontal: number) => setProps({ paddingVertical: Math.max(0, vertical), paddingHorizontal: Math.max(0, horizontal) })
   const toggle = (
     <IconButton
       icon="IndependentPadding"
@@ -287,7 +290,7 @@ function Padding({ layout }: { layout: AutoLayout }) {
     />
   )
   const field = (key: keyof typeof fields, icon: IconName, name: string, value: number | null) => (
-    <BindableField ids={ids} nodes={nodes} field={key} icon={icon} tip={t(name)} value={value} mixed={value === null} width={COL} min={0} onCommit={fields[key].onCommit} scrub={fields[key].scrub} testId={`design-design-${key}`} />
+    <BindableField ids={ids} nodes={nodes} field={key} icon={icon} tip={t(name)} value={value} mixed={value === null} width={COL} min={0} onCommit={fields[key].onCommit} onPair={pair} scrub={fields[key].scrub} testId={`design-design-${key}`} />
   )
   const vertical = layout.mode === 'vertical'
   const spread = layout.contentAlign === 'spaceBetween'
