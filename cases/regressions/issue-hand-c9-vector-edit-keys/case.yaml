@@ -1,0 +1,30 @@
+format: 1
+id: regressions/issue-hand-c9-vector-edit-keys
+feature: design.editor.vector-editing
+intent: >-
+  In vector edit mode the editor took the edit tools' letters for its own tools (walkthrough C9,
+  gap analysis 1.4): P chose the Pen tool, which left edit mode; B, Q, X, Shift+E and Shift+W did
+  nothing or something else (Shift+E switched the right panel); Cmd+A selected every layer of the
+  page instead of every point; the toolbar's paint bucket and variable width buttons named tools
+  the engine does not have and did nothing; Enter after a pen path kept the pen and the Design
+  panel showed the layer's position, with no fields for the points. Now V, P, B, Q, X, Shift+E and
+  Shift+W pick the edit tools and stay in edit mode, Cmd+A selects every point, the buttons pick
+  their tools and show those keys, Enter ends a pen path and edits its points with the Move tool
+  and Enter again leaves edit mode, and the Design panel shows the selected point's X and Y (a
+  typed X moves it in one undo step), corner radius, mirroring, cap and join. web/tests/hand/vector.mjs
+  does it with a real mouse and keyboard and reads the edit state back from the engine.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding C9 and gap analysis 1.4 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/vector.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

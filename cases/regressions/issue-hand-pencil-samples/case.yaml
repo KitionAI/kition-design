@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-pencil-samples
+feature: design.editor.vector-editing
+intent: >-
+  The pencil lost points while the engine was busy (gap analysis section C): kit-editor let a drag
+  sample waiting for the engine's answer give way to the next one, as it does for every tool, so a
+  fast stroke on a loaded machine came out with its corners cut. The pencil now keeps every sample
+  (kit-editor's `keepsDragSamples` for the pencil tool). web/tests/hand/vector.mjs holds each drag
+  sample back 60 ms on its way to the engine's worker, draws a 30-sample zigzag with a real mouse,
+  and checks that every sample reached the engine and the stroke spans the zigzag.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, gap analysis section C, Pencil (kition-plan kit-docs/design/walkthrough/gap-kition-design.md)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/vector.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

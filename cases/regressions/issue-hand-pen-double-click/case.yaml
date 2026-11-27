@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-hand-pen-double-click
+feature: design.editor.vector-editing
+intent: >-
+  A double-click with the pen put a second point on top of the last one (its second press added an
+  anchor where the first had) and ended the path with the pen still chosen, the layer not in edit
+  mode; Cmd+Z while drawing abandoned the whole path (or took back the step before it) and left the
+  pen drawing into a layer that was gone. Now a double-click ends the path with no doubled point and
+  edits its points with the Move tool, a double-click before a segment edits the layer under the
+  pointer, and undo while drawing takes back one anchor at a time (redo puts them back). Also: a
+  Bend click on a sharp point curves it, a click on another layer leaves edit mode while a drag that
+  starts there is a marquee, and a click on a point beside a short handle picks the point.
+  web/tests/hand/vector.mjs does the double-click with a real mouse (its pen-double-click part);
+  the engine's pen_by_hand_tests pin the rest.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings C7 and C8 and the reference behaviour list R-C15 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/vector.mjs, webkit]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [webkit]
