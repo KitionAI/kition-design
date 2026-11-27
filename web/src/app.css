@@ -377,6 +377,27 @@
   touch-action: none;
 }
 
+/* The canvas's own cursors (canvas/input): the zoom tool while Z is held, the rulers and guides. */
+.design-canvas-root[data-cursor='zoom-in'] .kui-canvas-surface { cursor: zoom-in !important; }
+.design-canvas-root[data-cursor='zoom-out'] .kui-canvas-surface { cursor: zoom-out !important; }
+.design-canvas-root[data-cursor='ns-resize'] .kui-canvas-surface { cursor: ns-resize !important; }
+.design-canvas-root[data-cursor='ew-resize'] .kui-canvas-surface { cursor: ew-resize !important; }
+.design-canvas-root[data-cursor='nesw-resize'] .kui-canvas-surface { cursor: nesw-resize !important; }
+.design-canvas-root[data-cursor='nwse-resize'] .kui-canvas-surface { cursor: nwse-resize !important; }
+
+/* The area a zoom drag (Z held) fills the view with. */
+.design-zoom-area {
+  position: absolute;
+  border: 1px solid var(--design-accent-line);
+  background: color-mix(in srgb, var(--design-accent) 8%, transparent);
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* A ruler guide being dragged, where it will land. */
+.design-guide-preview { position: absolute; inset: 0; overflow: visible; pointer-events: none; z-index: 6; }
+.design-guide-preview-label { fill: var(--design-menu-text); font: var(--design-semibold) 10px var(--design-font); }
+
 /* Right panel header (2.1 §3). */
 .design-right-top {
   position: relative;

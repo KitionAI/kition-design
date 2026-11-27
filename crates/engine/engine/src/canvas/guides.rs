@@ -86,3 +86,62 @@ pub fn line_in(m: Affine, vertical: bool, offset: f64) -> Option<(bool, f64)> {
     };
     line.1.is_finite().then_some(line)
 }
+
+/// How near (screen pixels) a guide being dragged comes to a layer's edge or centre before it
+/// lands on it.
+pub const SNAP_PX: f64 = 5.0;
+
+/// The offset a guide of `owner` (a page or a top-level frame) dragged to `offset` (the owner's
+/// coordinates) lands on: the nearest edge or centre line, along the guide's axis, of the layers
+/// it can line up with, when one is within [`SNAP_PX`] screen pixels at `zoom`. A page's guide
+/// lines up with the page's visible layers; a frame's with the frame itself and the visible
+/// layers inside it, at any depth (a hidden layer hides its branch). `None`: nothing in reach.
+pub fn snap_offset(doc: &Document, page: NodeId, owner: NodeId, vertical: bool, offset: f64, zoom: f64) -> Option<f64> {
+    if !offset.is_finite() || !(zoom.is_finite() && zoom > 0.0) {
+        return None;
+    }
+    let space = if owner == page { Affine::IDENTITY } else { doc.world_transform(owner) };
+    let to = space.inverse();
+    // Screen pixels into owner units along the guide's axis (a scaled frame stretches them).
+    let [a, b, c, d, _, _] = space.as_coeffs();
+    let axis = if vertical { a.hypot(b) } else { c.hypot(d) };
+    let reach = SNAP_PX / (zoom * axis.max(1e-6));
+    let mut best: Option<f64> = None;
+    let mut consider = |id: NodeId| {
+        let Some(n) = doc.node(id) else { return };
+        let r = kition_design_geom::transform_rect_bbox(to * doc.world_transform(id), n.local_rect());
+        if !r.is_finite() {
+            return;
+        }
+        let lines = if vertical { [r.x0, r.center().x, r.x1] } else { [r.y0, r.center().y, r.y1] };
+        for line in lines {
+            let gap = line - offset;
+            if gap.abs() <= reach && best.is_none_or(|was| gap.abs() < (was - offset).abs()) {
+                best = Some(line);
+            }
+        }
+    };
+    let o = doc.node(owner)?;
+    if owner == page {
+        for child in &o.children {
+            if doc.node(*child).is_some_and(|n| n.visible) {
+                consider(*child);
+            }
+        }
+        return best;
+    }
+    consider(owner);
+    let mut stack: Vec<NodeId> = o.children.clone();
+    let mut seen = 0usize;
+    while let Some(id) = stack.pop() {
+        // A bounded walk: a frame with very many layers stops looking after 20,000 of them.
+        seen += 1;
+        if seen > 20_000 {
+            break;
+        }
+        let Some(n) = doc.node(id).filter(|n| n.visible) else { continue };
+        consider(id);
+        stack.extend(n.children.iter().copied());
+    }
+    best
+}

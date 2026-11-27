@@ -771,3 +771,31 @@ fn view_toggles_are_kept_for_the_next_launch() {
     }
     assert!(!view.outlines && !view.outlines_selection && !view.proof_srgb, "{view:?}");
 }
+
+/// Undoing a guide's move (a page's or a frame's) puts it back where it was; undoing its add removes it.
+#[test]
+fn undoing_a_guide_move_puts_the_guide_back() {
+    let mut s = Session::new();
+    let k = guide_scene(&mut s);
+    for owner in [None, Some(k.f)] {
+        let at = |p: serde_json::Value| match owner {
+            Some(f) => {
+                let mut p = p;
+                p["frame"] = json!(f);
+                p
+            }
+            None => p,
+        };
+        let holder = owner.unwrap_or(k.page);
+        let before = guide_list(&s, holder);
+        ex(&mut s, "guide.add", at(json!({"vertical": true, "offset": 70})));
+        let index = guide_list(&s, holder).len() - 1;
+        ex(&mut s, "guide.move", at(json!({"index": index, "offset": 90})));
+        ex(&mut s, "edit.undo", json!({}));
+        let mut expected = before.clone();
+        expected.push((true, 70.0));
+        assert_eq!(guide_list(&s, holder), expected, "{owner:?}: back at 70");
+        ex(&mut s, "edit.undo", json!({}));
+        assert_eq!(guide_list(&s, holder), before, "{owner:?}: and gone with the add's undo");
+    }
+}

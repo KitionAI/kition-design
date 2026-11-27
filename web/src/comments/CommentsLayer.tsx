@@ -15,6 +15,7 @@ import { Icon } from '../icons/Icon'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { useProtoState } from '../prototype/store'
 import './comments.css'
+import { onSurface, usePressLayer } from '../canvas/input/order'
 
 export type Pin = { id: number; author: string; initials: string; color: string; resolved: boolean; unread: boolean; mine: boolean; open: boolean; x: number; y: number }
 type Pins = { visible: boolean; pins: Pin[]; clusters: Array<{ ids: number[]; x: number; y: number }>; pinSize: number }
@@ -385,15 +386,14 @@ export function CommentsLayer() {
     if (typeof at?.x === 'number' && typeof at.y === 'number') setState({ draft: { x: at.x, y: at.y }, open: null })
   })
 
-  // A press elsewhere on the canvas closes the open thread (the Comment tool then asks for a draft).
-  useEffect(() => {
-    if (open === null && draft === null) return undefined
-    const down = (event: PointerEvent) => {
-      if (event.target instanceof Element && event.target.closest('[data-testid="kit-canvas-surface"]')) setState({ open: null, draft: null })
-    }
-    document.addEventListener('pointerdown', down, true)
-    return () => document.removeEventListener('pointerdown', down, true)
-  }, [draft, open])
+  // Presses at the comments' place in the canvas's order (canvas/input/order.ts): the pins, the
+  // clusters and the open thread have their own; a press elsewhere on the canvas closes the open
+  // thread or draft and goes on (the Comment tool then asks for a draft).
+  usePressLayer('comments', (event) => {
+    if (event.target instanceof Element && event.target.closest('.design-comment-layer, .design-comment-popover')) return 'own'
+    if ((open !== null || draft !== null) && onSurface(event.target)) setState({ open: null, draft: null })
+    return undefined
+  })
 
   // Escape closes the thread or the draft (a composer's mention list and an edit take it first).
   useEffect(() => {

@@ -41,7 +41,7 @@
 //!   rulers: null | { step, originX, originY, selection: null | rect },
 //!                                           // View > Rulers: ticks every `step` canvas units;
 //!                                           //   canvas 0 is document pixel (originX, originY)
-//!   guides: [{ owner, index, vertical, offset, a: [x, y], b: [x, y], selected }],
+//!   guides: [{ owner, page, index, vertical, offset, a: [x, y], b: [x, y], selected }],
 //!                                           // ruler guides of the page and its top-level frames
 //! }
 //! ```
@@ -350,17 +350,35 @@ fn grids(doc: &Document, ds: &kition_design_engine::DocState, area: &Area) -> Ve
     out
 }
 
-/// Ruler guides of the page and its top-level frames.
+/// How far a page guide's line reaches each way (page pixels): across any canvas there is.
+const PAGE_GUIDE_REACH: f64 = 1e7;
+
+/// Ruler guides of the page and its top-level frames: a frame's across the frame, the page's
+/// (`page: true`) across the whole canvas.
 fn guides(doc: &Document, ds: &kition_design_engine::DocState, area: &Area) -> Vec<Value> {
     let owners = std::iter::once(ds.page).chain(doc.node(ds.page).map(|p| p.children.clone()).unwrap_or_default());
     let mut out = Vec::new();
     for owner in owners {
         let Some(n) = doc.node(owner) else { continue };
+        let page = owner == ds.page;
+        if !page && !n.visible {
+            continue;
+        }
         for (index, g) in n.guides().iter().enumerate() {
-            let Some([a, b]) = kition_design_engine::guides::segment(doc, owner, g.vertical, g.offset) else { continue };
+            let ends = if page {
+                let (a, b) = if g.vertical {
+                    (Point::new(g.offset, -PAGE_GUIDE_REACH), Point::new(g.offset, PAGE_GUIDE_REACH))
+                } else {
+                    (Point::new(-PAGE_GUIDE_REACH, g.offset), Point::new(PAGE_GUIDE_REACH, g.offset))
+                };
+                Some([a, b])
+            } else {
+                kition_design_engine::guides::segment(doc, owner, g.vertical, g.offset)
+            };
+            let Some([a, b]) = ends else { continue };
             let (a, b) = (area.to_doc(a), area.to_doc(b));
             out.push(json!({
-                "owner": owner, "index": index, "vertical": g.vertical, "offset": g.offset,
+                "owner": owner, "page": page, "index": index, "vertical": g.vertical, "offset": g.offset,
                 "a": [a.0, a.1], "b": [b.0, b.1], "selected": ds.guide == Some((owner, index)),
             }));
         }

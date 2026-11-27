@@ -136,6 +136,9 @@ pub struct DesignDocument {
     /// The revision whose chrome and selection geometry a gesture's answer last carried
     /// (`canvas.chrome`, `canvas.gesture`); none outside a gesture.
     told_gesture: Option<u64>,
+    /// Whether the editor was last told the drag under way pans the view at the canvas's edge
+    /// (`drag.autopan`, [`crate::tools`]).
+    told_autopan: bool,
     /// The area the last tool event changed, for its answer's `damage` ([`damage`]).
     damage: Option<kition_kit::tools::ToolDamage>,
     /// The keyboard's platform the editor reported ([`DesignDocument::set_platform`]): text keys
@@ -208,6 +211,7 @@ impl DesignDocument {
             told_tool: kition_design_engine::tools::ToolId::Move,
             told_hover: None,
             told_gesture: None,
+            told_autopan: false,
             damage: None,
             platform: kition_design_engine::keymap::Platform::Mac,
         })

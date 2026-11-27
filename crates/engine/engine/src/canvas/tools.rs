@@ -583,4 +583,19 @@ impl ToolState {
     pub fn busy(&self) -> bool {
         !matches!(self.gesture, Gesture::None)
     }
+
+    /// Whether the drag under way pans the view when the pointer is held at or past the canvas's
+    /// edge: layers being moved (once the drag left the press), a selection box grown past the
+    /// drag slop, a shape being drawn (once it exists), a resize under way, and a pen point's
+    /// handle being pulled out. Rotating, panning, text and vector point edits do not. `zoom`:
+    /// screen pixels per page unit.
+    pub fn autopans(&self, zoom: f64) -> bool {
+        match &self.gesture {
+            Gesture::Move { moved, .. } | Gesture::Resize { moved, .. } => *moved,
+            Gesture::Marquee { .. } => self.overlay.marquee.is_some_and(|[x0, y0, x1, y1]| (x1 - x0).hypot(y1 - y0) * zoom >= DRAG_SLOP_PX),
+            Gesture::Draw { id, .. } => id.is_some(),
+            Gesture::PenDrag { .. } => true,
+            _ => false,
+        }
+    }
 }

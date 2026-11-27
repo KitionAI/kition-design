@@ -92,7 +92,8 @@ export type DesignChrome = {
   grids: Array<{ frame: number; color: string; lines: boolean; rects: Rect[] }>
   pixelGrid: boolean
   rulers: { step: number; originX: number; originY: number; selection: Rect | null } | null
-  guides: Array<{ owner: number | null; index: number; vertical: boolean; offset: number; a: Point; b: Point; selected: boolean }>
+  /** Ruler guides: a top-level frame's across the frame, the page's (`page`) across the whole canvas. */
+  guides: Array<{ owner: number | null; page?: boolean; index: number; vertical: boolean; offset: number; a: Point; b: Point; selected: boolean }>
 }
 
 /** The right panel's tab: Design, Prototype, or Dev Mode (Inspect, reached from the toolbar). */

@@ -94,7 +94,7 @@ const fmt = (value: number) => String(Math.round(value * 100) / 100)
  * layout grids, frame labels) is kit-editor's `decorateUnder`, the `over` part (auto layout bands,
  * the size pill, ruler guides and rulers) its `decorate`.
  */
-export function chromeDecoration(chrome: DesignChrome, theme: ChromeTheme, hot: ZoneKey, redraw: () => void, part: 'under' | 'over'): RasterDecoration {
+export function chromeDecoration(chrome: DesignChrome, theme: ChromeTheme, hot: ZoneKey, redraw: () => void, part: 'under' | 'over', hiddenGuide: { owner: number; index: number } | null = null): RasterDecoration {
   return (context, toScreen, view) => {
     const zoom = view.zoom
     const sb = semibold()
@@ -242,6 +242,8 @@ export function chromeDecoration(chrome: DesignChrome, theme: ChromeTheme, hot: 
     if (rulers) {
       context.lineWidth = 1
       for (const guide of chrome.guides) {
+        // The guide being dragged shows where it will land instead (input/guides.tsx).
+        if (hiddenGuide && guide.owner === hiddenGuide.owner && guide.index === hiddenGuide.index) continue
         const a = toScreen(guide.a[0], guide.a[1])
         const b = toScreen(guide.b[0], guide.b[1])
         context.strokeStyle = chrome.colors.guide

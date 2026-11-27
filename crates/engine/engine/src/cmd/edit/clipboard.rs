@@ -202,6 +202,28 @@ pub fn paste_into(s: &mut Session, parent: NodeId, at: Option<(f64, f64)>) -> Re
     Ok(out)
 }
 
+/// The frame a paste without `parent` goes into: the one layer selected when it is a frame (not an
+/// instance, a board item, or inside one of `mains`, the mains a copy from this file holds), else
+/// none (the page). Paste here (`x`, `y` in `p`: where the copy's top-left goes, page coordinates)
+/// keeps that frame only when the point is inside it: away from it the copy goes on the page, at
+/// the point. (A variant's set, selected with Escape, took an instance pasted far from it: placed
+/// outside the set's clip, nothing of it showed and a click there found nothing.)
+pub fn paste_target(doc: &Document, selection: &[NodeId], mains: &BTreeSet<NodeId>, p: &Value) -> Option<NodeId> {
+    let at = match (num(p, "x"), num(p, "y")) {
+        (Some(x), Some(y)) => Some(kition_design_geom::Point::new(x, y)),
+        _ => None,
+    };
+    selection
+        .first()
+        .copied()
+        .filter(|i| {
+            selection.len() == 1
+                && doc.node(*i).is_some_and(|n| n.kind.is_frame_like() && !matches!(n.kind, NodeKind::Instance { .. }) && !n.is_board_atom())
+        })
+        .filter(|i| !mains.iter().any(|root| doc.is_ancestor(*root, *i)))
+        .filter(|i| at.is_none_or(|point| doc.world_bounds(*i).is_some_and(|b| b.contains(point))))
+}
+
 pub(super) fn paste(s: &mut Session, p: &Value) -> Result<Value> {
     let page = s.page()?;
     // Figma pastes into the selected frame (if one is selected), at the same position when it fits,
@@ -209,15 +231,9 @@ pub(super) fn paste(s: &mut Session, p: &Value) -> Result<Value> {
     let sel = s.selection();
     let doc = s.doc()?;
     let copy_local = s.ds()?.uid == s.clipboard.source_doc;
-    let target = id(p, "parent").or_else(|| {
-        sel.first()
-            .copied()
-            .filter(|i| {
-                sel.len() == 1
-                    && doc.node(*i).is_some_and(|n| n.kind.is_frame_like() && !matches!(n.kind, NodeKind::Instance { .. }) && !n.is_board_atom())
-            })
-            .filter(|i| !copy_local || !s.clipboard.copied_components.iter().any(|root| doc.is_ancestor(*root, *i)))
-    });
+    let none = BTreeSet::new();
+    let mains = if copy_local { &s.clipboard.copied_components } else { &none };
+    let target = id(p, "parent").or_else(|| paste_target(doc, &sel, mains, p));
     let parent = target.unwrap_or(page);
     let at = match (num(p, "x"), num(p, "y")) {
         (Some(x), Some(y)) => Some((x, y)),

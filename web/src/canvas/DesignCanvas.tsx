@@ -3,7 +3,8 @@
  * engine's tools and overlays), the page's background behind the document, the canvas chrome
  * drawn over it (`chrome.ts`), the auto layout padding and gap handles, which drag with
  * `node.set` as one undo step, the field that renames a frame on its name label, and the editor's
- * own canvas input (`input.ts`).
+ * own canvas input (`input/`): the order its layers are offered presses in, the zoom tool while Z
+ * is held, ruler guides, the pointer sent again for a modifier and at the edge, the wheel.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { KitDocumentCanvas, isMac, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
@@ -16,7 +17,11 @@ import { chromeDecoration, readTheme, type ZoneKey } from './chrome'
 import { CanvasOverlays } from './overlays'
 import { setCanvasPage, setSizePill } from './engineOverlays'
 import { contentBounds, raster, rememberPageView, rememberedPageView } from './view'
-import { useAreaOriginKept, useCanvasInput } from './input'
+import { useAreaOriginKept, useCanvasInput } from './input/wheel'
+import { onSurface, usePressLayer, usePressRouting } from './input/order'
+import { useCanvasPointer } from './input/pointer'
+import { ZoomArea, useZoomTool } from './input/zoomTool'
+import { GuidePreview, useRulerGuides } from './input/guides'
 import { useInputMethod } from './inputMethod'
 import { DropHint, useFileDrop } from './fileDrop'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
@@ -52,6 +57,15 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   useAreaOriginKept(designKit)
   const root = useRef<HTMLDivElement>(null)
   useCanvasInput(root, designKit, isMac())
+  // One order for everything over the canvas that takes a press (input/order.ts); the handles,
+  // fields and other elements laid over the canvas have their own presses.
+  usePressRouting()
+  usePressLayer('handles', (event) => (onSurface(event.target) ? undefined : 'own'))
+  // Modifiers with the pointer still, and drags held at the edge, reach the tool.
+  const handle = useCallback(() => canvas.current, [canvas])
+  useCanvasPointer(handle)
+  // Hold Z to zoom.
+  const zoomTool = useZoomTool(designKit)
   // Files dropped on the canvas are imported where they land.
   const dropHint = useFileDrop(root, designKit)
   // Input methods compose in the text at the caret, their candidate window beside it.
@@ -158,13 +172,19 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const theme = useMemo(readTheme, [revision, document.documentElement.dataset.colorScheme])
   setSizePill(chrome?.sizeLabel ?? null)
+  // Ruler guides: dragged out of the rulers, moved, removed.
+  const guides = useRulerGuides(designKit, chrome)
+  const hiddenGuide = guides.hidden
   // The chrome under the engine's overlays (grids, labels) and over them (bands, size pill, rulers).
   const decorateUnder = useMemo(() => (chrome ? chromeDecoration(chrome, theme, hot, redraw, 'under') : null), [chrome, theme, hot, redraw, redraws])
-  const decorate = useMemo(() => (chrome ? chromeDecoration(chrome, theme, hot, redraw, 'over') : null), [chrome, theme, hot, redraw, redraws])
+  const decorate = useMemo(() => (chrome ? chromeDecoration(chrome, theme, hot, redraw, 'over', hiddenGuide) : null), [chrome, theme, hot, redraw, redraws, hiddenGuide])
+  const cursor = zoomTool.held !== null ? (zoomTool.held ? 'zoom-out' : 'zoom-in') : guides.cursor
 
   return (
     <div
       ref={root}
+      className="design-canvas-root"
+      data-cursor={cursor ?? undefined}
       style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}
       onContextMenu={(event) => {
         event.preventDefault()
@@ -179,6 +199,8 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
           {view && designKit.ui.rightTab === 'prototype' ? <ProtoCanvasLayer view={view} /> : null}
           {view && designKit.ui.rightTab === 'inspect' ? <DevCanvasLayer view={view} /> : null}
           <DropHint hint={dropHint} designKit={designKit} />
+          {chrome ? <GuidePreview place={guides.place} view={view} area={inspect.area} color={chrome.colors.guide} /> : null}
+          <ZoomArea area={zoomTool.area} />
         </KitDocumentCanvas>
       ) : (
         <div className="design-canvas-message">{designKit.editor.session.failure ?? designKit.t('kit.opening')}</div>

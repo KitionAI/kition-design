@@ -34,6 +34,7 @@
 //! | `imagePresets` | — | `image.presets` |
 //! | `vectorEdit` | — | `{ state: vector.edit.state or null, tools: [{ id, label, shortcut }] }` |
 //! | `textSelection` | — | `text.edit.selection` (an error while no text is edited) |
+//! | `guidePlace` | `{ x, y, vertical, owner?, snap?, zoom? }` | where a ruler guide dragged to document point (`x`, `y`) lands: `{ owner, page, vertical, offset, a, b, snapped }` (see [`guide_place`]) |
 //! | `textCaret` | — | `{ x0, y0, x1, y1 }`: the caret of the text being edited (at the input method's cursor while composing) from its top to its bottom, in document pixels, as the canvas draws it; null while no text is edited (see [`text_caret`]) |
 //! | `menus` | — | the upstream main menu as catalog rows `[{ path, label, command }]`, separators `---` |
 //! | `checked` | — | the View and Preferences toggles that are on: `{ ids: [command id], pixelPreview: { on, scale: 1 or 2 } }` (`view.pixelPreview { scale }` sets the scale) |
@@ -584,6 +585,7 @@ pub fn query(doc: &DesignDocument, name: &str, params: &Value) -> Result<Value, 
         "vectorEdit" => vector_edit(doc),
         "textSelection" => via("text.edit.selection"),
         "textCaret" => Ok(text_caret(doc)),
+        "guidePlace" => guide_place(doc, &params),
         "menus" => Ok(Value::Array(crate::commands::menu_rows())),
         "checked" => Ok(checked(doc)),
         "exportSettings" => export_settings(doc),
@@ -700,6 +702,49 @@ pub fn export_node(doc: &DesignDocument, id: &str, format: &str, scale: f64) -> 
 
 /// Where the caret of the text being edited is (the `textCaret` query): the editor puts its text
 /// field there, so an input method's candidate window opens at the caret (hand plan stage 6).
+/// Where a ruler guide dragged to document point (`x`, `y`) lands, for the canvas to show it there
+/// and add or move it with `guide.add` / `guide.move`. Without `owner` it is a new guide out of a
+/// ruler (`vertical`: the left one): it goes to the top-level frame under the point, along that
+/// frame's axis nearer the ruler's, or to the page. With `owner` (a page or top-level frame) it is
+/// that owner's guide, `vertical` in its coordinates. Its offset (the owner's coordinates) lines up
+/// with a layer's edge or centre in reach with `snap` (`guides::snap_offset`), else is whole pixels
+/// (with pixel snapping on) or hundredths. Answers `{ owner, page (whether the owner is the page),
+/// vertical, offset, a, b, snapped }`, `a` and `b` the ends of a frame guide across its frame in
+/// document pixels (null for a page guide, which crosses the whole canvas).
+fn guide_place(doc: &DesignDocument, params: &Value) -> Result<Value, String> {
+    use kition_design_engine::guides;
+    let (Some(x), Some(y)) = (params.get("x").and_then(Value::as_f64), params.get("y").and_then(Value::as_f64)) else {
+        return Err("invalid-params: `x` and `y` (document pixels) are required".into());
+    };
+    if !(x.is_finite() && y.is_finite()) {
+        return Err("invalid-params: `x` and `y` must be finite".into());
+    }
+    let ds = doc.ds()?;
+    let d = &ds.doc;
+    let area = doc.area();
+    let at = area.to_canvas(x, y);
+    let ruler = params.get("vertical").and_then(Value::as_bool).unwrap_or(true);
+    let (owner, vertical) = match id_param(params, "owner") {
+        Some(owner) if guides::keeps_guides(d, owner) => (owner, ruler),
+        Some(_) => return Err("invalid-params: `owner` must be the page or a top-level frame".into()),
+        None => match guides::drop_owner(d, ds.page, at) {
+            page if page == ds.page => (page, ruler),
+            frame => (frame, guides::frame_axis(d, frame, ruler)),
+        },
+    };
+    let Some(offset) = guides::offset_at(d, owner, vertical, at) else { return Ok(Value::Null) };
+    let snap = params.get("snap").and_then(Value::as_bool).unwrap_or(false) && ds.view.snap_objects;
+    let zoom = params.get("zoom").and_then(Value::as_f64).filter(|z| z.is_finite() && *z > 0.0).unwrap_or(ds.view.zoom);
+    let snapped = if snap { guides::snap_offset(d, ds.page, owner, vertical, offset, zoom) } else { None };
+    let offset = snapped.unwrap_or(if ds.view.snap_pixel { offset.round() } else { (offset * 100.0).round() / 100.0 });
+    let ends = guides::segment(d, owner, vertical, offset).map(|[a, b]| {
+        let (a, b) = (area.to_doc(a), area.to_doc(b));
+        (json!([a.0, a.1]), json!([b.0, b.1]))
+    });
+    let (a, b) = ends.unwrap_or((Value::Null, Value::Null));
+    Ok(json!({ "owner": owner, "page": owner == ds.page, "vertical": vertical, "offset": offset, "a": a, "b": b, "snapped": snapped.is_some() }))
+}
+
 fn text_caret(doc: &DesignDocument) -> Value {
     let session = doc.session();
     let Some(te) = session.ds().ok().and_then(|ds| ds.text_edit.clone()) else { return Value::Null };

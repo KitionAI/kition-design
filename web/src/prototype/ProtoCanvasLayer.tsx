@@ -12,6 +12,8 @@ import { useDesignKit, useQuery } from '../kit/hooks'
 import type { Rect } from '../kit/types'
 import { topLevelFrame, useTree } from './data'
 import { openEditor, useProtoState } from './store'
+import { usePressLayer } from '../canvas/input/order'
+import { edgePan } from '../canvas/input/pointer'
 import './prototype.css'
 
 type Point = [number, number]
@@ -60,7 +62,7 @@ function distance(points: Point[], p: Point) {
 }
 
 export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
-  const { run, query, inspect, ui } = useDesignKit()
+  const { run, query, inspect, ui, canvas } = useDesignKit()
   const zoom = Math.round(view.zoom * 1000) / 1000
   const answer = useQuery<Answer>('protoConnections', { zoom })
   const tree = useTree()
@@ -92,7 +94,7 @@ export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
     return best
   }
 
-  // Hover and clicks on connections: the canvas surface is under this layer, so listen around it.
+  // Hover over connections: the canvas surface is under this layer, so listen around it.
   useEffect(() => {
     const surface = root.current?.closest<HTMLElement>('.design-canvas-cell')
     if (!surface) return undefined
@@ -100,25 +102,24 @@ export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
       const hit = hitAt(event.clientX, event.clientY)
       setNear(hit ? `${hit.source}:${hit.index}` : null)
     }
-    const down = (event: PointerEvent) => {
-      if (event.button !== 0 || (event.target instanceof Element && event.target.closest('.design-proto-handle'))) return
-      const hit = hitAt(event.clientX, event.clientY)
-      if (!hit) {
-        openEditor(null)
-        return
-      }
-      event.preventDefault()
-      event.stopPropagation()
-      void run('select.set', { ids: [hit.source] }).then(() => openEditor({ node: hit.source, index: hit.index }))
-    }
     surface.addEventListener('pointermove', move)
-    surface.addEventListener('pointerdown', down, true)
-    return () => {
-      surface.removeEventListener('pointermove', move)
-      surface.removeEventListener('pointerdown', down, true)
-    }
+    return () => surface.removeEventListener('pointermove', move)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run])
+  }, [])
+
+  // Presses, first of the canvas's layers (canvas/input/order.ts): a "+" handle drags out a
+  // connection; a click on a connection selects its layer and opens its editor; any other press
+  // closes the editor and goes on to the next layer.
+  usePressLayer('prototype', (event) => {
+    if (event.target instanceof Element && event.target.closest('.design-proto-handle')) return 'own'
+    const hit = hitAt(event.clientX, event.clientY)
+    if (!hit) {
+      openEditor(null)
+      return undefined
+    }
+    void run('select.set', { ids: [hit.source] }).then(() => openEditor({ node: hit.source, index: hit.index }))
+    return 'take'
+  })
 
   const startDrag = (source: number, x: number, y: number, event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
@@ -131,8 +132,16 @@ export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
     let current = { source, from: [x, y] as Point, to: [x, y] as Point, frame: null as number | null, bounds: null as Rect | null }
     setDrag(current)
     let asking = 0
-    const move = (e: PointerEvent) => {
-      const v = latest.current.view
+    let last: PointerEvent | null = null
+    // Held at the canvas's edge, the view pans and the connection's end stays under the pointer.
+    const pan = edgePan(() => canvas.current, () => {
+      if (last) move(last, true)
+    })
+    const move = (e: PointerEvent, panned = false) => {
+      last = e
+      if (!panned) pan.update(e.clientX, e.clientY)
+      // After a pan the canvas's own view (the layer's is a render behind).
+      const v = (panned ? canvas.current?.view() : null) ?? latest.current.view
       const to: Point = [(e.clientX - box.left) / v.zoom + v.x, (e.clientY - box.top) / v.zoom + v.y]
       current = { ...current, to }
       setDrag(current)
@@ -152,7 +161,8 @@ export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
       return b ? { x: b.x - inspect.area.x, y: b.y - inspect.area.y, width: b.width, height: b.height } : null
     }
     const up = () => {
-      target.removeEventListener('pointermove', move)
+      pan.stop()
+      target.removeEventListener('pointermove', moved)
       target.removeEventListener('pointerup', up)
       target.removeEventListener('pointercancel', up)
       const dest = current.frame
@@ -164,7 +174,8 @@ export function ProtoCanvasLayer({ view }: { view: KitCanvasView }) {
         openEditor({ node: source, index: added.index ?? 0 })
       })
     }
-    target.addEventListener('pointermove', move)
+    const moved = (e: PointerEvent) => move(e)
+    target.addEventListener('pointermove', moved)
     target.addEventListener('pointerup', up)
     target.addEventListener('pointercancel', up)
   }

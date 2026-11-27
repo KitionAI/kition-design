@@ -358,13 +358,11 @@ fn paste(rest: &mut Rest<'_>) {
             }
         }
         _ => {
-            let target = rest.node("parent").or_else(|| {
-                selection.first().copied().filter(|i| {
-                    selection.len() == 1
-                        && doc.node(*i).is_some_and(|n| n.kind.is_frame_like() && !matches!(n.kind, NodeKind::Instance { .. }) && !n.is_board_atom())
-                        && !(copy_local && clip.copied_components.iter().any(|root| doc.is_ancestor(*root, *i)))
-                })
-            });
+            // The engine's own rule (`cmd/edit/clipboard.rs` `paste_target`): the one selected
+            // frame, for Paste here only when its point is inside it.
+            let none = BTreeSet::new();
+            let mains = if copy_local { &clip.copied_components } else { &none };
+            let target = rest.node("parent").or_else(|| kition_design_engine::cmd::edit::paste_target(doc, &selection, mains, rest.params));
             for selected in selection.iter().filter(|s| Some(**s) != target && !keep.contains(*s)) {
                 rest.only(selected.0, &[], false);
             }

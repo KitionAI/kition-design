@@ -148,14 +148,18 @@ impl DesignDocument {
 
     /// Whether the tool must see editing keys (Enter, Escape, Delete, arrows, Tab): during a
     /// gesture, a pen path, text or vector editing, while something is selected (nudge, delete,
-    /// Escape, Enter), and while a tool other than Move is chosen (Escape returns to Move, Enter
-    /// places a shape).
+    /// Escape, Enter) or a ruler guide is (Delete removes it, the arrows nudge it, Escape lets it
+    /// go), and while a tool other than Move is chosen (Escape returns to Move, Enter places a
+    /// shape).
     fn tool_busy(&self) -> bool {
         let tool = &self.session.tool;
         tool.busy()
             || tool.pen.is_some()
             || tool.tool != ToolId::Move
-            || self.session.ds().is_ok_and(|ds| ds.text_edit.is_some() || ds.vector_edit.is_some() || !ds.selection.is_empty())
+            || self
+                .session
+                .ds()
+                .is_ok_and(|ds| ds.text_edit.is_some() || ds.vector_edit.is_some() || !ds.selection.is_empty() || ds.selected_guide().is_some())
     }
 
     fn wants_text(&self) -> bool {
@@ -259,6 +263,13 @@ impl DesignDocument {
         if hovered || geometry.is_some() {
             let chrome = self.chrome(zoom);
             requests.push(ToolRequest::Dialog { name: "canvas.chrome".into(), params: chrome });
+        }
+        // Whether the drag pans the view with the pointer held at the canvas's edge, when that
+        // changed (`drag.autopan` `{ on }`): the editor pans and sends the pointer again.
+        let autopan = self.session.tool.autopans(zoom);
+        if autopan != self.told_autopan {
+            self.told_autopan = autopan;
+            requests.push(ToolRequest::Dialog { name: "drag.autopan".into(), params: json!({ "on": autopan }) });
         }
     }
 

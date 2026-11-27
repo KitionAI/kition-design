@@ -67,6 +67,7 @@ pub(crate) fn scratch(design: &DesignDocument) -> Result<DesignDocument, String>
         told_tool: design.told_tool,
         told_hover: design.told_hover,
         told_gesture: design.told_gesture,
+        told_autopan: design.told_autopan,
         damage: None,
         platform: design.platform,
     })

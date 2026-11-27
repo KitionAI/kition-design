@@ -6,7 +6,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import type { KitCanvasHandle } from '@kition/sdk/editor'
-import type { DesignKit } from '../kit/context'
+import type { DesignKit } from '../../kit/context'
 
 /** How much one notch of a mouse wheel zooms (with Cmd, or Ctrl off the Mac). */
 export const WHEEL_NOTCH_ZOOM = 1.2
