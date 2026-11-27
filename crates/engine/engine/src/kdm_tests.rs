@@ -169,3 +169,54 @@ fn the_examples_round_trip_through_a_replica() {
         assert!(kition_design_kdm::same_content(b.doc().unwrap(), s.doc().unwrap()), "{}: a peer reads another document", path.display());
     }
 }
+
+/// The guides of `owner` as `(vertical, offset)`.
+fn guides_of(s: &Session, owner: NodeId) -> Vec<(bool, f64)> {
+    s.doc().unwrap().node(owner).unwrap().guides().iter().map(|g| (g.vertical, g.offset)).collect()
+}
+
+/// Undoing a ruler guide's move through the replica puts it back where it was, a page's guide as
+/// a frame's (regressions/issue-hand-page-guide-undo: a page guide moved and undone was gone).
+#[test]
+fn undoing_a_guide_move_through_the_replica_puts_it_back() {
+    let mut s = session();
+    let f = s.execute("frame.add", &json!({ "x": 0, "y": 0, "width": 400, "height": 300 })).unwrap();
+    let f = NodeId(f["id"].as_u64().unwrap());
+    let page = s.page().unwrap();
+    for frame in [None, Some(f)] {
+        let at = |mut p: Value| {
+            if let Some(f) = frame {
+                p["frame"] = json!(f.0);
+            }
+            p
+        };
+        let owner = frame.unwrap_or(page);
+        let before = guides_of(&s, owner);
+        s.execute("guide.add", &at(json!({ "vertical": true, "offset": 70 }))).unwrap();
+        let index = guides_of(&s, owner).len() - 1;
+        s.execute("guide.move", &at(json!({ "index": index, "offset": 90 }))).unwrap();
+        let mut moved = before.clone();
+        moved.push((true, 90.0));
+        assert_eq!(guides_of(&s, owner), moved, "{frame:?}: moved");
+        view_matches(&mut s);
+        s.execute("edit.undo", &json!({})).unwrap();
+        let mut added = before.clone();
+        added.push((true, 70.0));
+        assert_eq!(guides_of(&s, owner), added, "{frame:?}: the undo puts it back at 70");
+        view_matches(&mut s);
+        s.execute("edit.undo", &json!({})).unwrap();
+        assert_eq!(guides_of(&s, owner), before, "{frame:?}: the add's undo takes it away");
+        s.execute("edit.redo", &json!({})).unwrap();
+        s.execute("edit.redo", &json!({})).unwrap();
+        assert_eq!(guides_of(&s, owner), moved, "{frame:?}: redone");
+        view_matches(&mut s);
+    }
+    // The file keeps the page's guide on the page, as it keeps the frame's on the frame.
+    let (page_guides, frame_guides) = (guides_of(&s, page), guides_of(&s, f));
+    let data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, file_bytes(&mut s));
+    let mut t = Session::empty();
+    t.enable_kdm();
+    t.execute("file.open", &json!({ "name": "Untitled.kdesign", "data": data })).unwrap();
+    assert_eq!(guides_of(&t, page), page_guides, "the page's guides after a save and an open");
+    assert_eq!(guides_of(&t, f), frame_guides, "the frame's guides after a save and an open");
+}

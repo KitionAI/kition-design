@@ -4,7 +4,8 @@
 // released; one out of the left ruler near F's centre line lands on it (snapping); a guide
 // dragged moves, with Alt the drag leaves a copy, dragged back onto its ruler it goes; a click
 // selects a guide, then Delete removes it and the arrows nudge it (Shift: 10); a guide released
-// off any frame is the page's. Each edit is one undo step. Read back from the engine's chrome.
+// off any frame is the page's, and Cmd+Z puts a moved one back. Each edit is one undo step.
+// Read back from the engine's chrome.
 // Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
@@ -120,6 +121,15 @@ try {
     await drag(await toPage(700, 650), await toPage(740, 650))
     const moved = (await guides()).find((g) => g.page)
     step('page a page guide drags too', near(moved?.offset ?? 0, 740), show(await guides()))
+    // regressions/issue-hand-page-guide-undo: the undo put the page's guide nowhere.
+    await page.keyboard.press(`${mod}+z`)
+    await until(async () => near((await guides()).find((g) => g.page)?.offset ?? 0, 700), 30)
+    const back = (await guides()).filter((g) => g.page)
+    step('page Cmd+Z puts a moved page guide back', back.length === 1 && near(back[0].offset, 700), show(await guides()))
+    await page.keyboard.press(`${mod}+Shift+z`)
+    await until(async () => near((await guides()).find((g) => g.page)?.offset ?? 0, 740), 30)
+    const again = (await guides()).filter((g) => g.page)
+    step('page Shift+Cmd+Z moves it again', again.length === 1 && near(again[0].offset, 740), show(await guides()))
   })
 } catch (error) {
   await finish(error)

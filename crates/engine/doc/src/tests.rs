@@ -644,3 +644,20 @@ fn two_segment_closed_loop_rounded_corners() {
     let path = net.fill_path();
     assert!(!path.elements().is_empty());
 }
+
+/// A page's ruler guides and a frame's read back where they were written: both are the key
+/// `guides`, and the node's own field took a page's (regressions/issue-hand-page-guide-undo).
+#[test]
+fn ruler_guides_read_back_on_their_page_and_frame() {
+    let mut d = Document::new("x");
+    let p = page(&d);
+    let f = d.create(p, NodeKind::Frame, "Frame 1", 0.0, 0.0, 400.0, 300.0).unwrap();
+    d.get_mut(p).unwrap().guides_mut().push(Guide { vertical: true, offset: 70.0 });
+    d.get_mut(f).unwrap().guides_mut().push(Guide { vertical: false, offset: 20.0 });
+    for id in [p, f] {
+        let node = d.node(id).unwrap();
+        let back: Node = serde_json::from_value(serde_json::to_value(node).unwrap()).unwrap();
+        assert_eq!(&back, node, "{id:?}");
+        assert_eq!(back.guides(), node.guides(), "{id:?}");
+    }
+}

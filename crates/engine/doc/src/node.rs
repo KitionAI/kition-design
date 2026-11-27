@@ -418,7 +418,11 @@ impl NodeKind {
 }
 
 /// One node of the scene graph.
+///
+/// Its serde form is the derived one, with one fix on reading ([`Node`]'s `Deserialize`): a page's
+/// ruler guides and a frame's are both the key `guides`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(remote = "Self")]
 pub struct Node {
     pub id: NodeId,
     pub name: String,
@@ -573,6 +577,27 @@ fn is_pass(v: &BlendMode) -> bool {
 }
 fn is_identity(v: &Affine) -> bool {
     *v == identity()
+}
+
+impl Serialize for Node {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        Node::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Node {
+    /// The derived form, then a page's guides put back on the page: its kind and the node both
+    /// name them `guides`, and the node's own field takes the key when a page is read, which left
+    /// the page with none (a page guide lost on open, and on an undo through the replica).
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let mut node = Node::deserialize(deserializer)?;
+        if let NodeKind::Page { guides, .. } = &mut node.kind
+            && guides.is_empty()
+        {
+            *guides = std::mem::take(&mut node.guides);
+        }
+        Ok(node)
+    }
 }
 
 impl Node {

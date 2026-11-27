@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-page-guide-undo
+feature: design.editor.canvas-input
+intent: >-
+  A ruler guide of the page moved by hand and undone was gone instead of back where it was (found
+  in stage 8 of the hand plan; a frame's guide undid as it should, and so did the engine without
+  its replica). A page keeps its guides in its kind and a frame in a field of the node, and both
+  are written as the key `guides`; when a page was read back the node's field took the key, so a
+  page read from the replica (after an undo or a redo) or from a file had no guides. Reading a
+  node now puts a page's guides back on the page: undo and redo of a page guide's add and move
+  through the replica give the guide back where it was, and a saved and reopened design keeps it.
+  web/tests/hand/guides.mjs moves a page guide with the mouse and undoes it with Cmd+Z.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand plan 2026-11-26, stage 8 finding (kition-plan plans/2026-11-26-design-usable-by-hand.md)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "kdm_tests::undoing_a_guide_move_through_the_replica_puts_it_back" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"
