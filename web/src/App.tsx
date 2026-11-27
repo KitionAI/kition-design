@@ -32,7 +32,7 @@ import { useMenuTabs } from './menus/model'
 import type { DesignStrings } from './strings'
 import { showToast } from './ui/Toast'
 import { runInText } from './kit/textEditing'
-import { onDevicePixels, placedHandleRef, placedView } from './canvas/view'
+import { onDevicePixels, placedHandleRef } from './canvas/view'
 
 /** The hand is the host's (kit-editor's pan); every other tool runs in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL }
@@ -94,10 +94,10 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
   const shownView = useRef<{ engine: unknown; view: KitCanvasView } | null>(null)
   const snapping = useRef(false)
   const onView = useCallback(
-    (asked: KitCanvasView) => {
+    (next: KitCanvasView) => {
       // On whole device pixels (M5): the canvas reports a new view before the screen shows it, so
       // the view moved here is the one painted. Once: a pan bound may put it back off them.
-      const snapped = snapping.current ? null : onDevicePixels(asked, window.devicePixelRatio || 1)
+      const snapped = snapping.current ? null : onDevicePixels(next, window.devicePixelRatio || 1)
       if (snapped && canvas.current) {
         snapping.current = true
         try {
@@ -107,8 +107,6 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
         }
         return
       }
-      // The view as the screen shows it, which the pointer goes through (see placedView).
-      const next = placedView(asked, window.devicePixelRatio || 1)
       // The canvas reports its view after every frame it draws: only a moved one (or a new
       // document's) is news.
       const was = shownView.current

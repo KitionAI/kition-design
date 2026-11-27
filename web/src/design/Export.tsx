@@ -64,7 +64,10 @@ export function ExportSection() {
   const name = layers.length === 1 ? (nodes.find((n) => n.id === layers[0])?.name ?? '') : ''
   const run_ = async () => {
     try {
-      const written = await exportJobs(designKit, jobs)
+      // The settings as the engine has them now: a format picked just before the click may not
+      // have reached this panel's answer yet.
+      const now = (await designKit.query<{ jobs: Job[] }>('exportSettings', { ids }).catch(() => null))?.jobs ?? jobs
+      const written = await exportJobs(designKit, now)
       designKit.toast(written.length === 1 ? t('Exported {name}', { name: written[0].split('/').pop() ?? '' }) : t('Exported {n} files', { n: written.length }))
     } catch (error) {
       designKit.toast(error instanceof Error ? error.message : String(error))
