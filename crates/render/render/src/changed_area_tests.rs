@@ -55,15 +55,17 @@ fn patch(image: &mut Pixmap, doc: &Document, page: NodeId, view: &View, damage: 
 }
 
 /// A run of edits (moves, resizes, recolours, opacity, a layer in a clipping frame, one under a
-/// drop shadow) at 1:1, at 2× and zoomed out: each time, a whole render of the page before the
+/// drop shadow) at 1:1, at 1.7× and zoomed out: each time, a whole render of the page before the
 /// edit patched with the changed area is the whole render after it, as the retained renderer's
 /// patches are ([`assert_same`]: a few levels of anti-aliasing where a curved edge crosses the
 /// area's border); patched all along, the image never drifts far from it.
 #[test]
 fn a_kept_image_patched_with_the_changed_area_is_a_whole_render() {
-    for scale in [1.0, 2.0, 0.5] {
+    // The retained renderer's own tests' views (300 × 220 device pixels, scales up to 1.7), where
+    // `assert_same`'s count of anti-aliasing differences was set.
+    for (origin, scale) in [((0.0, 0.0), 1.0), ((60.0, 10.0), 1.7), ((0.0, 0.0), 0.5)] {
         let (mut d, page, ids) = scene();
-        let view = View { origin: (0.0, 0.0), scale, width: (400.0 * scale) as u32, height: (300.0 * scale) as u32 };
+        let view = View { origin, scale, width: 300, height: 220 };
         let mut kept = render_window(&d, page, &view, &Options::default()).unwrap();
         for step in 0..24_u32 {
             let before = d.clone();
