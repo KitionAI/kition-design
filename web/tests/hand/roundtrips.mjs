@@ -5,8 +5,10 @@
 // tool state and disabled commands, a render), no panel query, chrome or inspect while it runs, the
 // Layers and Design panels not rendered, the Design panel's X and Y following it, and after the
 // release one round of queries (no query asked twice). 30 hovers over the same layer: only the
-// pointer events, no `canvas.*` answer, no panel or canvas component rendered. Prints PASS or FAIL
-// per step.
+// pointer events, no `canvas.*` answer, no panel or canvas component rendered. Stage 4 (M1, M2):
+// while the 100 × 80 rectangle is dragged, the engine draws only the area each sample changed
+// (its answer's `damage`), never more than a quarter of the view's pixels a render; after the
+// drag the canvas shows what a whole render of the page shows there. Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 // Before the editor's scripts, in the kit's frame: the worker's messages and React's commits.
@@ -27,7 +29,9 @@ const counters = () => {
       let detail = ''
       if (r.method === 'invoke' && r.name === 'query') detail = `${r.args?.[0] ?? ''} ${r.args?.[1] ?? ''}`
       else if (r.method === 'tool' && r.name === 'pointer') detail = (() => { try { return JSON.parse(r.args[0]).action } catch { return '' } })()
-      m.sent.push({ id: data.id, kind: `${r.method}${r.name ? `:${r.name}` : ''}`, detail })
+      // The pixels a render asks the engine to draw.
+      const pixels = r.method === 'render' || r.method === 'renderArea' ? Number(r.width) * Number(r.height) : 0
+      m.sent.push({ id: data.id, kind: `${r.method}${r.name ? `:${r.name}` : ''}`, detail, pixels })
     }
     return post.call(this, data, transfer)
   }
@@ -98,7 +102,8 @@ const counted = () =>
     const queries = m.sent.filter((s) => s.kind === 'invoke:query').map((s) => s.detail)
     const answers = {}
     for (const kind of m.live) answers[kind] = (answers[kind] ?? 0) + 1
-    return { total: m.sent.length, kinds, queries, rendered: { ...m.rendered }, commits: m.commits, live: [...m.live], answers, unanswered: m.sent.filter((s) => !m.back.has(s.id)).length }
+    const renders = m.sent.filter((s) => s.pixels > 0).map((s) => s.pixels)
+    return { total: m.sent.length, kinds, queries, renders, rendered: { ...m.rendered }, commits: m.commits, live: [...m.live], answers, unanswered: m.sent.filter((s) => !m.back.has(s.id)).length }
   })
 /** Waits until every counted message came back. */
 const answered = () => until(async () => (await designKit(() => window.__roundtrips.sent.every((s) => window.__roundtrips.back.has(s.id)))) === true, 100)
@@ -154,6 +159,13 @@ try {
     step('drag the Layers and Design panels do not render', !during.rendered.Layers && !during.rendered.DesignPanel && !during.rendered.Shell, JSON.stringify(during.rendered))
     step('drag the answers carry the geometry and the chrome', during.live.filter((k) => k === 'canvas.gesture').length === drags && during.live.filter((k) => k === 'canvas.chrome').length === drags, `${during.live.length} canvas answers`)
     step('drag the X field follows the drag', xs.length === 2 && xs[0] !== '' && xs[1] !== '' && Number(xs[1]) > Number(xs[0]), JSON.stringify(xs))
+    // Stage 4: each render draws the area the sample changed, not the view (and its margin).
+    const shown = await designKit(() => {
+      const surface = document.querySelector('[data-testid=kit-canvas-surface]')
+      return surface.width * surface.height
+    })
+    const biggest = Math.max(0, ...during.renders)
+    step('drag every render draws at most a quarter of the view', during.renders.length > 0 && biggest <= shown / 4, `${during.renders.length} renders, the largest ${biggest} pixels of ${shown}: ${during.renders.join(' ')}`)
     await count()
     await page.mouse.up()
     await until(async () => (await inspect()).gesture === false, 40)
@@ -169,6 +181,42 @@ try {
     // Within a snap's reach of where the pointer left it.
     step('release the rectangle is where the drag left it', Math.abs(b.x - (1500 + samples * 4)) <= 8 && Math.abs(b.y - (600 + samples * 2)) <= 8, JSON.stringify(b))
     step('release the X field shows where it is', Number(await field('design-design-x')) === Number(xs[1]), `${await field('design-design-x')} vs ${xs[1]}`)
+    // What the patched canvas shows is what the engine draws there as a whole (no selection drawn
+    // over it, the pointer away): the drag's old and new places and round them.
+    await page.keyboard.press('Escape')
+    const away = await toPage(1500, 950)
+    await page.mouse.move(away.x, away.y, { steps: 4 })
+    await until(async () => (await inspect()).selection.length === 0 && (await inspect()).hover == null, 40)
+    await settle(600)
+    const compare = await designKit(async ([x0, y0, x1, y1]) => {
+      const k = window.designKit
+      const area = k.inspect.area
+      const v = k.canvas.current.view()
+      const dpr = window.devicePixelRatio || 1
+      const s = v.zoom * dpr
+      const cx = Math.round((x0 - area.x - v.x) * s)
+      const cy = Math.round((y0 - area.y - v.y) * s)
+      const w = Math.round((x1 - x0) * s)
+      const h = Math.round((y1 - y0) * s)
+      const surface = document.querySelector('[data-testid=kit-canvas-surface]')
+      const shown = surface.getContext('2d').getImageData(cx, cy, w, h).data
+      const whole = await k.doc.render(cx / s + v.x, cy / s + v.y, s, w, h)
+      let slight = 0
+      let big = 0
+      let box = null
+      for (let i = 0; i < shown.length; i += 1) {
+        const d = Math.abs(shown[i] - whole[i])
+        if (d > 2) slight += 1
+        if (d > 96) {
+          big += 1
+          const p = Math.floor(i / 4)
+          const [x, y] = [p % w, Math.floor(p / w)]
+          box = box ? [Math.min(box[0], x), Math.min(box[1], y), Math.max(box[2], x), Math.max(box[3], y), box[4]] : [x, y, x, y, `${x},${y}: ${shown.slice(i - (i % 4), i - (i % 4) + 4)} vs ${whole.slice(i - (i % 4), i - (i % 4) + 4)}`]
+        }
+      }
+      return { zoom: v.zoom, w, h, slight, big, box }
+    }, [1480, 580, 1660, 720])
+    step('release the canvas shows what a whole render shows', compare.w > 100 && compare.slight <= 200 && compare.big === 0, JSON.stringify(compare))
   })
 
   await part('hover', async () => {

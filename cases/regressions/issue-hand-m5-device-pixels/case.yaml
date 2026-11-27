@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-hand-m5-device-pixels
+feature: design.editor.text-and-view
+intent: >-
+  At 100 % on a screen of pixel ratio 1 (and at 200 %) the canvas shows smooth round edges and
+  whole thin lines: the canvas copies its frame to the screen pixel for pixel without smoothing,
+  and a view put half a pixel off (a centred 100 % on a canvas of odd height) made the GPU's
+  nearest-pixel copy drop or double rows and columns, so an ellipse looked stepped and cut flat,
+  a slanted line broke into dashes and a component set's dashed border showed one piece
+  (walkthrough M5; the engine's own pixels were anti-aliased all along). The editor now moves such
+  a view onto whole device pixels. web/tests/hand/view.mjs puts the view half a device pixel off
+  at 100 % and 200 % and after a half-pixel pan, checks the view lands on whole pixels, and draws a
+  slanted line with a real drag that must have ink in every screen column.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings M5 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/view.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

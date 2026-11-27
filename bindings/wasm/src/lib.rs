@@ -43,6 +43,7 @@ pub mod chrome;
 pub mod collab;
 mod commands;
 mod context;
+mod damage;
 mod files;
 pub mod libraries;
 pub mod lists;
@@ -134,6 +135,8 @@ pub struct DesignDocument {
     /// The revision whose chrome and selection geometry a gesture's answer last carried
     /// (`canvas.chrome`, `canvas.gesture`); none outside a gesture.
     told_gesture: Option<u64>,
+    /// The area the last tool event changed, for its answer's `damage` ([`damage`]).
+    damage: Option<kition_kit::tools::ToolDamage>,
 }
 
 /// Runs `f` with the engine's file access confined to no folder: in a page there is no file system
@@ -201,6 +204,7 @@ impl DesignDocument {
             told_tool: kition_design_engine::tools::ToolId::Move,
             told_hover: None,
             told_gesture: None,
+            damage: None,
         })
     }
 

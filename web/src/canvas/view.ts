@@ -32,3 +32,20 @@ export function toScreen(view: KitCanvasView, x: number, y: number) {
 export function raster(rect: Rect): RasterRect {
   return { x0: rect.x, y0: rect.y, x1: rect.x + rect.width, y1: rect.y + rect.height }
 }
+
+/**
+ * The view moved onto whole device pixels, or null when it is on them already or cannot be. The
+ * canvas copies its frame to the screen pixel for pixel, without smoothing, whenever the zoom
+ * times the pixel ratio is a whole number (100 %, 200 % on a 1× screen); placed half a pixel off
+ * (a centred 100 % on a canvas of odd height), the GPU's nearest-pixel copy drops or doubles rows
+ * and columns: round edges turn to steps, thin lines break up (M5). Off by less than half a device
+ * pixel, which nobody sees.
+ */
+export function onDevicePixels(view: { x: number; y: number; zoom: number }, dpr: number): { x: number; y: number } | null {
+  const scale = view.zoom * dpr
+  const whole = Math.round(scale)
+  if (!(whole >= 1) || Math.abs(scale - whole) > 1e-9 || ![view.x, view.y].every(Number.isFinite)) return null
+  const x = Math.round(view.x * whole) / whole
+  const y = Math.round(view.y * whole) / whole
+  return Math.abs(x - view.x) > 1e-9 || Math.abs(y - view.y) > 1e-9 ? { x, y } : null
+}

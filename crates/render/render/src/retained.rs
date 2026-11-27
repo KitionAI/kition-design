@@ -265,6 +265,59 @@ fn changed_areas(doc: &Document, page: NodeId, id: NodeId, out: &mut Vec<Rect>) 
     Some(())
 }
 
+/// The page areas whose pixels differ between renders of `before` and `doc` on `page`: each layer
+/// that changed, where it was and where it is now, with what masks, booleans and effects above it
+/// draw from it. `None` when only a whole render is right (a page-level change, an edited pattern
+/// source, more than [`MAX_CHANGED`] layers).
+fn changed_page_areas(before: &Document, before_s: &Sensitive, doc: &Document, s: &Sensitive, page: NodeId) -> Option<Vec<Rect>> {
+    let mut areas = Vec::new();
+    for id in doc.changed_ids(before, MAX_CHANGED)? {
+        // shortcut: an edited pattern source redraws the whole view; patch the patterned layers' areas when that shows up in profiles.
+        if in_pattern_source(doc, s, id) || in_pattern_source(before, before_s, id) {
+            return None;
+        }
+        changed_areas(before, page, id, &mut areas)?;
+        changed_areas(doc, page, id, &mut areas)?;
+    }
+    Some(areas)
+}
+
+/// The page area a canvas showing `before` must draw again to show `doc` (page `page`, `scale`
+/// device pixels per unit), as one rectangle: every layer that changed where it was and where it is
+/// now ([`changed_page_areas`]), grown by what background blurs read around it, and to the whole
+/// of any layer whose look depends on where a render cuts it (noise, texture). `Some(None)` when
+/// no pixel changed; `None` when only a whole render is right. A canvas that keeps its last image
+/// and repaints this area (kition-sdk's raster viewport, with a tool's `damage`) shows what a
+/// whole render would, as [`Retained`] does with its own image.
+pub fn changed_area(before: &Document, doc: &Document, page: NodeId, scale: f64) -> Option<Option<Rect>> {
+    if !(scale.is_finite() && scale > 0.0) || before.color_profile != doc.color_profile {
+        return None;
+    }
+    let (before_s, s) = (sensitive(before), sensitive(doc));
+    let Some(mut area) = changed_page_areas(before, &before_s, doc, &s, page)?.into_iter().reduce(|a, b| a.union(b)) else {
+        return Some(None);
+    };
+    // Background blurs read the backdrop around them: a change shows that far off.
+    let reach = crate::backdrop_reach(s.backdrop_blur.max(before_s.backdrop_blur), scale);
+    if !reach.is_finite() || reach > MAX_MARGIN_PX {
+        return None;
+    }
+    area = area.inflate(reach / scale, reach / scale);
+    // Layers whose look depends on where they are cut are drawn whole.
+    for _ in 0..4 {
+        let grown = s
+            .areas
+            .iter()
+            .chain(&before_s.areas)
+            .fold(area, |a, r| if a.x0 < r.x1 && r.x0 < a.x1 && a.y0 < r.y1 && r.y0 < a.y1 { a.union(*r) } else { a });
+        if grown == area {
+            break;
+        }
+        area = grown;
+    }
+    [area.x0, area.y0, area.x1, area.y1].iter().all(|v| v.is_finite()).then_some(Some(area))
+}
+
 /// The previous frame brought up to date for `doc` at `px`, rendering only what changed; `None`
 /// when a full render is the better (or only correct) choice. Also returns the pixels rendered.
 fn patch(last: Frame, doc: &Arc<Document>, page: NodeId, view: &View, px: (i64, i64), opts: &Options, s: &Sensitive) -> Option<(Pixmap, u64)> {
@@ -294,16 +347,7 @@ fn patch(last: Frame, doc: &Arc<Document>, page: NodeId, view: &View, px: (i64, 
     }
     // Layers that changed, where they were and where they are now.
     if !Arc::ptr_eq(&last.doc, doc) {
-        let mut areas = Vec::new();
-        for id in doc.changed_ids(&last.doc, MAX_CHANGED)? {
-            // shortcut: an edited pattern source redraws the whole view; patch the patterned layers' areas when that shows up in profiles.
-            if in_pattern_source(doc, s, id) || in_pattern_source(&last.doc, &last.sensitive, id) {
-                return None;
-            }
-            changed_areas(&last.doc, page, id, &mut areas)?;
-            changed_areas(doc, page, id, &mut areas)?;
-        }
-        for r in areas {
+        for r in changed_page_areas(&last.doc, &last.sensitive, doc, s, page)? {
             if let Some(p) = to_px(r, view.scale, px) {
                 damage.push(Px { x0: p.x0 - reach, y0: p.y0 - reach, x1: p.x1 + reach, y1: p.y1 + reach });
             }

@@ -378,6 +378,7 @@ impl KitTools for DesignDocument {
     fn select_tool(&mut self, id: &str, zoom: f64) -> Result<ToolResponse, String> {
         let Some(tool) = ToolId::from_id(id).filter(|t| !t.on_boards() || id == "section") else { return Err(format!("no tool {id}")) };
         self.set_zoom(zoom);
+        let shown = self.shown();
         self.end_open_interaction();
         let before = self.session.tool.tool;
         // Choosing the tool already chosen is no change (the editor follows the engine's switches).
@@ -386,7 +387,9 @@ impl KitTools for DesignDocument {
         }
         // The editor chose it: a switch to tell only if the engine took another.
         self.told_tool = tool;
-        Ok(self.respond(tool, zoom))
+        let response = self.respond(tool, zoom);
+        self.note_damage(shown, zoom);
+        Ok(response)
     }
 
     fn pointer(&mut self, event: &ToolPointer) -> Result<ToolResponse, String> {
@@ -395,6 +398,7 @@ impl KitTools for DesignDocument {
         }
         self.set_zoom(event.zoom);
         let zoom = self.zoom;
+        let painted = self.shown();
         let area = self.area();
         let at = area.to_canvas(event.x, event.y);
         let kind = match event.action {
@@ -447,11 +451,14 @@ impl KitTools for DesignDocument {
             // A failed gesture is dropped, as upstream's toast does; the document is as it was.
             self.session.message = Some(error.to_string());
         }
-        Ok(self.respond(before, zoom))
+        let response = self.respond(before, zoom);
+        self.note_damage(painted, zoom);
+        Ok(response)
     }
 
     fn key(&mut self, key: &str, mods: ToolMods, zoom: f64) -> Result<ToolResponse, String> {
         self.set_zoom(zoom);
+        let shown = self.shown();
         self.end_open_interaction();
         let before = self.session.tool.tool;
         let name = key_name(key);
@@ -459,23 +466,34 @@ impl KitTools for DesignDocument {
         if let Err(error) = result {
             self.session.message = Some(error);
         }
-        Ok(self.respond(before, zoom))
+        let response = self.respond(before, zoom);
+        self.note_damage(shown, zoom);
+        Ok(response)
     }
 
     fn text(&mut self, text: &str, zoom: f64) -> Result<ToolResponse, String> {
         self.set_zoom(zoom);
+        let shown = self.shown();
         let before = self.session.tool.tool;
         if self.wants_text() {
             kition_design_engine::textedit::insert(&mut self.session, text).map_err(engine_error)?;
         }
-        Ok(self.respond(before, zoom))
+        let response = self.respond(before, zoom);
+        self.note_damage(shown, zoom);
+        Ok(response)
     }
 
     fn state(&mut self, x: f64, y: f64, _mods: ToolMods, zoom: f64) -> ToolResponse {
         self.set_zoom(zoom);
         let _ = (x, y);
         let tool = self.session.tool.tool;
+        self.damage = None;
         self.respond(tool, zoom)
+    }
+
+    fn take_damage(&mut self) -> Option<kition_kit::tools::ToolDamage> {
+        // The area the last event changed ([`crate::damage`]), once.
+        self.damage.take()
     }
 }
 

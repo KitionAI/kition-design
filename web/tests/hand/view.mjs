@@ -3,7 +3,10 @@
 // the page's document area grows round it (walkthrough B15: the view jumped about 750 px and the
 // next clicks missed), a mouse wheel's notch with Cmd zooms one step around the pointer (B3: 2.7
 // times), a trackpad's small deltas keep their feel, the wheel and Space with a drag pan, and
-// Shift+1 fits the content. Prints PASS or FAIL per step.
+// Shift+1 fits the content. At 100 % and 200 % the view sits on whole device pixels, also when it
+// was put half a pixel off (M5: the canvas copies its frame pixel for pixel, and half a pixel off
+// the GPU dropped rows: steps on round edges, broken thin lines), and a slanted line drawn there
+// has ink in every column on the screen. Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -59,6 +62,63 @@ try {
     await page.keyboard.press('Escape')
     await page.keyboard.press('Escape')
     await until(async () => (await inspect()).editing === 'none', 40)
+  })
+
+  await part('M5', async () => {
+    const dpr = await page.evaluate(() => window.devicePixelRatio || 1)
+    const onPixels = (v, scale) => near(v.x * scale, Math.round(v.x * scale), 1e-6) && near(v.y * scale, Math.round(v.y * scale), 1e-6)
+    for (const zoom of [1, 2]) {
+      // Half a device pixel off on purpose, as a centred zoom on a canvas of odd size puts it.
+      await hand.designKit(([zoom, dpr]) => {
+        const handle = window.designKit.canvas.current
+        handle.zoomTo(zoom)
+        const v = handle.view()
+        handle.panTo(Math.round(v.x) + 0.5 / (zoom * dpr), Math.round(v.y) + 0.5 / (zoom * dpr))
+      }, [zoom, dpr])
+      await page.waitForTimeout(300)
+      const v = await view()
+      step(`M5 at ${zoom * 100} % the view is on whole device pixels`, v.zoom === zoom && onPixels(v, zoom * dpr), JSON.stringify(v))
+    }
+    await viewAt(1, 190, 120)
+    await hand.designKit(() => {
+      const handle = window.designKit.canvas.current
+      const v = handle.view()
+      handle.panTo(v.x + 0.5, v.y + 0.5)
+    })
+    await page.waitForTimeout(300)
+    step('M5 at 100 % after a half-pixel pan the view is on whole pixels', onPixels(await view(), dpr), JSON.stringify(await view()))
+    // A slanted line inside the frame (white), drawn with the Line tool and a real drag.
+    const empty = await toPage(300, 700)
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press('l')
+    await until(async () => (await inspect()).tool === 'line', 40)
+    const a = await toPage(60, 60)
+    const b = await toPage(300, 130)
+    await drag(a, b)
+    await until(async () => (await inspect()).tool === 'move', 60)
+    await page.keyboard.press('Escape')
+    await page.mouse.move(surface.x + surface.width - 20, surface.y + surface.height - 20)
+    await settle(800)
+    const shot = await page.screenshot({ clip: { x: Math.round(a.x) + 6, y: Math.round(a.y) - 6, width: Math.round(b.x - a.x) - 12, height: Math.round(b.y - a.y) + 12 } })
+    const columns = await page.evaluate(async (png) => {
+      const image = new Image()
+      image.src = `data:image/png;base64,${png}`
+      await image.decode()
+      const c = document.createElement('canvas')
+      c.width = image.width
+      c.height = image.height
+      const g = c.getContext('2d')
+      g.drawImage(image, 0, 0)
+      const d = g.getImageData(0, 0, c.width, c.height).data
+      let blank = 0
+      for (let x = 0; x < c.width; x += 1) {
+        let ink = false
+        for (let y = 0; y < c.height && !ink; y += 1) ink = d[(y * c.width + x) * 4] < 160
+        if (!ink) blank += 1
+      }
+      return { width: c.width, blank }
+    }, shot.toString('base64'))
+    step('M5 a slanted 1 px line has ink in every column on screen', columns.width > 100 && columns.blank === 0, JSON.stringify(columns))
   })
 
   await part('B3', async () => {

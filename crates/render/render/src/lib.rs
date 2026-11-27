@@ -25,7 +25,7 @@ pub mod shadow;
 pub use dots::Dots;
 pub use draw::{node_outline, paint_bounds, stroke_fill, subtree_outline, ts_path};
 pub use export_depth::{ExportDepthError, MAX_EXPORT_DEPTH, check_export_depth};
-pub use retained::{Retained, Work};
+pub use retained::{Retained, Work, changed_area};
 pub use tiny_skia::{FillRule, Pixmap};
 
 use kition_design_color::{Color, ColorProfile};
@@ -178,6 +178,24 @@ fn render_bands(doc: &Document, page: NodeId, view: &View, opts: &Options, bands
         }
     }
     Some(out)
+}
+
+/// `view` drawn as a window onto the whole page: rendered with a margin around it (two pixels of
+/// anti-aliasing, and what background blurs read) that is cut off again, so renders of views on
+/// the same pixel grid agree where they overlap, and a canvas can patch its image with a render of
+/// just the area that changed ([`changed_area`]). A view too large for the margin is drawn as is.
+pub fn render_window(doc: &Document, page: NodeId, view: &View, opts: &Options) -> Option<Pixmap> {
+    let reach = backdrop_reach(max_backdrop_blur(doc), view.scale).ceil();
+    let margin: u32 = if reach.is_finite() && (0.0..=1024.0).contains(&reach) { reach as u32 + 2 } else { 2 };
+    let s = view.scale;
+    let (width, height) = (view.width.saturating_add(2 * margin), view.height.saturating_add(2 * margin));
+    if !(s.is_finite() && s > 0.0) || width > 16_384 || height > 16_384 {
+        return render_view(doc, page, view, opts);
+    }
+    let m = f64::from(margin) / s;
+    let wide = View { origin: (view.origin.0 - m, view.origin.1 - m), scale: s, width, height };
+    let pix = render_view(doc, page, &wide, opts)?;
+    pix.clone_rect(tiny_skia::IntRect::from_xywh(i32::try_from(margin).ok()?, i32::try_from(margin).ok()?, view.width.max(1), view.height.max(1))?)
 }
 
 /// Render a page region on the calling thread.
@@ -471,6 +489,8 @@ mod band_tests;
 mod boolean_cache_tests;
 #[cfg(test)]
 mod bounds_memo_tests;
+#[cfg(test)]
+mod changed_area_tests;
 #[cfg(test)]
 mod dots_tests;
 #[cfg(test)]
