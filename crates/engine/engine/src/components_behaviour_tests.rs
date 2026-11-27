@@ -135,6 +135,34 @@ fn copying_a_variant_pastes_an_instance_but_copying_its_set_keeps_the_components
     healthy(&s);
 }
 
+/// Regression `issue-hand-g5-pasted-instance-pick`: a variant copied, Escape selecting its set, then
+/// Paste here on the empty canvas far from the set. The instance went into the selected set, at the
+/// point, outside the set's clip: nothing of it showed and a click on it selected nothing. Paste
+/// here keeps a selected frame only when the point is in it; elsewhere the copy goes on the page.
+#[test]
+fn paste_here_outside_the_selected_frame_pastes_on_the_page() {
+    let mut s = Session::new();
+    let (set, _, hover) = button_set(&mut s);
+    ex(&mut s, "select.set", json!({"ids": [hover]}));
+    ex(&mut s, "edit.copy", json!({}));
+    ex(&mut s, "select.set", json!({"ids": [set]}));
+    let pasted = crate::params::id_of(&ex(&mut s, "edit.paste", json!({"x": 2000, "y": 900}))["ids"][0]).unwrap();
+    assert_eq!(component_of(&s, pasted), hover);
+    assert_eq!(node(&s, pasted).parent, Some(s.page().unwrap()), "pasted on the page, where the pointer was");
+    let b = s.doc().unwrap().world_bounds(pasted).unwrap();
+    assert_eq!((b.x0, b.y0), (2000.0, 900.0));
+    let page = s.page().unwrap();
+    let doc = s.doc().unwrap().clone();
+    let hit = s.hit(&doc, page, b.center(), 1.0);
+    assert!(hit.is_some_and(|leaf| leaf == pasted || doc.is_ancestor(pasted, leaf)), "a click at its centre reaches it: {hit:?}");
+    // A point inside the selected frame still pastes into it.
+    let f = idv(&ex(&mut s, "frame.add", json!({"x": 0, "y": 400, "width": 400, "height": 300, "name": "Screen"})));
+    ex(&mut s, "select.set", json!({"ids": [f]}));
+    let inside = crate::params::id_of(&ex(&mut s, "edit.paste", json!({"x": 20, "y": 420}))["ids"][0]).unwrap();
+    assert_eq!(node(&s, inside).parent, Some(f));
+    healthy(&s);
+}
+
 #[test]
 fn cut_components_and_components_copied_to_another_file_remain_components() {
     for (copy, undo_cut, new_file) in [("edit.cut", false, false), ("edit.cut", true, false), ("edit.copy", false, true)] {

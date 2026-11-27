@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-b11-hold-z
+feature: design.editor.canvas-input
+intent: >-
+  Holding Z on the canvas did nothing (walkthrough B11, gap R1): the shortcuts dialog lists Hold
+  Z for the zoom tool, but no part of the editor listened for it, and a click with Z held selected
+  the layer under the pointer. With Z held a click now zooms in one step about the pointer,
+  Alt+click zooms out one step and a drag zooms to the area dragged, selecting and drawing
+  nothing, with a zoom cursor; letting go of Z gives the canvas back to the Move tool.
+  web/tests/hand/view.mjs does it with a real keyboard and mouse (its B11 part) and reads the view
+  and the selection back.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding B11 and root cause R1 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/view.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

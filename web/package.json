@@ -21,7 +21,7 @@
     "test:drafts": "node tests/drafts.mjs chromium && node tests/drafts.mjs webkit",
     "test:scrub-repeat": "node tests/scrub-repeat.mjs chromium && node tests/scrub-repeat.mjs webkit",
     "test:hand-input": "node tests/hand/keys.mjs chromium && node tests/hand/keys.mjs webkit && node tests/hand/text.mjs chromium && node tests/hand/text.mjs webkit && node tests/hand/ime.mjs chromium && node tests/hand/ime.mjs webkit && node tests/hand/clipboard.mjs chromium && node tests/hand/clipboard.mjs webkit",
-    "test:hand-canvas": "node tests/hand/view.mjs chromium && node tests/hand/view.mjs webkit && node tests/hand/gestures.mjs chromium && node tests/hand/gestures.mjs webkit",
+    "test:hand-canvas": "node tests/hand/view.mjs chromium && node tests/hand/view.mjs webkit && node tests/hand/gestures.mjs chromium && node tests/hand/gestures.mjs webkit && node tests/hand/guides.mjs chromium && node tests/hand/guides.mjs webkit",
     "test:hand-accept": "node tests/hand/roundtrips.mjs chromium && node tests/hand/roundtrips.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },

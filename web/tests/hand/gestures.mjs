@@ -11,7 +11,9 @@
 // between copy and move; with a frame selected a press on a layer in it drags the frame and a
 // click selects the layer; a double-click on an auto layout edge hugs (Alt: fills); Alt+drag of a
 // variant out of its set gives an instance; Assets names the page of same-named components.
-// Prints PASS or FAIL per step.
+// Stage 8: Alt pressed or let go with the pointer still shows or hides the distance, and turns a
+// drag that has stopped into a copy; Paste here away from a selected component set pastes on the
+// page, where a click selects it (G5). Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -258,6 +260,55 @@ try {
     await undo()
   })
 
+  // Stage 8: a modifier pressed or let go with the pointer still reaches the tool: Alt over another
+  // layer shows the distance at once, and Alt pressed during a drag that has stopped moving makes
+  // it a copy.
+  await part('modifier still', async () => {
+    const overlays = async () => {
+      const zoom = (await designKit(() => window.designKit.canvas.current.view())).zoom
+      const state = await designKit((zoom) => window.designKit.editor.session.tool('toolState', [0, 0, '{}', zoom]), zoom)
+      return state?.overlays ?? []
+    }
+    const measured = async () => (await overlays()).filter((o) => o.kind === 'measure').length
+    const layers = (await inspect()).layers
+    await click(600, 400)
+    const a = await box(A)
+    const b = await box(B)
+    await click(a.x + a.w / 2, a.y + a.h / 2)
+    const over = await toPage(b.x + b.w / 2, b.y + b.h / 2)
+    await page.mouse.move(over.x - 10, over.y)
+    await page.mouse.move(over.x, over.y, { steps: 3 })
+    await settle(250)
+    const plain = await measured()
+    await page.keyboard.down('Alt')
+    await until(async () => (await measured()) > 0, 20)
+    const held = await measured()
+    await page.keyboard.up('Alt')
+    await until(async () => (await measured()) === 0, 20)
+    const let_go = await measured()
+    step('modifier still Alt pressed with the pointer still shows the distance', plain === 0 && held > 0, `${plain} measurements, ${held} with Alt`)
+    step('modifier still and letting go of Alt hides it', let_go === 0, `${let_go} measurements`)
+    // A drag that has stopped, then Alt.
+    const from = await toPage(a.x + a.w / 2, a.y + a.h / 2)
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    for (let i = 1; i <= 8; i += 1) {
+      await page.mouse.move(from.x, from.y + (150 * i) / 8)
+      await page.waitForTimeout(16)
+    }
+    await page.waitForTimeout(250)
+    await page.keyboard.down('Alt')
+    await page.waitForTimeout(400)
+    await page.mouse.up()
+    await page.keyboard.up('Alt')
+    await settle(300)
+    const copy = (await selection())[0]
+    const dragged = copy !== undefined && copy !== A ? await box(copy) : null
+    step('modifier still Alt pressed during a still drag makes it a copy', (await inspect()).layers === layers + 1 && dragged !== null && near(dragged.y, a.y + 150, 2), dragged ? show(dragged) : `${(await inspect()).layers} layers`)
+    step('modifier still the original stays', near((await box(A)).y, a.y, 0.01), show(await box(A)))
+    await undo()
+  })
+
   // R-A22: with a frame selected, a press on a layer in it drags the frame; a click selects that layer.
   let row = null
   let child = null
@@ -357,6 +408,40 @@ try {
     step('variant out of its set Assets shows the page of each of two same-named components', pagesNamed.some((l) => /Other/.test(l)) && pagesNamed.length >= 2 && pagesNamed.every((l) => / · /.test(l)), JSON.stringify(labels.slice(0, 12)))
     await kit.getByTestId('design-rail-file').click().catch(() => undefined)
     void other
+  })
+
+  // G5 (stage 8, regressions/issue-hand-g5-pasted-instance-pick): a variant copied, Escape (which
+  // selects its set), Paste here from the context menu on the empty canvas. The instance went into
+  // the set, outside the set's clip: nothing showed and a click on it selected nothing.
+  await part('pasted instance', async () => {
+    const button = await run('frame.add', { x: 100, y: 900, width: 160, height: 40, name: 'Chip' })
+    let main = button?.id ?? (await selection())[0]
+    await run('node.set', { id: main, props: { fill: '#16a34a' } })
+    const made = await run('component.add', { ids: [main] })
+    main = made?.id ?? (await selection())[0]
+    await run('select.set', { ids: [main] })
+    await run('component.addVariant', {})
+    const set = (await node(main)).parent
+    await run('select.set', { ids: [main] })
+    await viewAt(1, 500, 950)
+    await settle()
+    await page.keyboard.press(`${mod}+c`)
+    await settle(200)
+    await page.keyboard.press('Escape')
+    await settle(200)
+    const escaped = await selection()
+    const spot = await toPage(600, 1000)
+    await page.mouse.click(spot.x, spot.y, { button: 'right' })
+    await until(async () => (await kit.getByTestId('design-context-menu').count()) === 1, 40)
+    await kit.getByTestId('design-context-edit.paste').click()
+    await settle(400)
+    const pasted = (await selection())[0]
+    const n = pasted !== undefined ? await node(pasted) : null
+    const parent = n?.parent && typeof n.parent === 'object' ? n.parent.id : n?.parent
+    step('pasted instance Paste here away from the selected set pastes on the page, at the point', n?.type === 'INSTANCE' && String(parent) !== String(set) && near(n.absoluteBounds.x, 600, 1) && near(n.absoluteBounds.y, 1000, 1), JSON.stringify(n && { type: n.type, parent, bounds: n.absoluteBounds, escaped }))
+    await click(900, 1200)
+    await click(680, 1020)
+    step('pasted instance a click at its centre selects it', pasted !== undefined && JSON.stringify(await selection()) === JSON.stringify([pasted]), JSON.stringify(await selection()))
   })
 } catch (error) {
   await finish(error)

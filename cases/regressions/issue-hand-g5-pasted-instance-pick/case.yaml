@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-g5-pasted-instance-pick
+feature: design.editor.canvas-input
+intent: >-
+  A variant copied, Escape (which selects its component set), then Paste here from the context
+  menu on the empty canvas: the instance went into the selected set, at the point, far outside
+  the set's clip, so nothing of it showed and a click at its centre selected nothing (walkthrough
+  G5 and L6). Paste here now keeps a selected frame only when the point is inside it; away from it
+  the copy goes on the page, where it shows and a click selects it. web/tests/hand/gestures.mjs
+  does it with real keys, a right-click and the menu (its pasted instance part), and
+  crates/engine/engine/src/components_behaviour_tests.rs checks the engine's rule.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings G5 and L6 (kition-plan kit-docs/design/walkthrough, probe10b)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/gestures.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

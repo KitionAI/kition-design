@@ -7,7 +7,10 @@
 // was put half a pixel off (M5: the canvas copies its frame pixel for pixel, and half a pixel off
 // the GPU dropped rows: steps on round edges, broken thin lines), and a slanted line drawn there
 // has ink in every column on the screen. Each page keeps its own view when another is shown and it
-// comes back (B14). Prints PASS or FAIL per step.
+// comes back (B14). Stage 8: with Z held a click zooms in a step about the pointer, Alt+click out,
+// a drag zooms to its area, and letting go of Z gives the canvas back (B11); a drag held at the
+// canvas's edge pans the view, the dragged frame staying under the pointer, one undo step. Prints
+// PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -25,6 +28,8 @@ const drag = async (from, to, steps = 16) => {
 
 try {
   let frameId = null
+  // The frame the 'view on screen' part draws (the stage 8 parts use it).
+  let shown = null
   await part('B15', async () => {
     const pages = (await inspect()).pages.length
     await kit.getByTestId('design-pages-add').click()
@@ -271,6 +276,84 @@ try {
     await settle()
     step('and a click on its label picks it', JSON.stringify((await inspect()).selection) === JSON.stringify([id]), JSON.stringify((await inspect()).selection))
     await page.keyboard.press('Escape')
+    shown = id
+  })
+
+  // B11 (stage 8): with Z held a click zooms in a step about the pointer, Alt+click out a step, a
+  // drag zooms to the area; nothing is selected or drawn; letting go of Z gives the canvas back.
+  await part('B11', async () => {
+    await viewAt(1, 650, 140)
+    const away = await toPage(850, 300)
+    await page.mouse.click(away.x, away.y)
+    await page.keyboard.press('Escape')
+    await settle()
+    const cursor = () => hand.designKit(() => document.querySelector('.design-canvas-root')?.getAttribute('data-cursor') ?? null)
+    const at = await toPage(640, 130)
+    const under = await toDoc(at.x, at.y)
+    await page.mouse.move(at.x, at.y)
+    await page.keyboard.down('z')
+    await until(async () => (await cursor()) === 'zoom-in', 20)
+    step('B11 holding Z shows the zoom-in cursor', (await cursor()) === 'zoom-in', String(await cursor()))
+    await page.mouse.click(at.x, at.y)
+    await until(async () => (await view()).zoom === 2, 30)
+    const still = await toDoc(at.x, at.y)
+    step('B11 a click with Z held zooms in one step about the pointer', (await view()).zoom === 2 && near(still.x, under.x, 1) && near(still.y, under.y, 1), `zoom ${(await view()).zoom}, ${JSON.stringify(under)} -> ${JSON.stringify(still)}`)
+    step('B11 and selects nothing', (await inspect()).selection.length === 0 && (await inspect()).tool === 'move', JSON.stringify((await inspect()).selection))
+    await page.keyboard.down('Alt')
+    await until(async () => (await cursor()) === 'zoom-out', 20)
+    step('B11 with Alt the cursor zooms out', (await cursor()) === 'zoom-out', String(await cursor()))
+    await page.mouse.click(at.x, at.y)
+    await page.keyboard.up('Alt')
+    await until(async () => (await view()).zoom === 1, 30)
+    step('B11 Alt+click zooms out one step', (await view()).zoom === 1, `zoom ${(await view()).zoom}`)
+    const layers = (await inspect()).layers
+    await drag(await toPage(600, 100), await toPage(700, 180))
+    await until(async () => (await view()).zoom > 2, 30)
+    await page.waitForTimeout(200)
+    const v = await view()
+    const middle = await toDoc(surface.x + surface.width / 2, surface.y + surface.height / 2)
+    step('B11 a drag with Z held zooms to the area dragged', v.zoom > 2 && near(middle.x, 650, 2) && near(middle.y, 140, 2), `zoom ${v.zoom.toFixed(2)}, centre ${Math.round(middle.x)},${Math.round(middle.y)}`)
+    step('B11 and draws nothing', (await inspect()).layers === layers && (await inspect()).selection.length === 0, `${layers} -> ${(await inspect()).layers} layers`)
+    await page.keyboard.up('z')
+    await until(async () => (await cursor()) === null, 20)
+    const frame = await toPage(650, 140)
+    await page.mouse.click(frame.x, frame.y)
+    await settle()
+    step('B11 letting go of Z gives the canvas back to the Move tool', JSON.stringify((await inspect()).selection) === JSON.stringify([shown]) && (await view()).zoom === v.zoom, `${JSON.stringify((await inspect()).selection)} (the frame ${shown}), zoom ${(await view()).zoom}`)
+  })
+
+  // Stage 8: a drag held at the canvas's edge pans the view toward it, the dragged layer staying
+  // under the pointer; one undo step.
+  await part('edge pan', async () => {
+    await viewAt(1, 650, 300)
+    const start = await toPage(650, 140)
+    await page.mouse.click(start.x, start.y)
+    await settle()
+    const before = await view()
+    const b0 = (await node(shown)).absoluteBounds
+    const undo0 = (await hand.undoStack()).length
+    const edge = { x: surface.x + surface.width - 4, y: start.y }
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    for (let i = 1; i <= 12; i += 1) await page.mouse.move(start.x + ((edge.x - start.x) * i) / 12, start.y)
+    await page.waitForTimeout(900)
+    const during = await view()
+    const pointerDoc = await toDoc(edge.x, edge.y)
+    const b1 = (await node(shown)).absoluteBounds
+    await page.mouse.up()
+    await settle(400)
+    const panned = (during.x - before.x) * during.zoom
+    step('edge pan holding a drag at the right edge pans the view right', panned > 100, `${Math.round(panned)} screen px in 0.9 s`)
+    // The press was at the frame's centre: the pointer is still over the same point of it.
+    step('edge pan the dragged frame follows the pointer', near(pointerDoc.x - b1.x, 650 - b0.x, 3) && near(b1.y, b0.y, 1), `pointer at ${Math.round(pointerDoc.x)}, frame at ${Math.round(b1.x)} (was ${b0.x})`)
+    const undo1 = await hand.undoStack()
+    step('edge pan the drag is one undo step', undo1.length === undo0 + 1, JSON.stringify(undo1.slice(0, 2)))
+    const stopped = await view()
+    await page.waitForTimeout(300)
+    step('edge pan stops with the release', (await view()).x === stopped.x, `${stopped.x} -> ${(await view()).x}`)
+    await page.keyboard.press(`${mod}+z`)
+    await settle(300)
+    step('edge pan Cmd+Z puts the frame back', (await node(shown)).absoluteBounds.x === b0.x, JSON.stringify((await node(shown)).absoluteBounds))
   })
   await finish()
 } catch (error) {
