@@ -88,16 +88,38 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
     [actions, leftOpen, leftTab, mainMenu, rightTab, toggleFocus],
   )
   const inspect = session.state ?? EMPTY_INSPECT
+  const engine = session.doc
+  const shownView = useRef<{ engine: unknown; view: KitCanvasView } | null>(null)
+  const onView = useCallback(
+    (next: KitCanvasView) => {
+      // The canvas reports its view after every frame it draws: only a moved one (or a new
+      // document's) is news.
+      const was = shownView.current
+      if (was && was.engine === engine && was.view.x === next.x && was.view.y === next.y && was.view.zoom === next.zoom && was.view.width === next.width && was.view.height === next.height) return
+      shownView.current = { engine, view: next }
+      setView(next)
+      // The engine's view (for View commands, chrome and hit tests); never an edit.
+      void engine?.invoke('setViewport', next.x, next.y, next.width, next.height, next.zoom).catch(() => undefined)
+    },
+    [engine],
+  )
+  // The same elements after every engine answer (this component renders again for each, with
+  // kit-editor's new session): the editor's own components render again only for what they read
+  // (DesignKitProvider's context, `useTools`, `useView`), not for every hover and drag sample (R2).
+  const content = useMemo(
+    () => (
+      <>
+        <Frame canvas={canvas} display={display} onView={onView} />
+        <LibraryFiles />
+      </>
+    ),
+    [onView],
+  )
 
   return (
     <KitEditorProvider editor={editor} tools={tools}>
       <DesignKitProvider editor={editor} inspect={inspect} strings={strings} canvas={canvas} view={view} tools={tools} ui={ui}>
-        <Frame canvas={canvas} display={display} onView={(next) => {
-          setView(next)
-          // The engine's view (for View commands, chrome and hit tests); never an edit.
-          void session.doc?.invoke('setViewport', next.x, next.y, next.width, next.height, next.zoom).catch(() => undefined)
-        }} />
-        <LibraryFiles />
+        {content}
       </DesignKitProvider>
     </KitEditorProvider>
   )

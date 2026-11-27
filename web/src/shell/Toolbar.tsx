@@ -6,7 +6,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { isMac } from '@kition/sdk/editor'
 import { Icon, type IconName } from '../icons/Icon'
-import { useDesignKit, useQuery } from '../kit/hooks'
+import { useDesignKit, useQuery, useTools } from '../kit/hooks'
 import { regionProps } from '../kit/regions'
 import type { RightTab } from '../kit/types'
 import { Menu } from '../ui/Menu'
@@ -18,14 +18,15 @@ import { ALL_TOOLS, TOOL_GROUPS, VECTOR_TOOLS, type ToolDef, type ToolGroup } fr
 const PILL_WIDTH = 554
 
 export function Toolbar() {
-  const { inspect, readOnly, t, tools } = useDesignKit()
+  const { inspect, readOnly, t } = useDesignKit()
+  const activeTool = useTools((tools) => tools.active)
   const pill = useRef<HTMLDivElement>(null)
   let content
   if (readOnly) content = <ViewOnlyPill />
   else if (inspect.vectorEdit) content = <VectorEditPill tool={inspect.vectorEdit.tool} />
-  else if (tools.active === 'shapeBuilder') content = <ShapeBuilderPill />
+  else if (activeTool === 'shapeBuilder') content = <ShapeBuilderPill />
   else content = <MainPill pill={pill} />
-  const main = !readOnly && !inspect.vectorEdit && tools.active !== 'shapeBuilder'
+  const main = !readOnly && !inspect.vectorEdit && activeTool !== 'shapeBuilder'
   return (
     <div ref={pill} className="design-pill" style={main ? { width: PILL_WIDTH } : { paddingRight: 4 }} {...regionProps('toolbar', t('region.toolbar'))} data-testid="design-toolbar" onPointerDown={(event) => event.stopPropagation()}>
       {content}
@@ -34,15 +35,15 @@ export function Toolbar() {
 }
 
 function useToolInfo() {
-  const { tools } = useDesignKit()
+  const list = useTools((tools) => tools.tools)
   // The engine's own labels and shortcuts win over the static table (they follow its keymap).
   return useMemo(() => {
-    const byId = new Map(tools.tools.map((tool) => [tool.id, tool]))
+    const byId = new Map(list.map((tool) => [tool.id, tool]))
     return (def: ToolDef): ToolDef => {
       const engine = byId.get(def.id)
       return engine ? { ...def, label: engine.label || def.label, shortcut: engine.shortcut ?? def.shortcut } : def
     }
-  }, [tools.tools])
+  }, [list])
 }
 
 function MainPill({ pill }: { pill: React.RefObject<HTMLDivElement | null> }) {
@@ -51,7 +52,7 @@ function MainPill({ pill }: { pill: React.RefObject<HTMLDivElement | null> }) {
   const [last, setLast] = useState<Record<string, string>>({})
   const [flyout, setFlyout] = useState<string | null>(null)
   const buttons = useRef<Record<string, HTMLButtonElement | null>>({})
-  const active = tools.active
+  const active = useTools((current) => current.active)
 
   const choose = (id: string) => {
     if (ui.rightTab === 'inspect' && !['move', 'hand', 'comment'].includes(id)) ui.setRightTab('design')
@@ -173,12 +174,13 @@ function MainPill({ pill }: { pill: React.RefObject<HTMLDivElement | null> }) {
 
 function ViewOnlyPill() {
   const { tools, t } = useDesignKit()
+  const active = useTools((current) => current.active)
   const info = useToolInfo()
   const shown = ['move', 'hand'].map((id) => info(ALL_TOOLS.find((tool) => tool.id === id)!))
   return (
     <>
       {shown.map((tool) => (
-        <button key={tool.id} type="button" className="design-tool" aria-pressed={tools.active === tool.id} aria-label={t(tool.label)} data-tip={tip(t(tool.label), tool.shortcut)} onClick={() => tools.select(tool.id)} data-testid={`design-tool-${tool.id}`}>
+        <button key={tool.id} type="button" className="design-tool" aria-pressed={active === tool.id} aria-label={t(tool.label)} data-tip={tip(t(tool.label), tool.shortcut)} onClick={() => tools.select(tool.id)} data-testid={`design-tool-${tool.id}`}>
           <Icon name={tool.icon} size={18} />
         </button>
       ))}

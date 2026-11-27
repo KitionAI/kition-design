@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { KitDocumentCanvas, isMac, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
-import { useDesignKit, useView } from '../kit/hooks'
+import { useDesignKit, useTools, useView } from '../kit/hooks'
 import { dispatchUiRequests, useUiRequest } from '../kit/requests'
 import { returnKeyboardLater, useTextFieldReleased } from '../kit/focus'
 import { RenameInput } from '../left/fields'
@@ -38,7 +38,9 @@ function usePageBackdrop(background: string) {
 
 export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void }) {
   const designKit = useDesignKit()
-  const { inspect, canvas, invoke, revision, tools, query, doc } = designKit
+  const { inspect, canvas, invoke, revision, query, doc } = designKit
+  const wantsText = useTools((tools) => tools.wantsText)
+  const activeTool = useTools((tools) => tools.active)
   const view = useView()
   usePageBackdrop(inspect.background)
   // The engine's overlays take the page's green and keep guide labels clear of the size pill.
@@ -49,7 +51,7 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   const root = useRef<HTMLDivElement>(null)
   useCanvasInput(root, designKit, isMac())
   // The keyboard is the editor's again when text editing ends.
-  useTextFieldReleased(tools.wantsText)
+  useTextFieldReleased(wantsText)
 
   // The first view fits the page's content (upstream `zoom_to_fit` on open).
   const [fit, setFit] = useState<{ doc: unknown; area: RasterRect | null } | null>(null)
@@ -78,7 +80,8 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
     void designKit.viewTo('view.zoomFit')
   }, [doc, designKit, view])
 
-  // The chrome, asked again after every change, zoom, and tool answer (hover moves the labels' colour).
+  // The chrome, asked again after every change and zoom; during a gesture, and when the hovered
+  // layer changes (the labels' colour), it comes with the engine's answer (`canvas.chrome`).
   const [chrome, setChrome] = useState<DesignChrome | null>(null)
   const zoom = view ? Math.round(view.zoom * 1000) / 1000 : null
   const asking = useRef<{ busy: boolean; again: boolean }>({ busy: false, again: false })
@@ -106,7 +109,10 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   }, [invoke])
   useEffect(() => {
     if (doc && zoom != null) ask()
-  }, [ask, doc, revision, zoom, tools.decorate])
+  }, [ask, doc, revision, zoom])
+  useUiRequest('canvas.chrome', (data) => {
+    if (data && typeof data === 'object') setChrome(data as DesignChrome)
+  })
 
   // A double-click on a frame's or section's name label renames it there (the engine asks).
   const [renaming, setRenaming] = useState<number | null>(null)
@@ -136,8 +142,8 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
       }}
     >
       {fit ? (
-        <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} initialArea={fit.area} framed={false} decorate={decorate} decorateUnder={decorateUnder} animated={tools.wantsText} onView={onView} testId="design-canvas">
-          {chrome?.autoLayout && view && tools.active === 'move' ? <AutoLayoutHandles chrome={chrome} view={view} onHot={setHot} /> : null}
+        <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} initialArea={fit.area} framed={false} decorate={decorate} decorateUnder={decorateUnder} animated={wantsText} onView={onView} testId="design-canvas">
+          {chrome?.autoLayout && view && activeTool === 'move' ? <AutoLayoutHandles chrome={chrome} view={view} onHot={setHot} /> : null}
           {renaming && view && chrome ? <LabelRename id={renaming} chrome={chrome} view={view} onDone={() => setRenaming(null)} /> : null}
           <CanvasOverlays />
           {view && designKit.ui.rightTab === 'prototype' ? <ProtoCanvasLayer view={view} /> : null}

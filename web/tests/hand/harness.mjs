@@ -5,7 +5,8 @@ import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
 import { evidence } from '../evidence.mjs'
 
-export async function openHand(script, which) {
+/** `init`: a script for every frame before the editor's own (a test's counters). */
+export async function openHand(script, which, { init = null } = {}) {
   let server = null
   let origin = process.env.DESIGN_ORIGIN
   if (!origin) {
@@ -15,6 +16,7 @@ export async function openHand(script, which) {
   }
   const browser = await (which === 'webkit' ? webkit : chromium).launch()
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  if (init) await context.addInitScript(init)
   const page = await context.newPage()
   const shots = evidence(page, script, which)
   const errors = []

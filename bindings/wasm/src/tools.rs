@@ -179,6 +179,7 @@ impl DesignDocument {
         if let Some(text) = self.session.message.take() {
             requests.push(ToolRequest::Status { text });
         }
+        self.live_requests(&mut requests, zoom);
         let area = self.area();
         let overlays = crate::overlays::overlays(&self.session, &area, zoom);
         ToolResponse {
@@ -187,6 +188,54 @@ impl DesignDocument {
             cursor: cursor_css(self.session.tool.overlay.cursor),
             busy: self.tool_busy(),
             wants_text: self.wants_text(),
+        }
+    }
+
+    /// What the editor would otherwise ask for after every answer, in the answer, and only when it
+    /// changed (R2): `canvas.hover` (`{ id }`) when the hovered layer is another; during a pointer
+    /// gesture, once per revision, `canvas.chrome` (the [`DesignDocument::chrome`] at `zoom`: the
+    /// frame labels and the size pill follow the drag) and `canvas.gesture` (`{ nodes: [{ id, x,
+    /// y, width, height, rotation }] }`, the selected layers' position and size as the Design panel
+    /// shows them, at most 200), while the editor holds its panels' queries until the gesture
+    /// ends. A changed hover also brings the chrome (the hovered frame's label changes colour).
+    fn live_requests(&mut self, requests: &mut Vec<ToolRequest>, zoom: f64) {
+        let Ok(ds) = self.session.ds() else { return };
+        let (revision, hover) = (ds.revision, ds.hover);
+        let gesture = self.session.tool.busy();
+        let geometry = (gesture && self.told_gesture != Some(revision)).then(|| {
+            let d = &ds.doc;
+            let nodes: Vec<serde_json::Value> = ds
+                .selection
+                .iter()
+                .take(200)
+                .filter_map(|id| {
+                    let n = d.node(*id)?;
+                    let c = d.frame_relative(*id).as_coeffs();
+                    let round = |v: f64| kition_design_geom::round_to(v, 2);
+                    Some(json!({
+                        "id": id,
+                        "x": round(c[4]),
+                        "y": round(c[5]),
+                        "width": round(n.width),
+                        "height": round(n.height),
+                        "rotation": round(kition_design_geom::rotation_degrees(n.transform)),
+                    }))
+                })
+                .collect();
+            json!({ "nodes": nodes })
+        });
+        self.told_gesture = gesture.then_some(revision);
+        let hovered = hover != self.told_hover;
+        if hovered {
+            self.told_hover = hover;
+            requests.push(ToolRequest::Dialog { name: "canvas.hover".into(), params: json!({ "id": hover }) });
+        }
+        if let Some(params) = geometry.as_ref() {
+            requests.push(ToolRequest::Dialog { name: "canvas.gesture".into(), params: params.clone() });
+        }
+        if hovered || geometry.is_some() {
+            let chrome = self.chrome(zoom);
+            requests.push(ToolRequest::Dialog { name: "canvas.chrome".into(), params: chrome });
         }
     }
 

@@ -32,38 +32,19 @@ type Sweep = { lock: boolean; on: boolean; ids: number[] }
 const rowX0 = (depth: number) => 8 + 4 + depth * 16
 
 /**
- * The layer the canvas hovers (`inspect().hover`), read again after every tool answer (a hover
- * over the canvas answers new overlays but no new revision, so kit-editor's `inspect` keeps the
- * old one).
+ * The layer the canvas hovers: `inspect().hover` when the document opened or changed, then each
+ * engine answer that changes it (`canvas.hover`; a hover over the canvas answers new overlays but
+ * no new revision, so kit-editor's `inspect` keeps the old one).
  */
 function useCanvasHover(): number | null {
-  const { invoke, tools, revision, doc } = useDesignKit()
+  const { inspect } = useDesignKit()
   const [hover, setHover] = useState<number | null>(null)
-  const asking = useRef({ busy: false, again: false })
-  const ask = useCallback(() => {
-    const state = asking.current
-    if (state.busy) {
-      state.again = true
-      return
-    }
-    state.busy = true
-    void invoke<string>('inspect')
-      .then((text) => {
-        const value = (JSON.parse(text) as { hover?: unknown }).hover
-        setHover(typeof value === 'number' ? value : null)
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        state.busy = false
-        if (state.again) {
-          state.again = false
-          ask()
-        }
-      })
-  }, [invoke])
-  useEffect(() => {
-    if (doc) ask()
-  }, [ask, doc, revision, tools.decorate])
+  const known = typeof inspect.hover === 'number' ? inspect.hover : null
+  useEffect(() => setHover(known), [known])
+  useUiRequest('canvas.hover', (data) => {
+    const id = (data as { id?: unknown } | null)?.id
+    setHover(typeof id === 'number' ? id : null)
+  })
   return hover
 }
 

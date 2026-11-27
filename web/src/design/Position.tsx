@@ -5,6 +5,7 @@
  */
 import { useRef, useState } from 'react'
 import { useDesignKit } from '../kit/hooks'
+import { useLiveNodes } from '../kit/gesture'
 import { Dropdown, IconButton, Menu, NumberField, SectionHeader, Segmented } from '../ui'
 import { useDesign, usePropField, useShortcutTip } from './hooks'
 import { COL, Line, Space, Sub } from './fields'
@@ -27,7 +28,10 @@ const V_CONSTRAINTS = [
 
 export function PositionSection() {
   const { t, run } = useDesignKit()
-  const { answer, nodes, ids, setProps } = useDesign()
+  const design = useDesign()
+  const { answer, ids, setProps } = design
+  // X, Y and rotation follow a drag on the canvas (the engine's answers, kit/gesture.ts).
+  const nodes = useLiveNodes(design.nodes)
   const tipFor = useShortcutTip()
   const nested = answer.insideInstance === true
   const canAlign = answer.canAlign !== false

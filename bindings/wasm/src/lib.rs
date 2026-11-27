@@ -129,6 +129,11 @@ pub struct DesignDocument {
     /// The tool the editor was last told is chosen (its own choice or a `switchTool`): a command
     /// that changes the tool (`tool.rectangle` from a panel or an agent) is told on the next answer.
     told_tool: kition_design_engine::tools::ToolId,
+    /// The hovered layer the editor was last told of (`canvas.hover`, [`crate::tools`]).
+    told_hover: Option<kition_design_doc::NodeId>,
+    /// The revision whose chrome and selection geometry a gesture's answer last carried
+    /// (`canvas.chrome`, `canvas.gesture`); none outside a gesture.
+    told_gesture: Option<u64>,
 }
 
 /// Runs `f` with the engine's file access confined to no folder: in a page there is no file system
@@ -194,6 +199,8 @@ impl DesignDocument {
             libraries,
             kept: context::Kept::default(),
             told_tool: kition_design_engine::tools::ToolId::Move,
+            told_hover: None,
+            told_gesture: None,
         })
     }
 
@@ -448,6 +455,8 @@ impl KitDocument for DesignDocument {
             // The current page's layers as the Layers panel lists them (at most 500).
             "tree": kition_design_engine::inspect::layer_tree(doc, ds.page, 500).0,
             "tool": self.session.tool.tool.id(),
+            // A pointer gesture runs (a drag, a resize, a marquee): the editor holds its panels until it ends.
+            "gesture": self.session.tool.busy(),
             "editing": if ds.text_edit.is_some() { "text" } else if ds.vector_edit.is_some() { "vector" } else { "none" },
             "textEdit": ds.text_edit.as_ref().map(|te| json!({ "id": te.id, "caret": te.caret, "anchor": te.anchor })),
             "vectorEdit": ds.vector_edit.as_ref().map(|ve| json!({ "id": ve.id, "tool": ve.tool.id() })),

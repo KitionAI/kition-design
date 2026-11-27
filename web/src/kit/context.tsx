@@ -3,7 +3,7 @@
  * inspected document, the selection, interactions (one undo step per drag), the canvas and its
  * view, and the shell's UI state (tabs, panels). Panels read it with the hooks in `hooks.ts`.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react'
 import type { KitCanvasHandle, KitCanvasView, KitEditor, KitEngine, KitTools } from '@kition/sdk/editor'
 import type { DesignStrings, Values } from '../strings'
 import { showToast } from '../ui/Toast'
@@ -42,10 +42,20 @@ export type ShellUi = {
 }
 
 export type DesignKit = {
+  /** kit-editor's editor (read when used: it is a new object after every engine answer). */
   editor: KitEditor
   doc: KitEngine | null
+  /**
+   * The engine's `inspect()`. While a pointer gesture runs (`gesture`), the one from before it,
+   * renewed only when the selection or the page changes, so the panels do not render again for
+   * every drag sample; the engine's latest is `editor.session.state`.
+   */
   inspect: DesignInspect
-  /** Moves with every change of the document, the selection, or an interaction's end: queries re-run on it. */
+  /**
+   * Moves with every change of the document, the selection, or an interaction's end: queries
+   * re-run on it. A pointer gesture holds it until it ends (or the selection changes), so the
+   * panels ask once after a drag instead of once per sample (R2).
+   */
   revision: string
   strings: DesignStrings
   t: (key: string, values?: Values) => string
@@ -68,6 +78,11 @@ export type DesignKit = {
   /** Re-reads the engine's state after an `invoke` that edited, and re-runs the queries. */
   refresh: () => Promise<void>
   canvas: RefObject<KitCanvasHandle | null>
+  /**
+   * The engine's tools, always the latest (each read goes to the newest answer's), the same
+   * object for good: what a render shows of them (the active tool, text input) comes from
+   * `useTools`, which renders again only when that part changed.
+   */
   tools: KitTools
   ui: ShellUi
   toast: (text: string) => void
@@ -75,6 +90,31 @@ export type DesignKit = {
 
 const DesignKitContext = createContext<DesignKit | null>(null)
 const ViewContext = createContext<KitCanvasView | null>(null)
+
+/** The newest tools from kit-editor (a new object with every engine answer), for `useTools`. */
+type ToolsStore = { current: KitTools; listeners: Set<() => void> }
+const ToolsContext = createContext<ToolsStore | null>(null)
+
+/**
+ * A part of the engine's tools (`tools.active`, `tools.wantsText`, …); renders again only when that
+ * part changes, not with every answer (hover, drag samples).
+ */
+export function useTools<R>(select: (tools: KitTools) => R): R {
+  const store = useContext(ToolsContext)
+  if (!store) throw new Error('useTools outside DesignKitProvider')
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      store.listeners.add(listener)
+      return () => {
+        store.listeners.delete(listener)
+      }
+    },
+    [store],
+  )
+  return useSyncExternalStore(subscribe, () => select(store.current), () => select(store.current))
+}
+
+const sameIds = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((id, index) => id === b[index])
 
 export function useDesignKit(): DesignKit {
   const designKit = useContext(DesignKitContext)
@@ -101,16 +141,38 @@ type Props = {
 }
 
 export function DesignKitProvider({ editor, inspect, strings, canvas, view, tools, ui, children }: Props) {
+  // kit-editor's editor and session are new objects after every engine answer: what is kept here
+  // reads them when it runs, so the editor's own context stays the same object between changes.
+  const latestEditor = useRef(editor)
+  latestEditor.current = editor
   const { session } = editor
   const doc = session.doc
   const [local, setLocal] = useState(0)
-  const revision = `${session.change.revision}.${local}`
+  const live = `${session.change.revision}.${local}`
+  // A pointer gesture holds what the panels see (the inspect and the revision from before it) until
+  // it ends, or until it changes the selection or the page (a marquee, a press on another layer).
+  const held = useRef<{ revision: string; inspect: DesignInspect } | null>(null)
+  const kept = held.current
+  if (!kept || inspect.gesture !== true || !sameIds(kept.inspect.selection, inspect.selection) || kept.inspect.page !== inspect.page) held.current = { revision: live, inspect }
+  const shown = held.current ?? { revision: live, inspect }
+  const revision = shown.revision
   const latestDoc = useRef(doc)
   latestDoc.current = doc
 
-  // Answers per revision: the same query asked twice in one revision runs once.
-  const cache = useRef<{ revision: string; answers: Map<string, Promise<unknown>> }>({ revision, answers: new Map() })
-  if (cache.current.revision !== revision) cache.current = { revision, answers: new Map() }
+  // The newest tools, for `useTools` (told after the render that brought them) and `tools`.
+  const toolsStore = useRef<ToolsStore | null>(null)
+  toolsStore.current ??= { current: tools, listeners: new Set() }
+  const store = toolsStore.current
+  store.current = tools
+  useLayoutEffect(() => {
+    for (const listener of [...store.listeners]) listener()
+  }, [store, tools])
+  const stableTools = useMemo(() => new Proxy({} as KitTools, { get: (_target, key) => (store.current as unknown as Record<string | symbol, unknown>)[key] }), [store])
+
+  // Answers per document revision (the engine's, not the panels' held one): the same query asked
+  // twice in one revision runs once, and one asked during a gesture gets the document as it is.
+  const cache = useRef<{ revision: string; answers: Map<string, Promise<unknown>> }>({ revision: live, answers: new Map() })
+  if (cache.current.revision !== live) cache.current = { revision: live, answers: new Map() }
 
   const invoke = useCallback(async <R,>(name: string, ...args: unknown[]): Promise<R> => {
     const open = latestDoc.current
@@ -136,7 +198,7 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
 
   const run = useCallback(
     async <R,>(command: string, params: Record<string, unknown> = {}): Promise<R | null> => {
-      const answer = await editor.run(command, params)
+      const answer = await latestEditor.current.run(command, params)
       if (answer == null) return null
       try {
         return JSON.parse(answer) as R
@@ -144,11 +206,12 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
         return answer as unknown as R
       }
     },
-    [editor],
+    [],
   )
 
   const refresh = useCallback(async () => {
     const open = latestDoc.current
+    const session = latestEditor.current.session
     if (!open) return
     // A settled tool call brings kit-editor's `inspect()` up to date (an `invoke` and an
     // interaction's commit run no command through the session, so it would keep the last one:
@@ -156,7 +219,7 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
     await session.tool('tool', [], true).catch(() => open.refreshInfo().catch(() => undefined))
     await canvas.current?.retryRender()
     setLocal((value) => value + 1)
-  }, [canvas, session])
+  }, [canvas])
 
   // Interactions: begin/commit extras when the binding has them, else plain commands.
   const [interactions, setInteractions] = useState<boolean | null>(null)
@@ -226,14 +289,14 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
             latest = null
             // Ended by a later interaction's begin: its edits must not join that one.
             if (!next || (began && open.current !== token)) return
-            await session.run(next.command, next.params).then(() => undefined, (error: unknown) => showToast(message(error)))
+            await latestEditor.current.session.run(next.command, next.params).then(() => undefined, (error: unknown) => showToast(message(error)))
           })
         },
         commit: () => finish('commit'),
         cancel: () => finish('cancel'),
       }
     },
-    [invoke, refresh, session],
+    [invoke, refresh],
   )
 
   const viewTo = useCallback(
@@ -253,15 +316,19 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
     [canvas, invoke, run],
   )
 
+  const readOnly = editor.host.readOnly === true
+  const shownInspect = shown.inspect
   const value = useMemo<DesignKit>(
     () => ({
-      editor,
+      get editor() {
+        return latestEditor.current
+      },
       doc,
-      inspect,
+      inspect: shownInspect,
       revision,
       strings,
       t: strings.t,
-      readOnly: editor.host.readOnly === true,
+      readOnly,
       run,
       query,
       invoke,
@@ -270,17 +337,23 @@ export function DesignKitProvider({ editor, inspect, strings, canvas, view, tool
       viewTo,
       refresh,
       canvas,
-      tools,
+      tools: stableTools,
       ui,
       toast: showToast,
     }),
-    [canvas, doc, editor, inspect, interaction, interactions, invoke, query, refresh, revision, run, strings, tools, ui, viewTo],
+    [canvas, doc, shownInspect, interaction, interactions, invoke, query, readOnly, refresh, revision, run, strings, stableTools, ui, viewTo],
   )
-  // Development and the flow tests reach the editor's state from the page (`window.designKit`).
-  if (import.meta.env.DEV) (window as unknown as { designKit?: DesignKit }).designKit = value
+  // Development and the flow tests reach the editor's state from the page (`window.designKit`):
+  // there `inspect` is always the engine's latest, also during a gesture.
+  if (import.meta.env.DEV) {
+    const handle = Object.create(value, { inspect: { value: inspect, enumerable: true } }) as DesignKit
+    ;(window as unknown as { designKit?: DesignKit }).designKit = handle
+  }
   return (
     <DesignKitContext.Provider value={value}>
-      <ViewContext.Provider value={view}>{children}</ViewContext.Provider>
+      <ToolsContext.Provider value={store}>
+        <ViewContext.Provider value={view}>{children}</ViewContext.Provider>
+      </ToolsContext.Provider>
     </DesignKitContext.Provider>
   )
 }

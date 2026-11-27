@@ -16,6 +16,7 @@ The difference column is the feature's recorded gap.
 | `design.agent.recover` An agent fixes what the check reports | P0 | has | — | — |
 | `design.editor.keyboard` The editor's keyboard works wherever the person last clicked or typed (fields, popups, palette, comments, layer rows, toolbar); second keys, number keys for opacity, arrow panning, N / Shift+N, label rename, the toolbar following the engine's tool | P0 | has | — | Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered. |
 | `design.editor.text-and-view` Text typed on the canvas and the view behave as expected: Cmd+A, Copy, Cut and Paste on the characters being edited, triple-click selects a paragraph, a new text is one undo step and named after its first line, the tools' letters work after editing; a new page's first layer stays put, a mouse wheel notch zooms 1.2 times, Shift+A keeps a stroked frame's size | P0 | has | — | Copy and paste while editing use the editor's own text clipboard, not the system clipboard. Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). |
+| `design.editor.gesture-cost` A drag sample and a hover cost one trip to the engine: the panels hold their queries during a pointer gesture and ask once after it, the Design panel's position and size and the canvas chrome follow the drag from the engine's answers, a hover tells the editor only when the hovered layer changes | P0 | partial | — | The drag still waits for a full repaint of the view after every sample: the renderer draws the whole view (below 100 % at 1:1, then reduces it), about 255 ms a frame for the 348-layer sample at 50 % and 1.3 s for 2784 layers on a loaded machine, so a drag shows 10-12 frames a second there (348 layers) and 1-3 (2784). Repainting only the changed area comes next. kit-editor still asks the tool state and the disabled commands after every change and renders its own frame for every answer. |
 | `design.component.button-instances` Make a component and place renamed instances of it | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.layout.auto-row` Add auto layout to a frame and hug its contents | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.object.frames-shapes-text` Frames holding rectangles, ellipses and text, renamed and moved | P0 | has | Figma desktop 126.10.7 (macOS) | — |
@@ -58,6 +59,6 @@ The difference column is the feature's recorded gap.
 
 | Priority | has | partial | missing |
 | --- | ---: | ---: | ---: |
-| P0 | 13 | 1 | 0 |
+| P0 | 13 | 2 | 0 |
 | P1 | 2 | 29 | 0 |
 | P2 | 0 | 3 | 0 |

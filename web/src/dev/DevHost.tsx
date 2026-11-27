@@ -18,7 +18,7 @@ import './dev.css'
 
 
 export function DevHost() {
-  const { run, invoke, refresh, ui } = useDesignKit()
+  const { run, invoke, refresh, ui, doc } = useDesignKit()
   const dev = useDev()
   useUiRequest('panel.versionHistory', (data) => openVersionHistory((data as { save?: boolean } | null)?.save === true))
   useUiRequest('view.devCompare', (data) => {
@@ -26,13 +26,16 @@ export function DevHost() {
     if (typeof d?.id === 'number') setDev({ compare: { id: d.id, snapshot: d.snapshot ?? null } })
   })
   // The engine's Dev Mode (measure on hover, no handles, edits refused) follows the Inspect tab.
+  // Told when the tab or the document changes (not again with every render).
   const inspecting = ui.rightTab === 'inspect'
+  const latest = useRef({ invoke, refresh })
+  latest.current = { invoke, refresh }
   useEffect(() => {
-    void invoke<boolean>('setDevMode', inspecting).then(
-      (changed) => (changed ? refresh() : undefined),
+    void latest.current.invoke<boolean>('setDevMode', inspecting).then(
+      (changed) => (changed ? latest.current.refresh() : undefined),
       () => undefined,
     )
-  }, [inspecting, invoke, refresh])
+  }, [doc, inspecting])
   const focus = useQuery<FocusState | null>('dev.focusState')
   // Escape leaves the focus view (when nothing else takes it).
   useEffect(() => {

@@ -8,6 +8,7 @@
  */
 import { useState } from 'react'
 import { useDesignKit, useQuery } from '../kit/hooks'
+import { useLiveNodes } from '../kit/gesture'
 import { Icon, type IconName } from '../icons/Icon'
 import { Checkbox, Dropdown, IconButton, NumberField, SectionHeader, Segmented, type MenuEntry } from '../ui'
 import { useCommandField, useDesign, usePropField, useShortcutTip } from './hooks'
@@ -93,7 +94,10 @@ const sizingLabel = (s: Sizing) => (s === 'fill' ? 'Fill|sizing' : s === 'hug' ?
 
 function Dimensions({ hasAl, nested }: { hasAl: boolean; nested: boolean }) {
   const { t } = useDesignKit()
-  const { answer, nodes, ids, setProps } = useDesign()
+  const design = useDesign()
+  const { answer, ids, setProps } = design
+  // W and H follow a resize on the canvas (the engine's answers, kit/gesture.ts).
+  const nodes = useLiveNodes(design.nodes)
   const wOf = (n: NodeJson) => round2(n.width ?? 0)
   const hOf = (n: NodeJson) => round2(n.height ?? 0)
   const w = usePropField(ids, 'width', { of: wOf, nodes, map: (v) => Math.max(0, v) })

@@ -28,6 +28,10 @@ export type DesignInspect = {
   colorProfile: string
   /** The label of the step Undo takes. */
   undo: string | null
+  /** A pointer gesture runs on the canvas (a drag, a resize, a marquee). */
+  gesture?: boolean
+  /** The layer the canvas or the Layers panel hovers. */
+  hover?: number | null
 }
 
 export const EMPTY_INSPECT: DesignInspect = {

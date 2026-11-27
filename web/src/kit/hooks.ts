@@ -9,7 +9,7 @@ import type { ScrubHandlers } from '../ui/NumberField'
 import { useDesignKit, useQuery, type Interaction } from './context'
 import type { DesignInspect } from './types'
 
-export { useDesignKit, useQuery, useView, type Interaction } from './context'
+export { useDesignKit, useQuery, useTools, useView, type Interaction } from './context'
 
 /** The engine's `inspect()` (document, page, selection, tool, editing modes); re-renders on every change. */
 export function useInspect(): DesignInspect {

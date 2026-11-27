@@ -1,0 +1,30 @@
+format: 1
+id: regressions/issue-hand-m1-drag-roundtrips
+feature: design.editor.gesture-cost
+intent: >-
+  One drag sample and one hover cost one trip to the engine's worker, not dozens: dragging a
+  rectangle in the 348-layer sample sent about 30 messages per sample (every panel's query, the
+  chrome, inspect twice, Dev Mode three times, the keymap, a render) and rendered the whole editor
+  two or three times, and every hover asked the chrome and inspect again and rendered every panel
+  (walkthrough M1, M2, R2). web/tests/hand/roundtrips.mjs drags a rectangle 30 samples with a real
+  mouse and counts the worker messages by kind and the components React rendered: at most 4
+  messages per sample (the pointer, kit-editor's tool state and disabled commands, a render), no
+  panel query, chrome or inspect, the Layers and Design panels not rendered, the Design panel's X
+  following the drag from the engine's answers, one round of queries after the release; then 30
+  hovers over the same layer send only the pointer events, carry no `canvas.*` answer and render no
+  panel. Counts only, never milliseconds.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings M1, M2 and root cause R2 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/roundtrips.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]
