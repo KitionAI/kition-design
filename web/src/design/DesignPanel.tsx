@@ -2,7 +2,7 @@
  * The Design tab (2.3), owned by the Design panel package: the section router per selection kind,
  * as upstream's `right_panel` and `design` (`panels/right.rs`). Nothing selected shows the page;
  * the Frame tool shows the frame presets; a selection shows its header and component blocks, then
- * Status, Position, Layout, Arc or Polygon/Star, Appearance, Variable modes, the paints package's
+ * Status, Position (while a vector's points are edited, the points' section), Layout, Arc or Polygon/Star, Appearance, Variable modes, the paints package's
  * Typography, Fill, Stroke and Effects, Selection colors, Layout grid and Export.
  */
 import { useMemo } from 'react'
@@ -24,6 +24,7 @@ import { SelectionColorsSection } from './SelectionColors'
 import { ArcSection, PointsSection } from './Shapes'
 import { StatusSection } from './Status'
 import { VariableModesSection } from './VariableModes'
+import { VectorSection } from './VectorPanel'
 import './design.css'
 
 export function DesignPanel() {
@@ -64,11 +65,12 @@ export function DesignPanel() {
         <ComponentBlocks />
         <Separator />
         <StatusSection />
-        <PositionSection />
+        {/* Editing a vector's points, their fields stand in for the layer's position. */}
+        {inspect.vectorEdit ? <VectorSection /> : <PositionSection />}
         <Separator />
         <LayoutSection />
         <Separator />
-        <ArcSection />
+        {inspect.vectorEdit ? null : <ArcSection />}
         <PointsSection />
         <AppearanceSection />
         <Separator />

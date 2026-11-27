@@ -367,7 +367,7 @@ impl DesignDocument {
         }
         match (name, mods.shift) {
             ("Escape", _) => self.session.escape().map_err(engine_error),
-            ("Enter", _) if self.session.tool.pen.is_some() => self.session.pen_end().map_err(engine_error),
+            ("Enter", _) if self.session.tool.pen.is_some() => self.session.pen_enter().map_err(engine_error),
             ("Enter", true) => {
                 self.key_command("select.parent", json!({}));
                 Ok(())

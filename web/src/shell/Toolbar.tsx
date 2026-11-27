@@ -8,6 +8,7 @@ import { isMac } from '@kition/sdk/editor'
 import { Icon, type IconName } from '../icons/Icon'
 import { useDesignKit, useQuery, useTools } from '../kit/hooks'
 import { regionProps } from '../kit/regions'
+import { focusEditor } from '../kit/focus'
 import type { RightTab } from '../kit/types'
 import { Menu } from '../ui/Menu'
 import { prettyShortcut, tip } from '../ui/shortcuts'
@@ -200,10 +201,16 @@ function VectorEditPill({ tool }: { tool: string }) {
     const engine = answer?.tools?.find((item) => item.id === def.id)
     return engine ? { ...def, label: engine.label, shortcut: engine.shortcut } : def
   })
+  // A click with the mouse leaves the keys with the canvas (Enter would press the button again);
+  // a button pressed from the keyboard (F6 to the toolbar) keeps the focus.
+  const pick = (clicks: number, tool: string) => {
+    void run('vector.edit.tool', { tool })
+    if (clicks > 0) focusEditor()
+  }
   return (
     <>
       {shown.map((def) => (
-        <button key={def.id} type="button" className="design-tool" aria-pressed={tool === def.id} aria-label={t(def.label)} data-tip={def.id === 'bend' ? `${t('Bend')}  hold ${isMac() ? '⌘' : 'Ctrl'}` : tip(t(def.label), def.shortcut)} onClick={() => void run('vector.edit.tool', { tool: def.id })} data-testid={`design-vector-tool-${def.id}`}>
+        <button key={def.id} type="button" className="design-tool" aria-pressed={tool === def.id} aria-label={t(def.label)} data-tip={def.id === 'bend' ? `${t('Bend')}  hold ${isMac() ? '⌘' : 'Ctrl'}` : tip(t(def.label), def.shortcut)} onClick={(event) => pick(event.detail, def.id)} data-testid={`design-vector-tool-${def.id}`}>
           <Icon name={def.icon} size={18} />
         </button>
       ))}

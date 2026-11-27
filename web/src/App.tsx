@@ -38,6 +38,9 @@ import { onDevicePixels, placedHandleRef } from './canvas/view'
 /** The hand is the host's (kit-editor's pan); every other tool runs in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL }
 
+/** The pencil's stroke keeps every sample: none gives way to the next while the engine answers. */
+const keepsDragSamples = (tool: string) => tool === 'pencil'
+
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 export function App({ host, strings }: { host: HostConnection; strings: DesignStrings }) {
@@ -73,6 +76,7 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
     // The engine's overlays in the upstream editor's style (canvas/engineOverlays.ts).
     overlayStyle: DESIGN_OVERLAY_STYLE,
     drawOverlay: drawDesignOverlay,
+    keepsDragSamples,
   })
   editingText.current = session.state?.editing === 'text' || tools.wantsText
   // The canvas handle, its view the one on the screen (see placedHandleRef).

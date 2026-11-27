@@ -376,6 +376,8 @@ mod panels_behaviour_tests;
 #[cfg(test)]
 mod pdf_print_tests;
 #[cfg(test)]
+mod pen_by_hand_tests;
+#[cfg(test)]
 mod pen_end_tests;
 #[cfg(test)]
 mod pen_overlay_tests;

@@ -402,8 +402,8 @@ fn visible_handles(net: &VectorNetwork, ve: &VectorEdit) -> Vec<(usize, bool)> {
     out
 }
 
-/// Hit test in page coordinates with a tolerance in page units. Visible handles win, then
-/// vertices, then segments.
+/// Hit test in page coordinates with a tolerance in page units: the nearer of a visible handle
+/// and a point, then segments.
 pub fn hit(doc: &Document, ve: &VectorEdit, p: Point, tol: f64) -> Option<VHit> {
     let net = network(doc, ve.id)?;
     let w = doc.world_transform(ve.id);
@@ -414,17 +414,32 @@ pub fn hit(doc: &Document, ve: &VectorEdit, p: Point, tol: f64) -> Option<VHit> 
     if !(lp.x.is_finite() && lp.y.is_finite()) {
         return None;
     }
-    for (si, start) in visible_handles(net, ve) {
-        let (Some(seg), Some(t)) = (net.segments.get(si), net.handle(si, start)) else { continue };
-        let Some(v) = net.vertices.get(if start { seg.a } else { seg.b }) else { continue };
-        if (Point::new(v.x + t.0, v.y + t.1) - lp).hypot() <= tl {
-            return Some(VHit::Handle { seg: si, start });
-        }
-    }
-    let nearest_vertex =
-        net.vertices.iter().enumerate().map(|(i, v)| (i, (v.point() - lp).hypot())).filter(|(_, d)| *d <= tl).min_by(|a, b| a.1.total_cmp(&b.1));
-    if let Some((index, _)) = nearest_vertex {
-        return Some(VHit::Vertex { index });
+    // A handle and a point both in reach: the nearer on the page wins (a short segment's handles
+    // end a few pixels from its point, and a click on the point means the point); a handle on a
+    // tie. The page measure is not distorted by a layer's non-uniform scale.
+    let page_distance = |q: Point| (w * q - p).hypot();
+    let handle = visible_handles(net, ve)
+        .into_iter()
+        .filter_map(|(si, start)| {
+            let seg = net.segments.get(si)?;
+            let t = net.handle(si, start)?;
+            let v = net.vertices.get(if start { seg.a } else { seg.b })?;
+            let end = Point::new(v.x + t.0, v.y + t.1);
+            ((end - lp).hypot() <= tl).then(|| (si, start, page_distance(end)))
+        })
+        .min_by(|a, b| a.2.total_cmp(&b.2));
+    let vertex = net
+        .vertices
+        .iter()
+        .enumerate()
+        .filter(|(_, v)| (v.point() - lp).hypot() <= tl)
+        .map(|(i, v)| (i, page_distance(v.point())))
+        .min_by(|a, b| a.1.total_cmp(&b.1));
+    match (handle, vertex) {
+        (Some((seg, start, dh)), Some((_, dv))) if dh <= dv => return Some(VHit::Handle { seg, start }),
+        (Some((seg, start, _)), None) => return Some(VHit::Handle { seg, start }),
+        (_, Some((index, _))) => return Some(VHit::Vertex { index }),
+        (None, None) => {}
     }
     use kition_design_geom::kurbo::ParamCurveNearest;
     let nearest_seg = (0..net.segments.len())
@@ -741,13 +756,10 @@ pub fn key(s: &mut Session, name: &str, shift: bool, alt: bool, cmd: bool) -> Re
     }
     match (name, shift, alt, cmd) {
         ("Escape", ..) => escape(s)?,
-        ("Enter", ..) => {
-            if ve.anchor.is_some() {
-                escape(s)?;
-            } else {
-                end(s)?;
-            }
-        }
+        // With the pen, Enter ends its path and the points are edited with the Move tool; the
+        // next Enter leaves edit mode.
+        ("Enter", ..) if ve.tool == VTool::Pen => set_tool(s, VTool::Move)?,
+        ("Enter", ..) => end(s)?,
         ("Backspace" | "Delete", false, false, false) if ve.tool == VTool::Width => {
             // The selected width point (nothing else is selected with the Variable width tool).
             if let Some(i) = ve.width_point {

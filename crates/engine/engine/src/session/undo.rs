@@ -123,6 +123,10 @@ impl Session {
     /// is the newest step of all.
     pub fn undo_in(&mut self, scope: UndoScope) -> Result<bool> {
         textpreview::end(self);
+        // While the pen draws, undo and redo work on its path's anchors, one at a time.
+        if self.ds().is_ok_and(|d| d.preview.is_none()) && self.pen_undo()? {
+            return Ok(true);
+        }
         let live = self.ds().is_ok_and(|d| self.live_doc(d.uid));
         let (kdm, origin) = (self.kdm_on, self.origin());
         let ds = self.ds_mut()?;
@@ -192,6 +196,10 @@ impl Session {
     /// Redo the newest undone step of `scope`, like [`Session::undo_in`].
     pub fn redo_in(&mut self, scope: UndoScope) -> Result<bool> {
         textpreview::end(self);
+        // While the pen draws, undo and redo work on its path's anchors, one at a time.
+        if self.ds().is_ok_and(|d| d.preview.is_none()) && self.pen_redo()? {
+            return Ok(true);
+        }
         let live = self.ds().is_ok_and(|d| self.live_doc(d.uid));
         let (kdm, origin) = (self.kdm_on, self.origin());
         let ds = self.ds_mut()?;

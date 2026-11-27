@@ -145,13 +145,14 @@ impl DesignDocument {
         Ok((done, if done { Damage::Full } else { Damage::None }))
     }
 
-    /// Whether the person has a step to undo (the agent's steps are not theirs to undo here).
+    /// Whether the person has a step to undo (the agent's steps are not theirs to undo here), or an
+    /// anchor of the pen's open path.
     pub fn can_undo(&self) -> bool {
-        self.session.undo_depth_in(UndoScope::Person).0 > 0
+        self.session.undo_depth_in(UndoScope::Person).0 > 0 || self.session.pen_history().0
     }
 
     pub fn can_redo(&self) -> bool {
-        self.session.undo_depth_in(UndoScope::Person).1 > 0
+        self.session.undo_depth_in(UndoScope::Person).1 > 0 || self.session.pen_history().1
     }
 
     /// Runs a command as `origin` (a person, an agent): the replica records it as theirs, and it

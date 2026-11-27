@@ -191,13 +191,15 @@ fn on_board(session: &Session) -> bool {
     session.doc().is_ok_and(kition_design_engine::board::is_board)
 }
 
-/// Whether `id` can run now: Undo and Redo while there is a step, board commands on boards; the
+/// Whether `id` can run now: Undo and Redo while there is a step (or a pen anchor), board commands on boards; the
 /// upstream menus leave every other command enabled and let it explain why it cannot run.
 fn enabled(session: &Session, id: &str) -> bool {
     let (undo, redo) = session.undo_depth();
+    // While the pen draws, Undo and Redo take back and put back its anchors.
+    let (pen_undo, pen_redo) = session.pen_history();
     match id {
-        "edit.undo" => undo > 0,
-        "edit.redo" => redo > 0,
+        "edit.undo" => undo > 0 || pen_undo,
+        "edit.redo" => redo > 0 || pen_redo,
         _ if board_only(id) => on_board(session),
         _ => session.ds().is_ok(),
     }

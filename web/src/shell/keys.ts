@@ -1,8 +1,8 @@
 /**
  * The shell's own keys (2.7 §3), for upstream commands the kit's engine leaves to the editor (the
  * view, the panels): zoom steps and fits, Shift+E Design and Prototype, Alt+1/2 and Alt+8/9 panels,
- * Shift+I Resources, Cmd+K Actions, the number keys for opacity and the arrows that pan with
- * nothing selected. The frame gives every other key to the tools and the engine's command
+ * Shift+I Resources, Cmd+K Actions, the number keys for opacity, the arrows that pan with
+ * nothing selected, and vector edit mode's tool letters and Cmd+A. The frame gives every other key to the tools and the engine's command
  * shortcuts.
  */
 import type { KeyboardEvent } from 'react'
@@ -53,13 +53,42 @@ function panKey(designKit: DesignKit, event: KeyboardEvent) {
   return true
 }
 
+/**
+ * Vector edit mode's own keys (R-C16), before the tools' letters and the command shortcuts: V, P,
+ * B (or Shift+B), Q, X, Shift+E and Shift+W pick the edit tools (P must not choose the Pen tool,
+ * which would leave edit mode), and Cmd+A selects every point (not the layers). The rest of its
+ * keys reach the engine already: Enter, Escape, Delete and the arrows through the tools, Cmd+J and
+ * Shift+Cmd+J through their commands. Each runs a command, in order after the canvas's events.
+ */
+function vectorEditKey(designKit: DesignKit, event: KeyboardEvent) {
+  if (!designKit.inspect.vectorEdit || designKit.tools.wantsText || event.altKey) return false
+  const mod = isMac() ? event.metaKey : event.ctrlKey
+  const other = isMac() ? event.ctrlKey : event.metaKey
+  if (other) return false
+  const letter = /^Key([A-Z])$/.exec(event.code)?.[1]
+  if (!letter) return false
+  if (mod) {
+    if (letter !== 'A' || event.shiftKey) return false
+    void designKit.run('vector.edit.selectAll', {})
+    return true
+  }
+  const tool = (event.shiftKey ? VECTOR_SHIFT_KEYS : VECTOR_KEYS)[letter]
+  if (!tool) return false
+  void designKit.run('vector.edit.tool', { tool })
+  return true
+}
+
+/** The edit tools' letters (the engine's `vectoredit::key`), and those taken with Shift. */
+const VECTOR_KEYS: Record<string, string> = { V: 'move', P: 'pen', B: 'paint', Q: 'lasso', X: 'cut' }
+const VECTOR_SHIFT_KEYS: Record<string, string> = { B: 'paint', E: 'eraser', W: 'width' }
+
 export function shellKeyDown(designKit: DesignKit, event: KeyboardEvent): boolean {
   // A key of an input method's composition is the input method's.
   if (composingKey(event.nativeEvent)) return false
   const mod = isMac() ? event.metaKey : event.ctrlKey
   const { ui } = designKit
   const code = event.code
-  if (opacityKey(designKit, event) || panKey(designKit, event)) return true
+  if (vectorEditKey(designKit, event) || opacityKey(designKit, event) || panKey(designKit, event)) return true
   if (mod && !event.altKey && (code === 'Equal' || code === 'Minus' || code === 'NumpadAdd' || code === 'NumpadSubtract')) {
     void designKit.viewTo(code === 'Minus' || code === 'NumpadSubtract' ? 'view.zoomOut' : 'view.zoomIn')
     return true

@@ -57,16 +57,16 @@ export const TOOL_GROUPS: ToolGroup[] = [
 
 export const ALL_TOOLS: ToolDef[] = TOOL_GROUPS.flatMap((group) => group.tools)
 
-/** The vector edit pill's tools (2.1 §4.6), when the engine's `vectorEdit` query does not list them. */
+/** The vector edit pill's tools (2.1 §4.6) by the engine's ids, when its `vectorEdit` query does not list them. */
 export const VECTOR_TOOLS: Array<ToolDef> = [
   { id: 'move', icon: 'Move', label: 'Move', shortcut: 'V' },
   { id: 'pen', icon: 'Pen', label: 'Pen', shortcut: 'P' },
   { id: 'bend', icon: 'Bend', label: 'Bend', shortcut: null },
-  { id: 'paintBucket', icon: 'PaintBucket', label: 'Paint bucket', shortcut: 'Shift+B' },
+  { id: 'paint', icon: 'PaintBucket', label: 'Paint bucket', shortcut: 'Shift+B' },
   { id: 'lasso', icon: 'Lasso', label: 'Lasso', shortcut: 'Q' },
   { id: 'cut', icon: 'Cut', label: 'Cut', shortcut: 'X' },
   { id: 'eraser', icon: 'Eraser', label: 'Eraser', shortcut: 'Shift+E' },
-  { id: 'variableWidth', icon: 'VariableWidth', label: 'Variable width', shortcut: 'Shift+W' },
+  { id: 'width', icon: 'VariableWidth', label: 'Variable width', shortcut: 'Shift+W' },
 ]
 
 /** Upstream's zoom steps (2.5 §20). */

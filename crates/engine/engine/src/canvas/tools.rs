@@ -241,7 +241,7 @@ pub struct PointerEvent {
 }
 
 /// The pointer is still within [`DRAG_SLOP_PX`] of where it was pressed.
-fn within_slop(ev: &PointerEvent, start: Point) -> bool {
+pub(crate) fn within_slop(ev: &PointerEvent, start: Point) -> bool {
     (ev.p() - start).hypot() * ev.zoom.max(1e-6) < DRAG_SLOP_PX
 }
 
@@ -537,6 +537,8 @@ pub struct PenPath {
     pub closed: bool,
     /// The path ends connected to this anchor of its own (a vector network).
     pub join: Option<usize>,
+    /// Anchors taken back by undo while drawing, the last taken back last (redo puts them back).
+    pub undone: Vec<(Point, Vec2, Vec2)>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -557,6 +559,9 @@ pub struct ToolState {
     /// presses select, pan and comment but never edit the design (no moving, resizing, drawing,
     /// or editing text or vectors).
     pub dev_mode: bool,
+    /// The pen's last press in vector edit mode that began a new path or split a segment: where,
+    /// and the undo depth before it (a double-click there takes that edit back).
+    pub(crate) pen_press: Option<(Point, usize)>,
     /// Pen snap targets, kept while hovering (see `vectoredit::point_snap`).
     pub(crate) pen_targets: Option<crate::vectoredit::point_snap::PenTargets>,
     /// The Scale tool's anchor: column and row (0 start, 1 middle, 2 end) of the point of the
