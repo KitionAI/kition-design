@@ -1,5 +1,6 @@
 /** View helpers: the page's content bounds (Zoom to fit) and document ↔ screen mapping. */
-import type { KitCanvasView, RasterRect } from '@kition/sdk/editor'
+import type { RefObject } from 'react'
+import type { KitCanvasHandle, KitCanvasView, RasterRect } from '@kition/sdk/editor'
 import type { DesignInspect, Rect } from '../kit/types'
 
 type Query = <R>(name: string, params?: Record<string, unknown>) => Promise<R>
@@ -48,6 +49,48 @@ export function onDevicePixels(view: { x: number; y: number; zoom: number }, dpr
   const x = Math.round(view.x * whole) / whole
   const y = Math.round(view.y * whole) / whole
   return Math.abs(x - view.x) > 1e-9 || Math.abs(y - view.y) > 1e-9 ? { x, y } : null
+}
+
+/**
+ * The view as the canvas draws it and reads the pointer through: kit-editor's canvas moves the
+ * top-left of a view off whole device pixels by less than half a device pixel onto the nearest
+ * whole one at its scale (so its frame is copied pixel for pixel), but its handle's `view()` and
+ * `onView` report the view as asked. Points the editor works out from the reported view (a field
+ * over a label, the text field the input method follows, a test's click) were off by up to half a
+ * device pixel: 0.67 document pixels at 75 %. The same rule as the canvas's, so both agree.
+ */
+export function placedView<V extends { x: number; y: number; zoom: number }>(view: V, dpr: number): V {
+  const device = view.zoom * dpr
+  if (!(device > 0) || !Number.isFinite(device)) return view
+  const snap = (value: number) => {
+    const whole = Math.round(value * device)
+    return Math.abs(value * device - whole) < 1e-6 ? value : whole / device
+  }
+  const x = snap(view.x)
+  const y = snap(view.y)
+  return x === view.x && y === view.y ? view : { ...view, x, y }
+}
+
+/**
+ * A ref for kit-editor's canvas handle whose `view()` answers the view on the screen
+ * ({@link placedView}); everything else is the canvas's own.
+ */
+export function placedHandleRef(): RefObject<KitCanvasHandle | null> {
+  let shown: KitCanvasHandle | null = null
+  return {
+    get current() {
+      return shown
+    },
+    set current(handle: KitCanvasHandle | null) {
+      shown = handle && {
+        ...handle,
+        view: () => {
+          const view = handle.view()
+          return view && placedView(view, window.devicePixelRatio || 1)
+        },
+      }
+    },
+  }
 }
 
 /**

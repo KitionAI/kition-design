@@ -221,6 +221,57 @@ try {
     await page.waitForTimeout(600)
     step('B14 the other page keeps its own view', (await view()).zoom === 0.5, `zoom ${(await view()).zoom}`)
   })
+
+  // The view the editor reports is the one on the screen: at 75 % the canvas draws a view put half
+  // a device pixel off on the nearest whole one and maps the pointer through that, so a point
+  // worked out from the reported view must land on the document point it names. It did not (the
+  // canvas reported the view as asked): a frame drawn from (600, 100) to (700, 180) came out at
+  // y 101, and in the login task a press on a frame's label landed in a selected text's rotate
+  // zone and a double-click on an instance's text on a small frame's edge (regressions/
+  // issue-hand-login-label-and-instance-text).
+  await part('view on screen', async () => {
+    const dpr = await page.evaluate(() => window.devicePixelRatio || 1)
+    // A page of its own, so nothing on it takes the frame in.
+    const pages = (await inspect()).pages.length
+    await kit.getByTestId('design-pages-add').click()
+    await until(async () => (await inspect()).pages.length === pages + 1 && (await inspect()).layers === 0, 60)
+    await page.keyboard.press('Escape')
+    await settle()
+    await hand.designKit(([dpr]) => {
+      const handle = window.designKit.canvas.current
+      const area = window.designKit.inspect.area
+      handle.zoomTo(0.75)
+      const device = 0.75 * dpr
+      const half = (value) => (Math.round(value * device) + 0.5) / device
+      handle.panTo(half(500 - area.x), half(20 - area.y))
+    }, [dpr])
+    await page.waitForTimeout(400)
+    const empty = await toPage(900, 600)
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('f')
+    await until(async () => (await inspect()).tool === 'frame', 40)
+    // Measured now: the host page above the editor may have moved it since the start.
+    const box = await kit.getByTestId('kit-canvas-surface').boundingBox()
+    const at = async (x, y) => {
+      const [v, area] = await hand.designKit(() => [window.designKit.canvas.current.view(), window.designKit.inspect.area])
+      return { x: box.x + (x - area.x - v.x) * v.zoom, y: box.y + (y - area.y - v.y) * v.zoom }
+    }
+    await drag(await at(600, 100), await at(700, 180))
+    await until(async () => (await inspect()).tool === 'move', 60)
+    await settle(300)
+    const id = (await inspect()).selection[0]
+    const b = id != null ? (await node(id)).absoluteBounds : null
+    step('a frame drawn between two points of the reported view is exactly there at 75 %', !!b && b.x === 600 && b.y === 100 && b.width === 100 && b.height === 80, JSON.stringify(b))
+    // A click on its name label (page point from the reported view) picks it after a click away.
+    await page.mouse.click(empty.x, empty.y)
+    await settle()
+    const label = await at(604, 100 - 12 / 0.75)
+    await page.mouse.click(label.x, label.y)
+    await settle()
+    step('and a click on its label picks it', JSON.stringify((await inspect()).selection) === JSON.stringify([id]), JSON.stringify((await inspect()).selection))
+    await page.keyboard.press('Escape')
+  })
   await finish()
 } catch (error) {
   await finish(error)

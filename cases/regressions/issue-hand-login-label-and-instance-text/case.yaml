@@ -1,0 +1,31 @@
+format: 1
+id: regressions/issue-hand-login-label-and-instance-text
+feature: design.editor.text-and-view
+intent: >-
+  The view the editor reports is the view on the screen. kit-editor's canvas draws a view that is
+  off whole device pixels on the nearest whole one (less than half a device pixel away) and reads
+  the pointer through that, while its handle's `view()` and `onView` report the view as asked; the
+  editor and everything that works out a screen point from its view (the field over a frame's
+  label, the input method's field, Paste here, the tests) were off by up to half a device pixel,
+  0.67 document pixels at 75 %. In the login task a frame dragged from (0, 0) came out at y 1, a
+  press on a frame's name label landed in a selected text's rotate zone (the frame was not
+  picked, Shift+A then wrapped the text), and the double-clicks into the instances' text landed on
+  the edge of that small auto layout frame (Hug, not text editing). The editor now reports the
+  view as the canvas places it. web/tests/hand/view.mjs puts a 75 % view half a device pixel off,
+  draws a frame with a real drag between two points worked out from the reported view, which must
+  be exactly there, and clicks its label.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand plan 2026-11-26, login task (probe12) after stage 5 and the S2 pin (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/view.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]
