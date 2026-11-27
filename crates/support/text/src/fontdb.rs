@@ -460,10 +460,12 @@ fn names(f: &skrifa::FontRef) -> (Option<String>, Option<String>) {
     (family, style)
 }
 
-/// Families tried, in order, for characters a text's own font lacks. The symbol fonts come last:
-/// Apple Symbols (macOS), Segoe UI Symbol (Windows) and the Noto symbol and math fonts (Linux), for
-/// signs such as ⌖ and ⤒ that no text face has.
-const FALLBACK_FAMILIES: [&str; 29] = [
+/// Families tried, in order, for characters a text's own font lacks. Droid Sans Fallback, which
+/// the editor adds in a page (no system fonts there), draws Chinese and Japanese after the
+/// platforms' own CJK faces. The symbol fonts come last: Apple Symbols (macOS), Segoe UI Symbol
+/// (Windows) and the Noto symbol and math fonts (Linux), for signs such as ⌖ and ⤒ that no text
+/// face has.
+const FALLBACK_FAMILIES: [&str; 30] = [
     "Inter",
     "Helvetica Neue",
     "Arial",
@@ -481,6 +483,7 @@ const FALLBACK_FAMILIES: [&str; 29] = [
     "Malgun Gothic",
     "Noto Sans CJK KR",
     "Noto Sans KR",
+    "Droid Sans Fallback",
     "Noto Sans Arabic",
     "Noto Sans Thai",
     "Noto Sans Thai UI",

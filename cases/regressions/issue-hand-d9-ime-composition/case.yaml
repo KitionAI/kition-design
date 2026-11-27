@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-d9-ime-composition
+feature: design.editor.input-method
+intent: >-
+  What an input method composes (pinyin "n", "ni", "ni hao") shows in the text being edited at the
+  caret, underlined and laid out with it, while the document does not change (no undo step, not
+  unsaved); an empty composition takes it away and the finished text ends it. Nothing showed while
+  composing: kit-editor's text sink hands the engine only the finished text (walkthrough D9). The
+  editor now sends the composition to `text.edit.preedit`. bindings/wasm/tests/input_method.rs
+  checks the engine side: the composition is held, the characters and the undo stack stay, the
+  caret (`textCaret`) moves past it, and a commit or an empty composition ends it.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding D9 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: input_method, filter: a_composition_shows_at_the_caret_and_leaves_the_document_alone }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

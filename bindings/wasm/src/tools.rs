@@ -308,8 +308,9 @@ impl DesignDocument {
         Ok(())
     }
 
-    /// A key while editing text: the engine's text keys (macOS motions: Alt by word, Cmd to the
-    /// line's ends).
+    /// A key while editing text: the engine's text keys, moving as the editor's platform does
+    /// (macOS: Alt by word, Cmd to the line's ends; elsewhere Ctrl by word, Ctrl+Home/End to the
+    /// text's ends).
     fn text_key(&mut self, name: &str, mods: ToolMods) -> Result<(), String> {
         let name = match name {
             "Backspace" | "Delete" | "Enter" | "Escape" | "Tab" | "Home" | "End" => name,
@@ -321,7 +322,7 @@ impl DesignDocument {
             _ => return Ok(()),
         };
         let m = kition_design_engine::keymap::Mods { shift: mods.shift, alt: mods.alt, cmd: mods.command, ctrl: mods.control };
-        let (word, line) = kition_design_engine::keymap::text_motion(kition_design_engine::keymap::Platform::Mac, name, m);
+        let (word, line) = kition_design_engine::keymap::text_motion(self.platform, name, m);
         if name == "Enter" && mods.command {
             return kition_design_engine::textedit::end(&mut self.session).map_err(engine_error);
         }

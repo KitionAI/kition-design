@@ -27,7 +27,8 @@
 //!
 //! **Gestures and the view** ([`view`]): `beginInteraction(label)`, `commitInteraction()` and
 //! `cancelInteraction()` make a continuous edit (a number scrub, a colour drag, a handle drag) one
-//! undo step; `setViewport(x, y, width, height, zoom)` tells the engine the editor's view, and
+//! undo step; `setViewport(x, y, width, height, zoom)` tells the engine the editor's view,
+//! `setPlatform(mac)` the keyboard's platform (the text keys' motions), and
 //! `viewTarget(command, params)` answers where a View menu zoom command takes it.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -137,6 +138,9 @@ pub struct DesignDocument {
     told_gesture: Option<u64>,
     /// The area the last tool event changed, for its answer's `damage` ([`damage`]).
     damage: Option<kition_kit::tools::ToolDamage>,
+    /// The keyboard's platform the editor reported ([`DesignDocument::set_platform`]): text keys
+    /// move by word with Alt on a Mac, with Ctrl elsewhere. A Mac until told.
+    platform: kition_design_engine::keymap::Platform,
 }
 
 /// Runs `f` with the engine's file access confined to no folder: in a page there is no file system
@@ -205,7 +209,15 @@ impl DesignDocument {
             told_hover: None,
             told_gesture: None,
             damage: None,
+            platform: kition_design_engine::keymap::Platform::Mac,
         })
+    }
+
+    /// Tells the engine the keyboard's platform (`mac`: macOS, else Windows or Linux), as the page
+    /// reports it: the text keys' motions follow it (Alt+Left by word on a Mac, Ctrl+Left
+    /// elsewhere). Never changes the document.
+    pub fn set_platform(&mut self, mac: bool) {
+        self.platform = if mac { kition_design_engine::keymap::Platform::Mac } else { kition_design_engine::keymap::Platform::Other };
     }
 
     /// The engine session (read access, for tests and hosts).
@@ -776,6 +788,12 @@ pub mod web {
         #[wasm_bindgen(js_name = cancelInteraction)]
         pub fn cancel_interaction(&mut self) -> Result<bool, JsError> {
             self.0.cancel_interaction().map_err(error)
+        }
+
+        /// Tells the engine the keyboard's platform (`mac`: macOS), for the text keys' motions.
+        #[wasm_bindgen(js_name = setPlatform)]
+        pub fn set_platform(&mut self, mac: bool) {
+            self.0.set_platform(mac);
         }
 
         /// Tells the engine the editor's view: document pixel (`x`, `y`) at the viewport's

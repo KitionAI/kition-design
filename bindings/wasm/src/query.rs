@@ -34,6 +34,7 @@
 //! | `imagePresets` | — | `image.presets` |
 //! | `vectorEdit` | — | `{ state: vector.edit.state or null, tools: [{ id, label, shortcut }] }` |
 //! | `textSelection` | — | `text.edit.selection` (an error while no text is edited) |
+//! | `textCaret` | — | `{ x0, y0, x1, y1 }`: the caret of the text being edited (at the input method's cursor while composing) from its top to its bottom, in document pixels, as the canvas draws it; null while no text is edited (see [`text_caret`]) |
 //! | `menus` | — | the upstream main menu as catalog rows `[{ path, label, command }]`, separators `---` |
 //! | `checked` | — | the View and Preferences toggles that are on: `{ ids: [command id], pixelPreview: { on, scale: 1 or 2 } }` (`view.pixelPreview { scale }` sets the scale) |
 //! | `exportSettings` | — | `{ jobs: [{ id, setting, file }] }` for the selection (the Export section) |
@@ -582,6 +583,7 @@ pub fn query(doc: &DesignDocument, name: &str, params: &Value) -> Result<Value, 
         "imagePresets" => via("image.presets"),
         "vectorEdit" => vector_edit(doc),
         "textSelection" => via("text.edit.selection"),
+        "textCaret" => Ok(text_caret(doc)),
         "menus" => Ok(Value::Array(crate::commands::menu_rows())),
         "checked" => Ok(checked(doc)),
         "exportSettings" => export_settings(doc),
@@ -694,4 +696,20 @@ pub fn export_node(doc: &DesignDocument, id: &str, format: &str, scale: f64) -> 
         return Err(format!("not-found: no layer {id}"));
     }
     no_files(|| kition_design_engine::cmd::file::export_bytes(&ds.doc, &[id], format, scale)).map_err(engine_error)
+}
+
+/// Where the caret of the text being edited is (the `textCaret` query): the editor puts its text
+/// field there, so an input method's candidate window opens at the caret (hand plan stage 6).
+fn text_caret(doc: &DesignDocument) -> Value {
+    let session = doc.session();
+    let Some(te) = session.ds().ok().and_then(|ds| ds.text_edit.clone()) else { return Value::Null };
+    let preedit = kition_design_engine::textedit::preedit_doc(session);
+    let Ok(ds) = session.ds() else { return Value::Null };
+    let shown = preedit.as_ref().map_or(&*ds.doc, |(d, _, _)| d);
+    let Some((top, bottom)) = crate::overlays::caret_line(shown, &te, preedit.as_ref().map(|(_, range, cursor)| (*range, *cursor))) else {
+        return Value::Null;
+    };
+    let area = doc.area();
+    let ((x0, y0), (x1, y1)) = (area.to_doc(top), area.to_doc(bottom));
+    if [x0, y0, x1, y1].iter().all(|v| v.is_finite()) { json!({ "x0": x0, "y0": y0, "x1": x1, "y1": y1 }) } else { Value::Null }
 }

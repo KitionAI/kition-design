@@ -95,6 +95,16 @@ features:
     gap: "Copy and paste while editing use the editor's own text clipboard, not the system clipboard. Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). At zooms whose device scale is not a whole number (150 % on a 1x screen) the canvas can still copy its frame half a pixel off: kit-editor places the frame, the editor only moves the view."
     cases: [regressions/issue-hand-b15-view-jump, regressions/issue-hand-d6-select-all-in-text, regressions/issue-hand-d8-text-clipboard, regressions/issue-hand-d10-empty-text-undo, regressions/issue-hand-f11-auto-layout-size, regressions/issue-hand-text-keys-after-editing, regressions/issue-hand-m5-device-pixels]
     since: "2026-11-26"
+  - id: design.editor.input-method
+    title: "Chinese, Japanese and Korean input on the canvas: Chinese typed in a page shows in the editor's Chinese face, what an input method composes shows in the text being edited at the caret, underlined and laid out with it, without changing the document; the input method's candidate window opens at the caret; Escape, Enter, the arrows and Backspace pressed while composing are the input method's; the finished text is typed as one undo step with its editing; the text keys move by word as the platform's do (Alt on a Mac, Ctrl elsewhere)"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [text.edit.preedit, text.edit.selection, text.edit.insert, text.edit.key]
+    paths: [web/src/canvas/inputMethod.ts, web/src/canvas/DesignCanvas.tsx, crates/support/text/src/fontdb.rs, web/src/menus/keymap.ts, web/src/shell/keys.ts, bindings/wasm/src/query.rs, bindings/wasm/src/overlays.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/tests/input_method.rs, web/tests/hand/ime.mjs]
+    gap: "Checked in dev.html with Chromium's DevTools input method (compositions, key code 229, the finished text) and with real typing for the field's place; a real input method on a Mac or Windows, and Kition Desktop's frame, are not checked. The input method's own cursor inside a composition shows at the composition's end until the field reports it. kit-editor's text sink still gives the editor's commands the keys of a composition (the editor stops them before it); it sends no composition updates and does not place itself at the caret (the editor does both)."
+    cases: [regressions/issue-hand-d9-ime-composition, regressions/issue-hand-d9-ime-keys, regressions/issue-hand-text-keys-platform, regressions/issue-hand-d9-chinese-glyphs]
+    since: "2026-11-27"
   - id: design.editor.gesture-cost
     title: "A drag sample and a hover cost one trip to the engine and repaint only what they changed: the panels hold their queries while a pointer gesture runs and ask once after it, the Design panel's X, Y, W, H and rotation and the canvas chrome follow the drag from the engine's answers, a hover tells the editor only when the hovered layer changes, and the hover's outline and the distances Alt measured go when the pointer leaves the canvas, nothing re-renders the whole editor for an engine answer, every tool event's answer names the area it changed so the canvas repaints that area of its frame, and a zoomed-out frame is drawn at its own scale"
     dimension: [function]

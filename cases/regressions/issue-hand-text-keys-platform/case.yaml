@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-hand-text-keys-platform
+feature: design.editor.input-method
+intent: >-
+  The text keys move as the platform's do: on Windows and Linux Ctrl+Left and Ctrl+Right go a word
+  and Ctrl+End to the end of the text, on a Mac Alt goes a word and Cmd to the line's ends. The
+  binding moved as a Mac does everywhere, so Ctrl+Right off the Mac jumped to the end of the line
+  (gap R-D22). The editor now tells the engine its platform (`setPlatform`) when a design opens.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand plan 2026-11-26 stage 6, item 4 (kition-plan plans/2026-11-26-design-usable-by-hand.md)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-kit, test: input_method, filter: text_keys_move_as_the_reported_platform_does }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

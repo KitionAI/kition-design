@@ -491,3 +491,25 @@ fn core_text_lists_the_installed_font_files() {
     assert!(files.iter().any(|f| f.starts_with("/System/Library/Fonts")), "{} files", files.len());
     assert!(files.iter().all(|f| f.is_absolute()));
 }
+
+#[test]
+fn the_web_builds_chinese_face_is_a_fallback() {
+    // In a page there are no system fonts: Chinese and Japanese typed into a Latin layer (a new
+    // text starts in Inter) are drawn by Droid Sans Fallback, which the editor adds with `addFont`
+    // (no Noto CJK or Source Han). It was never tried for missing characters, so a composed "你好"
+    // showed as missing-glyph boxes (hand plan stage 6, regressions/issue-hand-d9-chinese-glyphs).
+    // The platforms' own CJK faces come first where they are installed.
+    let at = |family: &str| FALLBACK_FAMILIES.iter().position(|f| *f == family);
+    let droid = at("Droid Sans Fallback").expect("Droid Sans Fallback is a fallback");
+    for system in ["PingFang SC", "Hiragino Sans", "Noto Sans CJK SC", "Microsoft YaHei", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR"] {
+        assert!(at(system).is_some_and(|i| i < droid), "{system} comes before it");
+    }
+    // With kition-fonts next to the repository, the file the editor adds draws a Chinese character.
+    let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../kition-fonts/fonts/droid-sans-fallback/DroidSansFallbackFull.ttf");
+    if let Ok(bytes) = std::fs::read(&file) {
+        let families = load_font_bytes(bytes);
+        assert_eq!(families, ["Droid Sans Fallback"]);
+        let fallbacks = db().write().unwrap().fallbacks();
+        assert!(fallbacks.iter().any(|f| f.family == "Droid Sans Fallback" && f.has_char('你')), "it draws 你");
+    }
+}

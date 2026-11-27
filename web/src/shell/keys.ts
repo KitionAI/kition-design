@@ -8,6 +8,7 @@
 import type { KeyboardEvent } from 'react'
 import { isMac } from '@kition/sdk/editor'
 import type { DesignKit } from '../kit/context'
+import { composingKey } from '../canvas/inputMethod'
 
 /** Two digits typed this close together are one exact opacity (4 then 5: 45 %). */
 const DIGITS_MS = 600
@@ -53,6 +54,8 @@ function panKey(designKit: DesignKit, event: KeyboardEvent) {
 }
 
 export function shellKeyDown(designKit: DesignKit, event: KeyboardEvent): boolean {
+  // A key of an input method's composition is the input method's.
+  if (composingKey(event.nativeEvent)) return false
   const mod = isMac() ? event.metaKey : event.ctrlKey
   const { ui } = designKit
   const code = event.code

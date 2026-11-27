@@ -542,13 +542,29 @@ fn text_overlay(
             out.line(at(r.x0, r.y1), at(r.x1, r.y1), rgba(ink, 1.0), false);
         }
     }
+    if let Some((top, bottom)) = caret_line(doc, te, preedit) {
+        out.line(top, bottom, rgba(ink, 1.0), false);
+    }
+}
+
+/// The caret of the text being edited (at the input method's cursor while composing) as the canvas
+/// draws it: its top and bottom on the page. `doc` is the document as shown (with the
+/// composition, see [`kition_design_engine::textedit::preedit_doc`]).
+pub(crate) fn caret_line(doc: &Document, te: &kition_design_engine::TextEdit, preedit: Option<((usize, usize), usize)>) -> Option<(Point, Point)> {
+    let n = doc.node(te.id)?;
+    let (layout, dy) = kition_design_text::layout_node(n)?;
+    let world = doc.world_transform(te.id);
+    let at = |x: f64, y: f64| {
+        let q = layout.warp_point(x, y);
+        world * Point::new(q.x, q.y + dy)
+    };
     let caret = preedit.map_or(te.caret, |(_, cursor)| cursor);
     let (cx, li) = layout.caret(caret);
-    match layout.lines.get(li).or(layout.lines.last()) {
-        Some(line) => out.line(at(cx, line.top), at(cx, line.top + line.height), rgba(ink, 1.0), false),
+    Some(match layout.lines.get(li).or(layout.lines.last()) {
+        Some(line) => (at(cx, line.top), at(cx, line.top + line.height)),
         None => {
             let p = at(0.0, 0.0);
-            out.line(p, Point::new(p.x, p.y + 14.0), rgba(ink, 1.0), false);
+            (p, Point::new(p.x, p.y + 14.0))
         }
-    }
+    })
 }

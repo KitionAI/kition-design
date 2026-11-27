@@ -109,7 +109,7 @@
     "query": {
       "params": ["name: string", "params: string"],
       "returns": "string",
-      "description": "A panel's answer as JSON: pages, layers, selection, node, document, selectionColors, componentProperties, instanceExposed, prototype, components, styles, variables, devInspect, code, componentCode, devAssets, readyForDev, annotations, annotationCategories, measurements, devResources, comments, framePresets, fonts, documentColors, imagePresets, vectorEdit, textSelection, menus, checked, exportSettings, fontFamilies, font, missingFonts, textStyles, recentColors, prefs, keymap, toolbar, layersAt, distances, paddingLines, redlines, commentPeople, commentPins, protoConnections, paintHandles, blurHandles, playground, evaluate, vectorBounds, shapeBuilderRegions, variable.modeRows, clipboard.paintState, image.info, history, layers.dropInfo, assets.list, drop.preview, library.list, library.updates, library.files, variables.pickFor, menu.context, hitTest, rename.preview, prefs.recentActions, layout.gridGeometry, arrange.spacingInfo, dev.focusState, dev.compare, codeLinks, annotation.callouts, version.previewState, proto.destinations, proto.parseExpression (bindings/wasm/src/query.rs, canvas.rs, panels.rs, lists.rs)"
+      "description": "A panel's answer as JSON: pages, layers, selection, node, document, selectionColors, componentProperties, instanceExposed, prototype, components, styles, variables, devInspect, code, componentCode, devAssets, readyForDev, annotations, annotationCategories, measurements, devResources, comments, framePresets, fonts, documentColors, imagePresets, vectorEdit, textSelection, textCaret, menus, checked, exportSettings, fontFamilies, font, missingFonts, textStyles, recentColors, prefs, keymap, toolbar, layersAt, distances, paddingLines, redlines, commentPeople, commentPins, protoConnections, paintHandles, blurHandles, playground, evaluate, vectorBounds, shapeBuilderRegions, variable.modeRows, clipboard.paintState, image.info, history, layers.dropInfo, assets.list, drop.preview, library.list, library.updates, library.files, variables.pickFor, menu.context, hitTest, rename.preview, prefs.recentActions, layout.gridGeometry, arrange.spacingInfo, dev.focusState, dev.compare, codeLinks, annotation.callouts, version.previewState, proto.destinations, proto.parseExpression (bindings/wasm/src/query.rs, canvas.rs, panels.rs, lists.rs)"
     },
     "chrome": {
       "params": ["zoom: number"],
@@ -150,6 +150,11 @@
       "params": ["x: number", "y: number", "width: number", "height: number", "zoom: number"],
       "returns": "void",
       "description": "Tells the engine the editor's view: document pixel (x, y) at the viewport's top-left, width x height screen pixels, zoom; never an edit"
+    },
+    "setPlatform": {
+      "params": ["mac: boolean"],
+      "returns": "void",
+      "description": "Tells the engine the keyboard's platform (true: macOS, false: Windows or Linux) as the page reports it: the text keys move by word with Alt on a Mac and with Ctrl elsewhere; never an edit (bindings/wasm/src/lib.rs)"
     },
     "viewTarget": {
       "params": ["command: string", "params: string"],

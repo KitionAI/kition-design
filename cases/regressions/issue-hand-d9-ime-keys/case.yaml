@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-hand-d9-ime-keys
+feature: design.editor.input-method
+intent: >-
+  Typing Chinese on the canvas with an input method: the composition shows at the caret,
+  underlined; Escape, Enter, the arrows and Backspace pressed while composing (key code 229) are
+  the input method's, so the composition is cancelled or edited and the text stays in editing
+  (Backspace used to reach the Delete command and delete the text layer); the finished text is
+  typed and the new text is one undo step; the hidden field the input method types into sits at
+  the caret, so its candidate window opens there (walkthrough D9). web/tests/hand/ime.mjs drives the
+  input method in Chromium through the DevTools protocol (`Input.imeSetComposition`,
+  `Input.insertText`, key events with key code 229) and checks the field's place with real typing.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding D9 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/ime.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

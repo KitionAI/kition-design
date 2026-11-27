@@ -17,6 +17,7 @@ import { useMemo } from 'react'
 import { isMac, shortcutMatches } from '@kition/sdk/editor'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { DesignKit } from '../kit/context'
+import { composingKey } from '../canvas/inputMethod'
 import { useQuery } from '../kit/hooks'
 import { prettyShortcut } from '../ui/shortcuts'
 import { invoke, isKitCommand, runKit } from './invoke'
@@ -171,7 +172,7 @@ function matches(spec: string, event: KeyboardEvent, mac: boolean) {
  * did. Not while typing in a field, in a dialog, or with a menu open.
  */
 export function menuKeyDown(designKit: DesignKit, event: KeyboardEvent): boolean {
-  if (event.isComposing || event.defaultPrevented || isField(event.target)) return false
+  if (composingKey(event) || event.defaultPrevented || isField(event.target)) return false
   const target = event.target instanceof Element ? event.target : null
   if (target?.closest('.design-dialog, .kui-dialog, .design-menu, .design-popover')) return false
   const mac = isMac()
@@ -213,7 +214,7 @@ function runBinding(designKit: DesignKit, id: string) {
  */
 export function keymapKeyDown(designKit: DesignKit, keymap: Keymap, event: ReactKeyboardEvent | KeyboardEvent): boolean {
   const native = 'nativeEvent' in event ? event.nativeEvent : event
-  if (native.isComposing || event.defaultPrevented) return false
+  if (composingKey(native) || event.defaultPrevented) return false
   const mac = isMac()
   const text = designKit.inspect.editing === 'text' || designKit.tools.wantsText
   for (const binding of keymap.bindings) {

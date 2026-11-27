@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-d9-chinese-glyphs
+feature: design.editor.input-method
+intent: >-
+  Chinese typed into a text on the canvas shows as Chinese. A new text starts in Inter, which has
+  no Chinese; in a page there are no system fonts, and Droid Sans Fallback, the face the editor
+  adds for Chinese and Japanese (`addFont`), was never among the faces tried for missing
+  characters, so a finished "你好" from an input method showed as two missing-glyph boxes. It is
+  now tried after the platforms' own CJK faces. The test checks its place among the fallbacks and,
+  with kition-fonts next to the repository, that the added file draws 你.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand plan 2026-11-26 stage 6, found while checking D9 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-text, filter: "fontdb::tests::the_web_builds_chinese_face_is_a_fallback" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-27"

@@ -17,6 +17,7 @@ import { CanvasOverlays } from './overlays'
 import { setCanvasPage, setSizePill } from './engineOverlays'
 import { contentBounds, raster, rememberPageView, rememberedPageView } from './view'
 import { useAreaOriginKept, useCanvasInput } from './input'
+import { useInputMethod } from './inputMethod'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
 import { DevCanvasLayer } from '../dev/DevCanvasLayer'
 
@@ -50,6 +51,12 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   useAreaOriginKept(designKit)
   const root = useRef<HTMLDivElement>(null)
   useCanvasInput(root, designKit, isMac())
+  // Input methods compose in the text at the caret, their candidate window beside it.
+  useInputMethod(designKit)
+  // The text keys move as this platform's do (Alt or Ctrl by word).
+  useEffect(() => {
+    if (doc) void invoke('setPlatform', isMac()).catch(() => undefined)
+  }, [doc, invoke])
   // The keyboard is the editor's again when text editing ends.
   useTextFieldReleased(wantsText)
 
