@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-hand-f11-auto-layout-size
+feature: design.editor.text-and-view
+intent: >-
+  Shift+A on a frame with an inside stroke keeps the frame's size: a 327 x 48 input with a 1 px
+  stroke and a line of text became 329 x 50 (walkthrough F11, the fifth stop of the login page
+  task), because the layout counts the stroke on top of padding measured to the frame's edges.
+  The inferred padding is that distance less the stroke, from the visible children that are not
+  placed absolutely; the frame hugs its content at the size it had and the child stays in place.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings F11 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "al_behaviour_tests::adding_auto_layout_to_a_stroked_frame_keeps_its_size" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-26"

@@ -14,6 +14,11 @@ pub(super) fn layers_at(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 pub(super) fn select_all(s: &mut Session, _p: &Value) -> Result<Value> {
+    // While a text is being edited, Select all selects its characters, not the layers around it.
+    if s.ds()?.text_edit.is_some() {
+        crate::textedit::key(s, "SelectAll", false, false, false)?;
+        return Ok(json!({"selection": s.selection()}));
+    }
     let doc = s.doc()?;
     let sel = s.selection();
     // Select all siblings of the current selection, else the page's top level.

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-hand-text-keys-after-editing
+feature: design.editor.text-and-view
+intent: >-
+  When text editing on the canvas ends (Escape, an undo), the tools' letters work again: the
+  hidden text field the editor types through kept the keyboard, its keys counted as text, and T,
+  R or V did nothing until the canvas was clicked (found while writing the stage 2 hand test).
+  web/tests/hand/text.mjs presses R after Escape and T after Cmd+Z and checks the tool.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand plan 2026-11-26, stage 2 (kition-plan plans/2026-11-26-design-usable-by-hand.md)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/text.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

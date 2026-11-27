@@ -15,6 +15,7 @@ The difference column is the feature's recorded gap.
 | `design.agent.preview` The agent's preview is a pure function of the design and an explicit view | P0 | has | — | — |
 | `design.agent.recover` An agent fixes what the check reports | P0 | has | — | — |
 | `design.editor.keyboard` The editor's keyboard works wherever the person last clicked or typed (fields, popups, palette, comments, layer rows, toolbar); second keys, number keys for opacity, arrow panning, N / Shift+N, label rename, the toolbar following the engine's tool | P0 | has | — | Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered. |
+| `design.editor.text-and-view` Text typed on the canvas and the view behave as expected: Cmd+A, Copy, Cut and Paste on the characters being edited, triple-click selects a paragraph, a new text is one undo step and named after its first line, the tools' letters work after editing; a new page's first layer stays put, a mouse wheel notch zooms 1.2 times, Shift+A keeps a stroked frame's size | P0 | has | — | Copy and paste while editing use the editor's own text clipboard, not the system clipboard. Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). |
 | `design.component.button-instances` Make a component and place renamed instances of it | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.layout.auto-row` Add auto layout to a frame and hug its contents | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.object.frames-shapes-text` Frames holding rectangles, ellipses and text, renamed and moved | P0 | has | Figma desktop 126.10.7 (macOS) | — |
@@ -57,6 +58,6 @@ The difference column is the feature's recorded gap.
 
 | Priority | has | partial | missing |
 | --- | ---: | ---: | ---: |
-| P0 | 12 | 1 | 0 |
+| P0 | 13 | 1 | 0 |
 | P1 | 2 | 29 | 0 |
 | P2 | 0 | 3 | 0 |

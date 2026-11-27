@@ -81,3 +81,16 @@ export function keyboardFallback(event: KeyboardEvent) {
   root.dispatchEvent(copy)
   return true
 }
+
+/**
+ * When text editing on the canvas ends (Escape, a click elsewhere, an undo), kit-editor's hidden
+ * text field keeps the keyboard, and its keys are text, never the tools' letters: T, R or V did
+ * nothing until the canvas was clicked. The editor's frame takes the keyboard back then.
+ */
+export function useTextFieldReleased(takingText: boolean) {
+  useEffect(() => {
+    if (takingText) return
+    const active = document.activeElement
+    if (active instanceof HTMLElement && active.classList.contains('kui-text-sink')) focusEditor()
+  }, [takingText])
+}

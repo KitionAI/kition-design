@@ -157,8 +157,11 @@ impl Session {
             self.tool.gesture = Gesture::TextSelect { id: leaf };
             return Ok(());
         }
-        // New text at the click (Figma puts the baseline-ish top-left there).
+        // New text at the click (Figma puts the baseline-ish top-left there). The editing
+        // session's step starts before the layer is added, so the new layer and what is typed
+        // into it are one undo step: undoing it takes the layer away too.
         let parent = frame_at(&doc, page, ev.p(), &[]).unwrap_or(page);
+        self.begin_interaction("Edit text")?;
         let ds = self.ds_mut()?;
         let d = ds.doc_mut();
         let id = d.alloc_id();

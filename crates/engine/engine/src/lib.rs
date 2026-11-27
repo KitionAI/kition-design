@@ -474,6 +474,8 @@ mod tests;
 #[cfg(test)]
 mod text_behaviour_tests;
 #[cfg(test)]
+mod text_edit_hand_tests;
+#[cfg(test)]
 mod text_fill_tests;
 #[cfg(test)]
 mod text_metrics_local_tests;

@@ -156,6 +156,23 @@ pub fn end(s: &mut Session) -> Result<()> {
     Ok(())
 }
 
+/// Longest name a text layer takes from its characters.
+const NAME_FROM_TEXT_CHARS: usize = 64;
+
+/// The name a text layer takes from its characters: their first line, at most
+/// [`NAME_FROM_TEXT_CHARS`] characters; None when that line is blank.
+fn text_layer_name(characters: &str) -> Option<String> {
+    let first: String = characters.lines().next().unwrap_or("").chars().take(NAME_FROM_TEXT_CHARS).collect();
+    (!first.trim().is_empty()).then_some(first)
+}
+
+/// Whether a text layer called `name` is unnamed or named after its characters (`derived`, what
+/// they gave before this edit): the Text tool leaves a new layer's name empty, and the Layers
+/// panel shows an unnamed text as `Text`.
+fn name_follows_text(name: &str, derived: Option<&str>) -> bool {
+    name.is_empty() || name == "Text" || derived == Some(name)
+}
+
 fn range(te: &TextEdit) -> (usize, usize) {
     (te.caret.min(te.anchor), te.caret.max(te.anchor))
 }
@@ -184,12 +201,19 @@ fn edit_if(s: &mut Session, f: impl FnOnce(&mut TextData, &mut TextEdit) -> bool
     let doc = ds.doc_mut();
     let n = doc.get_mut(te.id)?;
     let NodeKind::Text(t) = &mut n.kind else { return Err(EngineError::Other("not a text layer".into())) };
+    let derived_before = text_layer_name(&t.characters);
     if !f(t, &mut te) {
         return Ok(false);
     }
     // Any edit ends a composition (a commit replaces it with the final text).
     te.preedit = None;
     let len = t.char_count();
+    // A layer nobody named keeps the name its characters give it (their first line), so the
+    // Layers panel reads what the canvas shows; a name the author chose stays, and so does the
+    // name of a layer inside an instance (its main component names it).
+    if n.source.is_none() && name_follows_text(&n.name, derived_before.as_deref()) {
+        n.name = text_layer_name(&t.characters).unwrap_or_default();
+    }
     te.caret = te.caret.min(len);
     te.anchor = te.anchor.min(len);
     if n.source.is_some() {

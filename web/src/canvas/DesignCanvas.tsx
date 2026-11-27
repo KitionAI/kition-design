@@ -2,19 +2,21 @@
  * The canvas: kit-editor's canvas rendering the engine (zoom and pan, wheel and pinch, the
  * engine's tools and overlays), the page's background behind the document, the canvas chrome
  * drawn over it (`chrome.ts`), the auto layout padding and gap handles, which drag with
- * `node.set` as one undo step, and the field that renames a frame on its name label.
+ * `node.set` as one undo step, the field that renames a frame on its name label, and the editor's
+ * own canvas input (`input.ts`).
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { KitDocumentCanvas, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
+import { KitDocumentCanvas, isMac, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
 import { useDesignKit, useView } from '../kit/hooks'
 import { dispatchUiRequests, useUiRequest } from '../kit/requests'
-import { returnKeyboardLater } from '../kit/focus'
+import { returnKeyboardLater, useTextFieldReleased } from '../kit/focus'
 import { RenameInput } from '../left/fields'
 import type { DesignChrome } from '../kit/types'
 import { chromeDecoration, readTheme, type ZoneKey } from './chrome'
 import { CanvasOverlays } from './overlays'
 import { setCanvasPage, setSizePill } from './engineOverlays'
 import { contentBounds, raster } from './view'
+import { useAreaOriginKept, useCanvasInput } from './input'
 import { ProtoCanvasLayer } from '../prototype/ProtoCanvasLayer'
 import { DevCanvasLayer } from '../dev/DevCanvasLayer'
 
@@ -42,6 +44,12 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
   // The engine's overlays take the page's green and keep guide labels clear of the size pill.
   setCanvasPage(inspect.background)
   const viewMemory = useRef<RasterView | null>(null)
+  // The document stays put when the engine's area moves its origin; the wheel and triple-click.
+  useAreaOriginKept(designKit)
+  const root = useRef<HTMLDivElement>(null)
+  useCanvasInput(root, designKit, isMac())
+  // The keyboard is the editor's again when text editing ends.
+  useTextFieldReleased(tools.wantsText)
 
   // The first view fits the page's content (upstream `zoom_to_fit` on open).
   const [fit, setFit] = useState<{ doc: unknown; area: RasterRect | null } | null>(null)
@@ -120,6 +128,7 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
 
   return (
     <div
+      ref={root}
       style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}
       onContextMenu={(event) => {
         event.preventDefault()

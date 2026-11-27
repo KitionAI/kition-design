@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-hand-d10-empty-text-undo
+feature: design.editor.text-and-view
+intent: >-
+  A text made with the Text tool and typed into is one undo step with its layer: T, a click,
+  Hello, Escape and Cmd+Z left an empty text layer 1 px wide and nothing more to undo
+  (walkthrough D10). The editing step now starts before the layer is added, so undoing it takes
+  the layer away and redo brings it back with its text; a click with nothing typed still leaves no
+  layer and no step.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings D10 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-design-engine, filter: "text_edit_hand_tests::undoing_a_new_text_takes_the_layer_away" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-26"

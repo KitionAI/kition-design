@@ -233,3 +233,34 @@ fn a_size_given_with_a_new_path_fixes_that_axis() {
     assert_eq!(sizing(&s, v).0, Sizing::Fixed);
     assert!((size(&s, v).0 - 30.0).abs() < 1e-6, "{:?}", size(&s, v));
 }
+
+#[test]
+fn adding_auto_layout_to_a_stroked_frame_keeps_its_size() {
+    // Hand walkthrough F11 (case regressions/issue-hand-f11-auto-layout-size): a 327×48 frame with
+    // a 1 px inside stroke and one child at (20, 13) grew to 329×50 on Shift+A, as the stroke the
+    // layout counts came on top of padding measured to the frame's edges. The padding is the
+    // distance to the edges less that stroke: the frame keeps its size and the child its place.
+    let mut s = Session::new();
+    let f = id(s.execute("frame.add", &json!({"x": 0, "y": 0, "width": 327, "height": 48})).unwrap());
+    set(&mut s, f, json!({"stroke": "#D0D0D0", "strokeWeight": 1, "strokeAlign": "inside"}));
+    let r = rect(&mut s, f, 68.0, 15.0, "#000000");
+    set(&mut s, r, json!({"x": 20, "y": 13}));
+    // A hidden child and one placed absolutely take no part in the inference.
+    let hidden = rect(&mut s, f, 5.0, 5.0, "#FF0000");
+    set(&mut s, hidden, json!({"x": 300, "y": 40, "visible": false}));
+    s.execute("layout.add", &json!({"ids": [f]})).unwrap();
+    let al = s.doc().unwrap().node(f).unwrap().layout.clone().unwrap();
+    assert!(al.strokes_included, "new auto layout still counts inside strokes");
+    assert_eq!(al.padding, [12.0, 238.0, 19.0, 19.0], "padding to the edges, less the 1 px stroke");
+    assert_eq!(sizing(&s, f), (Sizing::Hug, Sizing::Hug), "a frame with content hugs it");
+    assert_eq!(size(&s, f), (327.0, 48.0), "the frame keeps its size");
+    assert_eq!(pos(&s, r), (20.0, 13.0), "the child stays where it was");
+
+    // Without a stroke the padding is the distance itself, and the size stays as well.
+    let g = id(s.execute("frame.add", &json!({"x": 0, "y": 200, "width": 327, "height": 48})).unwrap());
+    let q = rect(&mut s, g, 68.0, 15.0, "#000000");
+    set(&mut s, q, json!({"x": 20, "y": 13}));
+    s.execute("layout.add", &json!({"ids": [g]})).unwrap();
+    assert_eq!(s.doc().unwrap().node(g).unwrap().layout.as_ref().unwrap().padding, [13.0, 239.0, 20.0, 20.0]);
+    assert_eq!(size(&s, g), (327.0, 48.0));
+}

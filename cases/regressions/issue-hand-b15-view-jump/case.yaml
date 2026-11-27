@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-b15-view-jump
+feature: design.editor.text-and-view
+intent: >-
+  The first frame drawn on a new page stays where it was drawn: the page's document area grew
+  from 0, 0, 1920 x 1080 to -1000, -1000, 2000 x 2000 round it, the view kept its numbers, and the
+  frame jumped about 750 px down and right, so the next click with the Text tool missed it
+  (walkthrough B15). web/tests/hand/view.mjs adds a page, draws a frame with F and a real drag,
+  checks that the frame is still under the place it was drawn from, and clicks inside it with the
+  Text tool, which must make a text inside the frame; the editor moves the view by as much as the
+  area's origin moved.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings B15 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/view.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

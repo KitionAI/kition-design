@@ -23,8 +23,16 @@ pub fn copy_to_clipboard(s: &mut Session, cmd: &str, ids: &[NodeId]) -> Result<(
     s.clipboard.nodes = nodes;
     s.clipboard.images = images;
     s.clipboard.bounds = bounds;
+    s.clipboard.text = texts_of(&s.clipboard.nodes);
     s.clipboard.layers_generation = s.clipboard.layers_generation.wrapping_add(1);
     Ok(())
+}
+
+/// The characters of copied layers that are all texts, one layer per line (what pasting them
+/// while editing a text types); None when any copied layer is not a text.
+fn texts_of(nodes: &[(NodeId, Vec<Node>)]) -> Option<String> {
+    let texts: Option<Vec<&str>> = nodes.iter().map(|(_, sub)| sub.first().and_then(|n| n.kind.text()).map(|t| t.characters.as_str())).collect();
+    texts.filter(|t| !t.is_empty()).map(|t| t.join("\n"))
 }
 
 type Copied = (Vec<(NodeId, Vec<Node>)>, BTreeMap<String, ImageData>, Option<kition_design_geom::Rect>);
@@ -120,6 +128,7 @@ pub(super) fn paste_design_layers(s: &mut Session, p: &Value) -> Result<Value> {
         stroke,
         effect,
         bounds,
+        text: None,
         source_doc: 0,
         source: Some(doc),
         source_path: None,
@@ -133,13 +142,40 @@ pub(super) fn paste_design_layers(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(out)
 }
 
+/// While a text is being edited (and the call names no layers), copy and cut take the selected
+/// characters as plain text, and paste types the copied text: the layers stay as they are. With
+/// nothing selected in the text, copy and cut do nothing.
+fn editing_text(s: &Session, p: &Value) -> bool {
+    p.get("ids").is_none() && p.get("id").is_none() && s.ds().is_ok_and(|d| d.text_edit.is_some())
+}
+
+/// Copies (and with `cut`, deletes) the characters selected in the text being edited.
+fn copy_text(s: &mut Session, cut: bool) -> Result<Value> {
+    let text = crate::textedit::selected_text(s).unwrap_or_default();
+    if text.is_empty() {
+        return Ok(json!({"copiedText": 0}));
+    }
+    let count = text.chars().count();
+    s.clipboard.text = Some(text);
+    if cut {
+        crate::textedit::key(s, "Backspace", false, false, false)?;
+    }
+    Ok(json!({"copiedText": count}))
+}
+
 pub(super) fn copy(s: &mut Session, p: &Value) -> Result<Value> {
+    if editing_text(s, p) {
+        return copy_text(s, false);
+    }
     let ids = req_targets("edit.copy", s, p)?;
     copy_to_clipboard(s, "edit.copy", &ids)?;
     Ok(json!({"copied": s.clipboard.nodes.len()}))
 }
 
 pub(super) fn cut(s: &mut Session, p: &Value) -> Result<Value> {
+    if editing_text(s, p) {
+        return copy_text(s, true);
+    }
     let ids = req_targets("edit.cut", s, p)?;
     copy_to_clipboard(s, "edit.cut", &ids)?;
     let doc = s.doc()?;
@@ -200,6 +236,16 @@ pub fn paste_into(s: &mut Session, parent: NodeId, at: Option<(f64, f64)>) -> Re
         crate::library::adopt_pasted(doc, src, clip.source_path.as_deref(), &all)?;
     }
     Ok(out)
+}
+
+/// `edit.paste`: types the copied text into the text being edited, else pastes the copied layers.
+pub(super) fn paste_or_type(s: &mut Session, p: &Value) -> Result<Value> {
+    if editing_text(s, p) && p.get("parent").is_none() {
+        let Some(text) = s.clipboard.text.clone() else { return Ok(json!({"pastedText": 0})) };
+        crate::textedit::insert(s, &text)?;
+        return Ok(json!({"pastedText": text.chars().count()}));
+    }
+    paste(s, p)
 }
 
 pub(super) fn paste(s: &mut Session, p: &Value) -> Result<Value> {

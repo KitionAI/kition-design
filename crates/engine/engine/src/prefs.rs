@@ -168,6 +168,9 @@ pub struct Clipboard {
     pub effect: Option<kition_design_doc::Effect>,
     /// The page-space bounds of the copied selection.
     pub bounds: Option<kition_design_geom::Rect>,
+    /// Plain text to paste while editing text: the selected characters copied or cut in a text
+    /// being edited, or the characters of copied layers that are all texts (one per line).
+    pub text: Option<String>,
     pub source_doc: u64,
     /// Copied component/set roots, excluding cuts and originals discarded by undo (ids are reused).
     pub copied_components: std::collections::BTreeSet<NodeId>,

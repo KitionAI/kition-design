@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-d6-select-all-in-text
+feature: design.editor.text-and-view
+intent: >-
+  Cmd+A while typing a new text selects its characters: it selected every layer on the page, and
+  Cmd+B then bolded them all and a drag moved the whole page (walkthrough D6). Select all
+  (edit.selectAll) selects the characters of the text being edited, from the keys, the menu or an
+  agent. web/tests/hand/text.mjs makes a text with T, a click and typing, presses Cmd+A and Cmd+B,
+  and checks the text's selection, the layer selection and the bold; the engine's
+  text_edit_hand_tests check the command.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings D6 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/text.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

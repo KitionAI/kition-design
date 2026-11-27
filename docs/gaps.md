@@ -45,7 +45,8 @@ land work, then this list. The comparison with the target application is in
 ## Differences on features that work
 
 - `design.editor.keyboard` (P0, has): measured in `web/dev.html` only; whether Kition Desktop gives the editor's frame the keyboard when a design opens is not checked here. The keyboard marquee (`select.area`, Alt+Space / F8) is not offered in the editor: its keys are not bound and the shortcuts dialog does not list it.
+- `design.editor.text-and-view` (P0, has): Copy, Cut and Paste while editing a text use the editor's own text clipboard, not the system clipboard (text copied in another app does not paste into a text yet). Measured in `web/dev.html` with synthetic wheel events: a real mouse wheel and a real trackpad are not checked.
 
 ## Catalogue
 
-The catalogue has 46 features: 13 `has`, 33 not yet.
+The catalogue has 47 features: 14 `has`, 33 not yet.

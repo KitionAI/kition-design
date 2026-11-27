@@ -517,11 +517,17 @@ fn outline_stroke(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"ids": out}))
 }
 
-/// Infer direction, gap and padding from where children are (Figma's "Add auto layout").
+/// Infer direction, gap and padding from where the visible children that are not placed
+/// absolutely are (Figma's "Add auto layout"). The frame keeps its size: an inside stroke the
+/// layout counts (as it does by default) comes off the padding, which is the distance from the
+/// children to the frame's edges.
 fn infer_layout(doc: &Document, frame: NodeId) -> AutoLayout {
     let Some(f) = doc.node(frame) else { return AutoLayout::default() };
-    let boxes: Vec<Rect> =
-        f.children.iter().filter_map(|c| doc.node(*c)).map(|c| kition_design_geom::transform_rect_bbox(c.transform, c.local_rect())).collect();
+    let boxes: Vec<Rect> = kition_design_layout::flow_children(doc, frame)
+        .iter()
+        .filter_map(|c| doc.node(*c))
+        .map(|c| kition_design_geom::transform_rect_bbox(c.transform, c.local_rect()))
+        .collect();
     if boxes.is_empty() {
         return AutoLayout { padding: [10.0; 4], gap: 10.0, ..Default::default() };
     }
@@ -534,8 +540,13 @@ fn infer_layout(doc: &Document, frame: NodeId) -> AutoLayout {
         sorted.windows(2).filter_map(|w| Some(if vertical { w.get(1)?.y0 - w.first()?.y1 } else { w.get(1)?.x0 - w.first()?.x1 })).collect();
     let gap = if gaps.is_empty() { 10.0 } else { (gaps.iter().sum::<f64>() / gaps.len() as f64).max(0.0).round() };
     let all = boxes.iter().copied().reduce(|a, b| a.union(b)).unwrap_or_default();
-    let pad = [all.y0.max(0.0), (f.width - all.x1).max(0.0), (f.height - all.y1).max(0.0), all.x0.max(0.0)].map(f64::round);
-    AutoLayout { mode: if vertical { LayoutMode::Vertical } else { LayoutMode::Horizontal }, gap, padding: pad, ..Default::default() }
+    let layout = AutoLayout::default();
+    let counted = layout.strokes_included && f.has_visible_stroke() && f.stroke.align == StrokeAlign::Inside;
+    let stroke =
+        if counted { f.stroke.sides.unwrap_or([f.stroke.weight; 4]) } else { [0.0; 4] }.map(|w| if w.is_finite() { w.max(0.0) } else { 0.0 });
+    let [st, sr, sb, sl] = stroke;
+    let pad = [all.y0 - st, f.width - all.x1 - sr, f.height - all.y1 - sb, all.x0 - sl].map(|p| p.max(0.0).round());
+    AutoLayout { mode: if vertical { LayoutMode::Vertical } else { LayoutMode::Horizontal }, gap, padding: pad, ..layout }
 }
 
 fn layout_add(s: &mut Session, p: &Value) -> Result<Value> {
