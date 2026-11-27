@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Target:** Figma Design UI3 (desktop app 126.10.7)
+> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-26 · **Target:** Figma Design UI3 (desktop app 126.10.7)
 
 Fine canvas control is what Figma users feel first: handles, snapping, nudging, modifier keys,
 drag behaviour, numeric precision. This checklist covers the tools, gestures and panels. Status:
@@ -70,7 +70,7 @@ interaction feel not yet compared.
 | Locked layers | done | selectable from the layers panel; no handles, not dragged with the rest of a selection |
 | Smart selection spacing | partial | with layers in a row, a column or an aligned grid selected, the Layout section shows horizontal and vertical spacing ("Mixed" until set; typed, scrubbed, fractional and negative) and pink handles in the gaps on the canvas drag them, one undo step, Escape cancels (`arrange.spacing`; sizes, parents and offsets within each track kept; at most 2,000 layers; flow children, locked layers and layers inside instances left out). No reorder rings for swapping layers; checked by its author on macOS and Windows |
 | Selection colors | partial | for a mixed selection the Design panel lists their solid and gradient paints (children and text ranges included; hidden paints, masks, images, patterns and boolean operands left out; styles and variables listed apart): editing a colour changes every matching fill and stroke in one undo step, a row selects the layers that use it or applies a color style or color variable of the document, and a row linked to a style or variable detaches it, keeping the color (`selection.colors`, `selection.setPaint`, `selection.applyColorStyle`, `selection.bindColorVariable`, `selection.detachColor`, `selection.selectColor`). No library styles or variables from there, and no new style or variable from a row |
-| Keyboard box selection | done | Alt+Space on macOS, Ctrl+Space on Windows and Linux, or F8 (`select.area`): a box around the selection or in the middle of the view; arrows move it, Cmd/Ctrl+arrows or Shift+arrows size it (Shift with Cmd/Ctrl: farther), Enter selects like a marquee (Shift+Enter toggles, Cmd/Ctrl+Enter nested), Escape closes |
+| Keyboard box selection | missing | the engine has `select.area` (a box around the selection or in the middle of the view, moved and sized by the arrows, Enter selects), but the editor draws no box for it: its keys (Alt+Space / Ctrl+Space, F8) are not bound and the shortcuts dialog does not list it (2026-11-26) |
 
 ## Tools
 
@@ -132,10 +132,9 @@ in the table.
   disagree), Alt+Cmd+\ / Ctrl+Alt+\ for others' cursors (`view.multiplayerCursors`), Ctrl+F6
   to the toolbar on Windows/Linux, Shift+Cmd+U to link text (Cmd+K kept), Cmd/Ctrl+] and [ to
   nest list items while editing (`text.listIndent` / `text.listOutdent`), Cmd/Ctrl+Backspace
-  to ungroup, Alt+Space / Ctrl+Space for the keyboard box selection (F8 kept) with Cmd/Ctrl+arrows
-  drawing it out, Ctrl+Shift+A / Ctrl+Alt+Shift+A to suggest auto layout, Ctrl+Alt+Cmd+K /
-  Ctrl+Alt+Shift+K to go to the main component, the arrows panning the view when nothing is
-  selected (`view.pan`), Control suspending snapping on macOS, and Space, N, C and F while
+  to ungroup, Ctrl+Shift+A / Ctrl+Alt+Shift+A to suggest auto layout, Ctrl+Alt+Cmd+K /
+  Ctrl+Alt+Shift+K to go to the main component, the arrows panning the view 64 px (Shift: 320 px) when
+  nothing is selected, Control suspending snapping on macOS, and Space, N, C and F while
   presenting. The paint bucket's tooltip shows Shift+B (B still works).
 - **Paste:** Shift+Cmd/Ctrl+V (Paste over selection) and Alt+Cmd/Ctrl+V (Paste properties) act
   as bound; Cmd/Ctrl+V pastes an image copied in another app.
@@ -157,6 +156,8 @@ in the table.
 | Item | Status | Notes |
 |---|---|---|
 | Keyboard navigation: F6 regions, Tab within, focus ring | done | |
+| The keyboard is the canvas's after a field, popup, menu, palette, comment, window or toolbar button; from the first key after opening | done | Enter or Escape in a field, a closed popup, menu, Actions palette, dialog, variables window or comment composer give the keyboard back to the editor; a key that still finds the page's body holding it is given to the editor once; a posted comment's thread opens without taking the keyboard; Escape after clicking a toolbar tool goes back to Move; a layer row keeps the arrows and leaves the tool letters to the tools (`web/src/kit/focus.ts`, `web/tests/hand/keys.mjs`) |
+| Every binding's second keys, the number keys for opacity, N / Shift+N, a double-click on a frame label | done | A for the Frame tool and every other second key of the keymap (`keymapKeyDown`); 1…9 / 0 and two quick digits set the selection's opacity; a double-click on a frame's or section's name label renames it in a field over the label (Enter, a press elsewhere; Escape keeps it); the toolbar shows a tool a command chose (`web/tests/hand/keys.mjs`) |
 | Layers panel from the keyboard: arrows, F2 / Cmd+R rename (the row gets the keyboard back), Shift+F10 context menu; 10k-layer lists | done | |
 | Reduced motion | done | the system setting (`prefers-reduced-motion`) |
 | Tested with VoiceOver, NVDA, Narrator, Orca | missing | human QA |

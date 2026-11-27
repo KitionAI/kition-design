@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last updated:** 2026-11-17 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
+> **Last updated:** 2026-11-26 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
 
 Every known shortfall of Kition Design, from the feature catalogue: features that are not yet `has`,
 then the differences recorded on features that work. Update the feature in `features.yaml` when you
@@ -41,6 +41,10 @@ land work, then this list. The comparison with the target application is in
 - `design.app.batch` (P2, partial): Run several commands in one step. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `design.app.preferences` (P2, partial): Preferences. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `design.devmode.handoff` (P2, partial): Dev Mode: changes, focus view, inspect, code, measurements, annotations, resources. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
+
+## Differences on features that work
+
+- `design.editor.keyboard` (P0, has): measured in `web/dev.html` only; whether Kition Desktop gives the editor's frame the keyboard when a design opens is not checked here. The keyboard marquee (`select.area`, Alt+Space / F8) is not offered in the editor: its keys are not bound and the shortcuts dialog does not list it.
 
 ## Catalogue
 

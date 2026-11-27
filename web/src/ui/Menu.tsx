@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../icons/Icon'
 import { anchorRect, place, type AnchorRect, type Placement } from './position'
+import { useKeyboardReturn } from '../kit/focus'
 
 export type MenuItem = {
   type?: 'item'
@@ -77,6 +78,8 @@ export function Menu(props: MenuProps) {
   const latest = useRef(props.onClose)
   latest.current = props.onClose
   const tree = useMemo<Tree>(() => ({ id, close: () => latest.current(), panels: new Set() }), [id])
+  // Closed, it gives the keyboard back to the canvas when it had it.
+  useKeyboardReturn()
   useEffect(() => {
     const anchor = props.anchor instanceof Element ? props.anchor : null
     const down = (event: PointerEvent) => {

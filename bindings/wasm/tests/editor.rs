@@ -155,6 +155,28 @@ fn the_rectangle_tool_draws_through_pointer_events_and_undo_removes_it() {
 }
 
 #[test]
+fn a_tool_a_command_chose_is_told_on_the_next_answer() {
+    // The toolbar follows the engine: a panel's or an agent's `tool.rectangle` is a switch the
+    // editor hears on the next answer (a state query), once; the editor's own choice is none.
+    let mut doc = design();
+    let switches = |response: &kition_kit::tools::ToolResponse| -> Vec<String> {
+        response
+            .requests
+            .iter()
+            .filter_map(|r| if let kition_kit::tools::ToolRequest::SwitchTool { id } = r { Some(id.clone()) } else { None })
+            .collect()
+    };
+    doc.execute("tool.rectangle", json!({})).unwrap();
+    assert_eq!(doc.tool(), "rectangle");
+    assert_eq!(switches(&doc.state(0.0, 0.0, ToolMods::default(), 1.0)), ["rectangle"]);
+    assert!(switches(&doc.state(0.0, 0.0, ToolMods::default(), 1.0)).is_empty(), "told once");
+    assert!(switches(&doc.select_tool("ellipse", 1.0).unwrap()).is_empty(), "the editor's own choice");
+    assert!(switches(&doc.state(0.0, 0.0, ToolMods::default(), 1.0)).is_empty());
+    doc.execute("tool.move", json!({})).unwrap();
+    assert_eq!(switches(&doc.key("Shift", ToolMods::default(), 1.0).unwrap()), ["move"], "any answer tells it");
+}
+
+#[test]
 fn the_selection_shows_outlines_handles_and_hover() {
     let mut doc = design();
     let frame = frame_id(&doc);

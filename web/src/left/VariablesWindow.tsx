@@ -22,6 +22,7 @@ import { RenameInput } from './fields'
 import { colorCss } from './swatch'
 import { openVariablePicker } from './VariablePicker'
 import { cssHexOf, display, groupOf, groups, hexOf, resolve, SCOPES, unique, useVariables, valueJson, type Collection, type Variable, type VariableKind, type Variables } from './variables'
+import { releaseField, useKeyboardReturn } from '../kit/focus'
 
 const SIDEBAR_W = 200
 const NAME_W = 240
@@ -115,10 +116,34 @@ export function VariablesWindow({ initial, onClose }: { initial?: string | null;
     designKit.toast(message)
   }
 
+  // Escape closes the window when nothing opened over it takes it (a menu, a picker) and no field
+  // in it has the keyboard (a field's Escape cancels its edit first); closed, the keyboard is the
+  // canvas's again (I3).
+  const close = useRef(onClose)
+  close.current = onClose
+  const root = useRef<HTMLDivElement>(null)
+  useKeyboardReturn()
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      const el = root.current
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || !el) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+      const layers = document.querySelectorAll('.design-layer')
+      if (layers[layers.length - 1] !== el) return
+      const target = event.target
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
+      event.preventDefault()
+      event.stopPropagation()
+      close.current()
+    }
+    window.addEventListener('keydown', key, true)
+    return () => window.removeEventListener('keydown', key, true)
+  }, [])
+
   const left = Math.round((window.innerWidth - size.width) / 2)
   const top = Math.round((window.innerHeight - size.height) / 2)
   return (
-    <div className="design-vars design-layer" style={{ left, top, width: size.width, height: size.height }} role="dialog" aria-label={t('Local variables')} data-testid="design-variables">
+    <div ref={root} className="design-vars design-layer" style={{ left, top, width: size.width, height: size.height }} role="dialog" aria-label={t('Local variables')} data-testid="design-variables">
       <div className="design-vars-header">
         <span className="design-s13">{t('Local variables')}</span>
         <span style={{ flex: 1 }} />
@@ -761,10 +786,10 @@ function HexField({ value, onCommit }: { value: string; onCommit: (text: string)
       }}
       onKeyDown={(event) => {
         event.stopPropagation()
-        if (event.key === 'Enter') event.currentTarget.blur()
+        if (event.key === 'Enter') releaseField(event.currentTarget)
         if (event.key === 'Escape') {
           setText(value)
-          event.currentTarget.blur()
+          releaseField(event.currentTarget)
         }
       }}
     />

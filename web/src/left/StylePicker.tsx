@@ -23,6 +23,7 @@ import { DragGhost } from './Pages'
 import { paintCss } from './swatch'
 import { openVariablePicker, VariableRow } from './VariablePicker'
 import { useVariables, type Variables } from './variables'
+import { releaseField } from '../kit/focus'
 
 export type StyleSlot = 'fill' | 'stroke' | 'effect' | 'grid' | 'text'
 export type StylePickerRequest = { ids: number[]; slot: StyleSlot; y?: number; edit?: string }
@@ -780,7 +781,7 @@ function MeasureField({ value, label, onCommit }: { value: string; label: string
         }}
         onKeyDown={(event) => {
           event.stopPropagation()
-          if (event.key === 'Enter') event.currentTarget.blur()
+          if (event.key === 'Enter') releaseField(event.currentTarget)
         }}
       />
     </label>

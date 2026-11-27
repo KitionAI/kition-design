@@ -64,6 +64,7 @@ pub(crate) fn scratch(design: &DesignDocument) -> Result<DesignDocument, String>
         schema: design.schema.clone(),
         libraries: design.libraries.clone(),
         kept: crate::context::Kept::default(),
+        told_tool: design.told_tool,
     })
 }
 

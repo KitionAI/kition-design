@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon, type IconName } from '../icons/Icon'
 import { formatNumber, parseEdit, type NumberEdit } from './math'
+import { releaseField } from '../kit/focus'
 
 export type ScrubHandlers = {
   /** The drag began (start an interaction). */
@@ -264,10 +265,10 @@ export function NumberField({
             commitText()
             committed.current = true
             setText(display)
-            event.currentTarget.blur()
+            releaseField(event.currentTarget)
           } else if (event.key === 'Escape') {
             cancelled.current = true
-            event.currentTarget.blur()
+            releaseField(event.currentTarget)
             event.stopPropagation()
           } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault()

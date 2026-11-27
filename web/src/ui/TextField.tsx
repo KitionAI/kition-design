@@ -1,5 +1,6 @@
 /** The text field (2.1 §7 `text_field`): select-all on focus, Enter or blur commits a change, Escape cancels. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { releaseField } from '../kit/focus'
 
 export type TextFieldProps = {
   value: string
@@ -59,11 +60,11 @@ export function TextField({ value, onCommit, placeholder, width, disabled, live 
           setFocused(false)
         }}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur()
+          if (event.key === 'Enter') releaseField(event.currentTarget)
           else if (event.key === 'Escape') {
             cancelled.current = true
             setText(value)
-            event.currentTarget.blur()
+            releaseField(event.currentTarget)
           } else return
           event.stopPropagation()
         }}

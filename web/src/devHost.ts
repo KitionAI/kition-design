@@ -12,3 +12,8 @@ startDevHost({
   files: { 'libraries/Design System.kdesign': './sample/libraries/Design System.kdesign' },
   pickable: /^libraries\/[^/]+\.kdesign$|\.(png|jpe?g|gif|svg|webp)$/i,
 })
+
+// The editor has the keyboard as soon as it opens (K6): the page gives its frame the focus each
+// time the frame loads (the editor then gives it to its own root).
+const kitFrame = document.getElementById('kit')
+if (kitFrame instanceof HTMLIFrameElement) kitFrame.addEventListener('load', () => kitFrame.contentWindow?.focus())

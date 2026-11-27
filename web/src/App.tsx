@@ -27,6 +27,7 @@ import { shellKeyDown } from './shell/keys'
 import { LibraryFiles } from './left/libraryFiles'
 import { interceptCommand } from './menus/invoke'
 import { DEFAULT_MENU } from './menus/catalog'
+import { NOT_OFFERED, keymapKeyDown, useKeymap } from './menus/keymap'
 import { useMenuTabs } from './menus/model'
 import type { DesignStrings } from './strings'
 import { showToast } from './ui/Toast'
@@ -94,12 +95,17 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
   )
 }
 
+/** Commands whose keys the frame does not bind (keymap.ts `NOT_OFFERED`: the keyboard marquee). */
+const notOffered = (id: string) => NOT_OFFERED.has(id)
+
 function Frame({ canvas, display, onView }: { canvas: React.RefObject<KitCanvasHandle | null>; display: RefObject<DisplayModeState | null>; onView: (view: KitCanvasView) => void }) {
   const designKit = useDesignKit()
   // The top bar's menus are the main menu's (the menus package), so both agree.
   const tabs = useMenuTabs()
+  // The frame's own keys, before its command shortcuts: the shell's, then every binding's second keys.
+  const keymap = useKeymap()
   return (
-    <EditorFrame tabs={tabs} defaultTab={DEFAULT_MENU} canvas={canvas} statusBar={false} onKeyDown={(event) => shellKeyDown(designKit, event)}>
+    <EditorFrame tabs={tabs} defaultTab={DEFAULT_MENU} canvas={canvas} statusBar={false} hiddenCommands={notOffered} onKeyDown={(event) => shellKeyDown(designKit, event) || keymapKeyDown(designKit, keymap, event)}>
       <FrameDisplay into={display} />
       <Shell onView={onView} />
     </EditorFrame>

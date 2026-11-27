@@ -1,13 +1,15 @@
 /**
  * The canvas: kit-editor's canvas rendering the engine (zoom and pan, wheel and pinch, the
  * engine's tools and overlays), the page's background behind the document, the canvas chrome
- * drawn over it (`chrome.ts`), and the auto layout padding and gap handles, which drag with
- * `node.set` as one undo step.
+ * drawn over it (`chrome.ts`), the auto layout padding and gap handles, which drag with
+ * `node.set` as one undo step, and the field that renames a frame on its name label.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { KitDocumentCanvas, type KitCanvasView, type RasterRect, type RasterView } from '@kition/sdk/editor'
 import { useDesignKit, useView } from '../kit/hooks'
-import { dispatchUiRequests } from '../kit/requests'
+import { dispatchUiRequests, useUiRequest } from '../kit/requests'
+import { returnKeyboardLater } from '../kit/focus'
+import { RenameInput } from '../left/fields'
 import type { DesignChrome } from '../kit/types'
 import { chromeDecoration, readTheme, type ZoneKey } from './chrome'
 import { CanvasOverlays } from './overlays'
@@ -98,6 +100,13 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
     if (doc && zoom != null) ask()
   }, [ask, doc, revision, zoom, tools.decorate])
 
+  // A double-click on a frame's or section's name label renames it there (the engine asks).
+  const [renaming, setRenaming] = useState<number | null>(null)
+  useUiRequest('canvas.renameLabel', (data) => {
+    const id = (data as { id?: unknown } | null)?.id
+    if (typeof id === 'number' && !designKit.readOnly) setRenaming(id)
+  })
+
   // The auto layout band under the pointer, or being dragged.
   const [hot, setHot] = useState<ZoneKey>(null)
   const [redraws, setRedraws] = useState(0)
@@ -120,6 +129,7 @@ export function DesignCanvas({ onView }: { onView: (view: KitCanvasView) => void
       {fit ? (
         <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} initialArea={fit.area} framed={false} decorate={decorate} decorateUnder={decorateUnder} animated={tools.wantsText} onView={onView} testId="design-canvas">
           {chrome?.autoLayout && view && tools.active === 'move' ? <AutoLayoutHandles chrome={chrome} view={view} onHot={setHot} /> : null}
+          {renaming && view && chrome ? <LabelRename id={renaming} chrome={chrome} view={view} onDone={() => setRenaming(null)} /> : null}
           <CanvasOverlays />
           {view && designKit.ui.rightTab === 'prototype' ? <ProtoCanvasLayer view={view} /> : null}
           {view && designKit.ui.rightTab === 'inspect' ? <DevCanvasLayer view={view} /> : null}
@@ -196,5 +206,39 @@ function AutoLayoutHandles({ chrome, view, onHot }: { chrome: DesignChrome; view
         )
       })}
     </>
+  )
+}
+
+/**
+ * The field over a frame's or section's name label (upstream: double-click the label): the name
+ * selected, Enter or a press elsewhere renames (`object.rename`, one undo step), Escape keeps the
+ * name; the keyboard is the canvas's again after it.
+ */
+function LabelRename({ id, chrome, view, onDone }: { id: number; chrome: DesignChrome; view: KitCanvasView; onDone: () => void }) {
+  const { run } = useDesignKit()
+  const label = chrome.labels.find((item) => item.id === id)
+  // The label went (the frame was deleted, or another page is shown): nothing to rename.
+  useEffect(() => {
+    if (!label) onDone()
+  }, [label, onDone])
+  if (!label) return null
+  const xs = label.quad.map((point) => point[0])
+  const ys = label.quad.map((point) => point[1])
+  const left = (Math.min(...xs) - view.x) * view.zoom
+  const top = (Math.min(...ys) - view.y) * view.zoom
+  const width = Math.max(120, Math.min(label.maxWidth, 320), (Math.max(...xs) - Math.min(...xs)) * view.zoom + 24)
+  return (
+    <div onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
+      <RenameInput
+        value={label.name}
+        style={{ left: left - 3, top: top - 3, width, height: 20 }}
+        testId="design-label-rename"
+        onDone={(name) => {
+          onDone()
+          if (name != null) void run('object.rename', { ids: [id], name })
+          returnKeyboardLater()
+        }}
+      />
+    </div>
   )
 }

@@ -7,16 +7,19 @@
  * Who runs a key: kit-editor's frame binds each catalog command's first shortcut when it has a
  * modifier (or is Delete, Page Up/Down, an F key), the engine's tools take Escape, Enter, Tab,
  * Delete and the arrows, the tools' letters choose tools, and the shell takes the zoom and panel
- * keys. `menuKeyDown` runs the rest: the second keys of a binding (Cmd+E flatten, F2 rename, Home,
- * End, `\`), plain keys the frame leaves (I pick color), and the editor's own commands. It runs in
- * the capture phase so a key is never run twice (Cmd+Delete must ungroup, not delete).
+ * keys. `menuKeyDown` runs the keys that must come before the tools (Cmd+Delete must ungroup, not
+ * delete; Home and End go to a frame with a selection too), plain keys the frame leaves (I pick
+ * color), and the editor's own commands, in the capture phase so a key is never run twice.
+ * `keymapKeyDown`, the frame's own key handler (before its command shortcuts), runs every other
+ * second or later key of a binding (A for the Frame tool), so none of them needs a row here.
  */
 import { useMemo } from 'react'
 import { isMac, shortcutMatches } from '@kition/sdk/editor'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { DesignKit } from '../kit/context'
 import { useQuery } from '../kit/hooks'
 import { prettyShortcut } from '../ui/shortcuts'
-import { invoke, runKit } from './invoke'
+import { invoke, isKitCommand, runKit } from './invoke'
 
 export type Binding = { group: string; id: string; title: string; keys: string[]; shown: string[]; context: 'canvas' | 'text' | 'both' }
 export type Gesture = { group: string; label: string; keys: string }
@@ -49,12 +52,18 @@ const OWN: Own[] = [
   { group: 'Prototype', id: 'proto.present', title: 'Present', mac: ['Cmd+Alt+Enter'], before: 'proto.preview' },
 ]
 
+/**
+ * Engine bindings the editor does not offer: the keyboard marquee (`select.area`, Alt+Space and F8)
+ * has no box to draw here, so its keys are neither bound nor listed.
+ */
+export const NOT_OFFERED: ReadonlySet<string> = new Set(['select.area'])
+
 /** The groups, in the shortcuts dialog's order. */
 export const GROUPS = ['Essential', 'Tools', 'View', 'Zoom', 'Text', 'Shape', 'Selection', 'Edit', 'Transform', 'Arrange', 'Components', 'Prototype']
 
 /** The engine's bindings with the editor's own merged in at their upstream places. */
 export function mergeKeymap(engine: Keymap | null, mac = isMac()): Keymap {
-  const bindings = [...(engine?.bindings ?? [])]
+  const bindings = (engine?.bindings ?? []).filter((binding) => !NOT_OFFERED.has(binding.id))
   for (const own of OWN) {
     const keys = mac ? own.mac : (own.other ?? own.mac)
     const binding: Binding = { group: own.group, id: own.id, title: own.title, keys, shown: keys.map((key) => prettyShortcut(key, mac)), context: own.context ?? 'canvas' }
@@ -131,7 +140,6 @@ const KEYS: Key[] = [
   { keys: ['\\'], context: 'canvas', run: command('select.parent') },
   { keys: ['Cmd+Delete', 'Cmd+Backspace'], context: 'canvas', run: command('arrange.ungroup') },
   { keys: ['F2'], context: 'canvas', run: command('object.rename') },
-  { keys: ['F8'], context: 'canvas', run: command('select.area') },
   { keys: ['Cmd+Shift+C'], context: 'canvas', run: own('edit.copyAsPng') },
   { keys: ['Cmd+Alt+Enter'], context: 'canvas', run: own('proto.present') },
 ]
@@ -175,6 +183,45 @@ export function menuKeyDown(designKit: DesignKit, event: KeyboardEvent): boolean
     if (!key.keys.some((spec) => matches(spec, event, mac))) continue
     key.run(designKit)
     return true
+  }
+  return false
+}
+
+/** Keys the tools, the fields and the lists keep as their own: never a second key's command here. */
+const EDITING_KEYS = /(^|\+)(Escape|Enter|Tab|Delete|Backspace|Space|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Home|End|PageUp|PageDown)$/
+
+/** Runs binding `id` as a key does: a tool is chosen, a frame step moves the canvas, a command runs. */
+function runBinding(designKit: DesignKit, id: string) {
+  const tool = id.startsWith('tool.') ? id.slice(5) : null
+  if (tool && designKit.tools.tools.some((item) => item.id === tool)) {
+    designKit.tools.select(tool)
+    return true
+  }
+  if (id === 'view.prevFrame' || id === 'view.nextFrame') {
+    void designKit.viewTo(id)
+    return true
+  }
+  if (!isKitCommand(id) && !designKit.editor.byId.has(id)) return false
+  invoke(designKit, id)
+  return true
+}
+
+/**
+ * The second and later keys of every binding (kit-editor's frame binds a command's first key only,
+ * and the tools their one letter): for the frame's `onKeyDown`, which runs after the tools had the
+ * key and before the command shortcuts. Answers whether it ran one.
+ */
+export function keymapKeyDown(designKit: DesignKit, keymap: Keymap, event: ReactKeyboardEvent | KeyboardEvent): boolean {
+  const native = 'nativeEvent' in event ? event.nativeEvent : event
+  if (native.isComposing || event.defaultPrevented) return false
+  const mac = isMac()
+  const text = designKit.inspect.editing === 'text' || designKit.tools.wantsText
+  for (const binding of keymap.bindings) {
+    if (binding.context === 'text' && !text) continue
+    if (binding.context === 'canvas' && text) continue
+    const later = binding.keys.slice(1).filter((spec) => !EDITING_KEYS.test(spec))
+    if (!later.some((spec) => matches(spec, native, mac))) continue
+    if (runBinding(designKit, binding.id)) return true
   }
   return false
 }

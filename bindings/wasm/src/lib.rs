@@ -126,6 +126,9 @@ pub struct DesignDocument {
     /// [`KitDocument::restore_editor_state`] ([`context`]); shared with the design's file read
     /// again and with its planning copies.
     kept: context::Kept,
+    /// The tool the editor was last told is chosen (its own choice or a `switchTool`): a command
+    /// that changes the tool (`tool.rectangle` from a panel or an agent) is told on the next answer.
+    told_tool: kition_design_engine::tools::ToolId,
 }
 
 /// Runs `f` with the engine's file access confined to no folder: in a page there is no file system
@@ -190,6 +193,7 @@ impl DesignDocument {
             schema,
             libraries,
             kept: context::Kept::default(),
+            told_tool: kition_design_engine::tools::ToolId::Move,
         })
     }
 

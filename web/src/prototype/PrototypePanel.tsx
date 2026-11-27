@@ -14,6 +14,7 @@ import { RichDropdown } from './RichMenu'
 import { openEditor, protoState, useProtoState } from './store'
 import { defaultAction, sameInteractions, targetsFor } from './targets'
 import './prototype.css'
+import { releaseField } from '../kit/focus'
 
 const RESPONSIVE_TIP = "Resize frames to the device's screen (or the window without a device): their constraints and auto layout respond"
 
@@ -108,11 +109,11 @@ function InlineName({ value, onCommit, label }: { value: string; onCommit: (valu
       }}
       onKeyDown={(event) => {
         event.stopPropagation()
-        if (event.key === 'Enter') event.currentTarget.blur()
+        if (event.key === 'Enter') releaseField(event.currentTarget)
         else if (event.key === 'Escape') {
           cancelled.current = true
           setText(value)
-          event.currentTarget.blur()
+          releaseField(event.currentTarget)
         }
       }}
       data-testid="design-proto-flow-name"

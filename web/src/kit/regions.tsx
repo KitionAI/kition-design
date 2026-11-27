@@ -1,8 +1,9 @@
 /**
  * Keyboard regions (2.1 §6): Toolbar, Layers (rail and left panel), Canvas (the default),
  * Properties (the right panel). F6 and Shift+F6 move between them; Escape outside a field returns
- * to the canvas. A region is any element with `data-design-region`; it focuses its
- * `[data-design-prefer]` element first (the active tool, the selected layer), else its first control.
+ * to the canvas (from the toolbar it is then the canvas's Escape as well). A region is any element
+ * with `data-design-region`; it focuses its `[data-design-prefer]` element first (the active tool,
+ * the selected layer), else its first control.
  */
 import type { KeyboardEvent } from 'react'
 
@@ -58,7 +59,14 @@ export function regionKeyDown(root: HTMLElement | null, event: KeyboardEvent): b
   if (event.key === 'Escape' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
     const active = document.activeElement
     if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return false
-    if (currentRegion(active) === 'canvas') return false
+    const region = currentRegion(active)
+    if (region === 'canvas') return false
+    // From the toolbar the Escape is the canvas's too: after a click on a tool it goes back to Move
+    // (C15), as Escape on the canvas does.
+    if (region === 'toolbar') {
+      focusRegion(root, 'canvas')
+      return false
+    }
     return focusRegion(root, 'canvas')
   }
   return false

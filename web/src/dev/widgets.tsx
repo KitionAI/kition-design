@@ -7,6 +7,7 @@ import { Icon, type IconName } from '../icons/Icon'
 import { useDesignKit } from '../kit/hooks'
 import { Menu, type MenuEntry } from '../ui'
 import { copyText } from './store'
+import { releaseField } from '../kit/focus'
 
 /** An inspected property (`inspect.properties` rows, pinned annotation values). */
 export type Prop = { label: string; value: string; color?: string; token?: string }
@@ -97,11 +98,11 @@ export function NoteField({ value, placeholder, rows, onCommit, testId, clearOnC
         }}
         onKeyDown={(event) => {
           event.stopPropagation()
-          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) event.currentTarget.blur()
+          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) releaseField(event.currentTarget)
           else if (event.key === 'Escape') {
             cancelled.current = true
             setText(value)
-            event.currentTarget.blur()
+            releaseField(event.currentTarget)
           }
         }}
       />

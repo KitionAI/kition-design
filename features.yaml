@@ -1,6 +1,6 @@
 format: 1
 kit: design
-updated: "2026-11-20"
+updated: "2026-11-26"
 gate_budget_s: 600
 protected: []
 features:
@@ -75,6 +75,16 @@ features:
     paths: [web/src/App.tsx, web/src/kit/context.tsx, web/src/menus/catalog.ts, web/src/menus/model.ts, web/src/menus/invoke.ts, web/tests/modes.mjs]
     cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui, regressions/issue-ctrl-shift-question]
     since: "2026-11-17"
+  - id: design.editor.keyboard
+    title: "The editor's keyboard works wherever the person last clicked or typed: a field's Enter or Escape, a closed popup, menu, palette, window or comment composer, a layer row and a toolbar button give the keys back to the canvas; every binding's second keys, the number keys for opacity, the arrows that pan with nothing selected, N and Shift+N; the frame label renames on a double-click; the toolbar shows the tool a command chose"
+    dimension: [function]
+    priority: P0
+    status: has
+    commands: [object.opacityKeys, object.rename, view.nextFrame, view.prevFrame, tool.frame]
+    paths: [web/src/kit/focus.ts, web/src/menus/MenusHost.tsx, web/src/menus/keymap.ts, web/src/shell/keys.ts, web/src/kit/regions.tsx, web/src/canvas/DesignCanvas.tsx, web/src/comments/CommentsLayer.tsx, web/src/left/VariablesWindow.tsx, web/src/ui/NumberField.tsx, web/src/ui/TextField.tsx, web/src/devHost.ts, bindings/wasm/src/tools.rs, web/tests/hand/keys.mjs]
+    gap: "Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered."
+    cases: [regressions/issue-hand-h2-focus, regressions/issue-hand-c12-comment-tool, regressions/issue-hand-k6-first-key, regressions/issue-hand-a21-opacity-keys, regressions/issue-hand-rename-label]
+    since: "2026-11-26"
   - id: design.platform.document-identity
     title: "A host reads the document id a .kdesign carries and forks a copied design into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"
     dimension: [platform, data-safety]

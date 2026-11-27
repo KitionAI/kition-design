@@ -13,6 +13,7 @@ import { CommentsLayer } from '../comments/CommentsLayer'
 import { ContextMenuHost } from './ContextMenu'
 import { openContextMenu } from './contextMenuStore'
 import { openContextMenuAtSelection, setMenusDesignKit } from './invoke'
+import { focusEditor, keyboardFallback, keyboardLost } from '../kit/focus'
 import { menuKeyDown } from './keymap'
 
 export function MenusHost() {
@@ -21,9 +22,11 @@ export function MenusHost() {
   const latest = useRef(designKit)
   latest.current = designKit
 
-  // The keys the frame, the tools and the shell leave (keymap.ts), before any of them.
+  // The keys the frame, the tools and the shell leave (keymap.ts), before any of them; first, a
+  // key the page's body has goes to the editor's frame (kit/focus.ts).
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
+      if (keyboardFallback(event)) return
       if (menuKeyDown(latest.current, event)) {
         event.preventDefault()
         event.stopPropagation()
@@ -31,6 +34,17 @@ export function MenusHost() {
     }
     document.addEventListener('keydown', down, true)
     return () => document.removeEventListener('keydown', down, true)
+  }, [])
+
+  // The editor has the keyboard as soon as it opens, and whenever the host gives the page the focus
+  // with nothing in it focused (K6).
+  useEffect(() => {
+    const take = () => {
+      if (keyboardLost() && document.hasFocus()) focusEditor()
+    }
+    take()
+    window.addEventListener('focus', take)
+    return () => window.removeEventListener('focus', take)
   }, [])
 
   // Upstream checks the fonts after a file opens: Missing fonts opens itself when the editor lacks some.

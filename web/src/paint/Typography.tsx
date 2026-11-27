@@ -15,6 +15,7 @@ import { FontPicker, rememberFamily } from './FontPicker'
 import { StyleChip, openStyles } from './shared'
 import { parseLetterSpacing, parseLineHeight, spacingLabel, trimNum } from './spacing'
 import { TypeSettings } from './TypeSettings'
+import { releaseField } from '../kit/focus'
 
 const SIZES = [10, 11, 12, 13, 14, 16, 20, 24, 32, 36, 40, 48, 64, 96, 128]
 
@@ -381,10 +382,10 @@ function SpacingField({ glyph, tip, value, onCommit, scrub, testId }: { glyph: '
             setText(null)
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur()
+            if (event.key === 'Enter') releaseField(event.currentTarget)
             else if (event.key === 'Escape') {
               cancelled.current = true
-              event.currentTarget.blur()
+              releaseField(event.currentTarget)
             } else return
             event.stopPropagation()
           }}

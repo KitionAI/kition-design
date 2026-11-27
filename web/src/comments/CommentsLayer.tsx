@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom'
 import { useDesignKit, useQuery, useView } from '../kit/hooks'
 import type { DesignKit } from '../kit/context'
 import { useUiRequest } from '../kit/requests'
+import { useKeyboardReturn } from '../kit/focus'
 import { Icon } from '../icons/Icon'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { useProtoState } from '../prototype/store'
@@ -21,8 +22,10 @@ type Reaction = { emoji: string; users?: string[]; count?: number }
 type Message = { author: string; created: number; edited: number; text: string; reactions: Reaction[] }
 export type Thread = Message & { id: number; x: number; y: number; resolved: boolean; unread: boolean; replies: Message[]; link: string; frameName?: string; pageName?: string }
 
-// The open thread or draft (page coordinates), shared with the UI requests.
-type State = { open: number | null; draft: { x: number; y: number } | null }
+// The open thread or draft (page coordinates), shared with the UI requests. `posted`: the open
+// thread is the one the person just posted, whose reply field does not take the keyboard (the next
+// key is the canvas's: V, R or Escape leave the Comment tool, C12).
+type State = { open: number | null; draft: { x: number; y: number } | null; posted?: boolean }
 let state: State = { open: null, draft: null }
 const listeners = new Set<() => void>()
 function setState(next: Partial<State>) {
@@ -46,7 +49,7 @@ export function useOpenComment() {
 
 /** Opens thread `id` (`null` closes it). */
 export function openThread(id: number | null) {
-  setState({ open: id, draft: null })
+  setState({ open: id, draft: null, posted: false })
 }
 
 /**
@@ -117,12 +120,17 @@ function Avatar({ name, color, size }: { name: string; color?: string; size: num
  * The composer (frame `field`, r6; text regular 12; a 24 px round send button, ACCENT with text):
  * Enter posts, Shift+Enter breaks the line; typing `@` offers people (arrows, Enter or Tab inserts).
  */
-function Composer({ placeholder, people, me, onPost, initial = '', testId, onEscape }: { placeholder: string; people: string[]; me: string; onPost: (text: string) => void; initial?: string; testId?: string; onEscape?: () => void }) {
+function Composer({ placeholder, people, me, onPost, initial = '', testId, onEscape, focus = true }: { placeholder: string; people: string[]; me: string; onPost: (text: string) => void; initial?: string; testId?: string; onEscape?: () => void; focus?: boolean }) {
   const { t } = useDesignKit()
   const [text, setText] = useState(initial)
   const [pick, setPick] = useState(0)
   const area = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => area.current?.focus(), [])
+  useEffect(() => {
+    if (focus) area.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when it opens
+  }, [])
+  // Posted or closed, the keyboard goes back to the canvas.
+  useKeyboardReturn()
   const mention = /@([^\s@]*)$/.exec(text)
   const matches = mention ? people.filter((name) => name !== me && name.toLowerCase().startsWith(mention[1].toLowerCase())).slice(0, 6) : []
   const insert = (name: string) => {
@@ -308,7 +316,7 @@ export function PinFace({ pin }: { pin: Pick<Pin, 'initials' | 'color' | 'resolv
  * An open thread's popover at `spot` (page pixels; it flips left inside `rect`): the header with
  * Resolve, More and Close, the messages and the reply composer. The canvas and the presenter show it.
  */
-export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex }: { thread: Thread; spot: { x: number; y: number }; rect: DOMRect; people: string[]; me: string; colors: ReadonlyMap<string, string>; zIndex?: number }) {
+export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex, focusReply = true }: { thread: Thread; spot: { x: number; y: number }; rect: DOMRect; people: string[]; me: string; colors: ReadonlyMap<string, string>; zIndex?: number; focusReply?: boolean }) {
   const designKit = useDesignKit()
   const { t, run, refresh } = designKit
   const [moreAt, setMoreAt] = useState<HTMLElement | null>(null)
@@ -348,7 +356,7 @@ export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex }
           <MessageView key={`${index}:${message.created}`} thread={thread} message={message} index={index} people={people} me={me} colors={colors} />
         ))}
       </div>
-      <Composer key={thread.id} placeholder={t('Reply')} people={people} me={me} onPost={(text) => void after(run('comment.reply', { id: thread.id, text }))} testId="design-comment-composer" />
+      <Composer key={thread.id} placeholder={t('Reply')} people={people} me={me} onPost={(text) => void after(run('comment.reply', { id: thread.id, text }))} testId="design-comment-composer" focus={focusReply} />
       {moreAt ? <Menu tone="light" items={moreItems} anchor={moreAt} placement="below-end" minWidth={180} onClose={() => setMoreAt(null)} /> : null}
     </Popover>
   )
@@ -357,7 +365,7 @@ export function ThreadPopover({ thread, spot, rect, people, me, colors, zIndex }
 export function CommentsLayer() {
   const designKit = useDesignKit()
   const { t, run, inspect, refresh } = designKit
-  const { open, draft } = useCommentState()
+  const { open, draft, posted } = useCommentState()
   const { view, rect } = useSurface()
   const zoom = view ? Math.round(view.zoom * 1000) / 1000 : 1
   const pins = useQuery<Pins>('commentPins', { zoom, ...(open !== null ? { open } : {}) })
@@ -537,7 +545,7 @@ export function CommentsLayer() {
             document.body,
           )
         : null}
-      {thread && openPin && !presenting ? <ThreadPopover thread={thread} spot={spotOf(openPin)} rect={rect} people={names} me={me} colors={colors} /> : null}
+      {thread && openPin && !presenting ? <ThreadPopover thread={thread} spot={spotOf(openPin)} rect={rect} people={names} me={me} colors={colors} focusReply={!posted} /> : null}
       {draft ? (
         <Popover spot={toScreen(draft.x - area.x, draft.y - area.y)} rect={rect} testId="design-comment-draft">
           <div className="design-comment-head">
@@ -558,7 +566,7 @@ export function CommentsLayer() {
               const posting = draft
               void run<{ id?: number }>('comment.add', { x: posting.x, y: posting.y, text, anchor: true }).then(async (answer) => {
                 await refresh()
-                if (state.draft === posting) setState({ draft: null, open: typeof answer?.id === 'number' ? answer.id : null })
+                if (state.draft === posting) setState({ draft: null, open: typeof answer?.id === 'number' ? answer.id : null, posted: true })
               })
             }}
             testId="design-comment-draft-text"

@@ -10,6 +10,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useDesignKit, useQuery } from '../kit/hooks'
+import { useKeyboardReturn } from '../kit/focus'
 import type { DesignKit } from '../kit/context'
 import { TOP_MENUS } from './catalog'
 import { invoke, recentActions, recordRecent } from './invoke'
@@ -53,6 +54,8 @@ export function ActionsPalette({ anchor, onClose }: { anchor: Element | null; on
   const [tab, setTab] = useState<Tab>('all')
   const [hi, setHi] = useState(0)
   const panel = useRef<HTMLDivElement>(null)
+  // Closed (Escape, a press outside, a run action), the keyboard is the canvas's again.
+  useKeyboardReturn()
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const [at, setAt] = useState<{ left: number; top: number; width: number } | null>(null)

@@ -5,6 +5,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { anchorRect, place, type AnchorRect, type Placement } from './position'
+import { useKeyboardReturn } from '../kit/focus'
 
 /** Whether `layer` is the last floating layer in the page (the one Escape closes). */
 function topmost(layer: HTMLElement) {
@@ -42,6 +43,8 @@ export function Layer({ anchor, placement = 'below-start', gap = 4, onClose, dis
   const [at, setAt] = useState<{ left: number; top: number } | null>(null)
   const latest = useRef(onClose)
   latest.current = onClose
+  // Closed, it gives the keyboard back to the canvas when it had it.
+  useKeyboardReturn()
 
   useLayoutEffect(() => {
     const el = ref.current

@@ -13,6 +13,7 @@ import { loadCheckpoint, useCheckpoints } from './checkpoints'
 import { COLOR_FORMATS, LANGUAGES, STATUS_COLORS, copyText, setDev, useDev, type FocusState, type ReadyFilter } from './store'
 import { MenuDropdown, NoteField, PropRow, TwoLineRow, toBytes, useThumbnail, type Prop } from './widgets'
 import './dev.css'
+import { releaseField } from '../kit/focus'
 
 export type Section = { title: string; rows: Prop[] }
 type Category = { id: string; name: string; color: string; count: number }
@@ -233,10 +234,10 @@ function CategoryRow({ category }: { category: Category }) {
         spellCheck={false}
         onKeyDown={(event) => {
           event.stopPropagation()
-          if (event.key === 'Enter') event.currentTarget.blur()
+          if (event.key === 'Enter') releaseField(event.currentTarget)
           if (event.key === 'Escape') {
             event.currentTarget.value = category.name
-            event.currentTarget.blur()
+            releaseField(event.currentTarget)
           }
         }}
         onBlur={(event) => {

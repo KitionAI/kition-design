@@ -171,9 +171,11 @@ impl DesignDocument {
         }
         let mut requests: Vec<ToolRequest> =
             std::mem::take(&mut self.session.ui_requests).into_iter().map(|r| ToolRequest::Dialog { name: r.kind, params: r.data }).collect();
-        if self.session.tool.tool != tool_before {
+        // A tool the editor does not know yet: changed by this event, or by a command since.
+        if self.session.tool.tool != tool_before || self.session.tool.tool != self.told_tool {
             requests.push(ToolRequest::SwitchTool { id: self.session.tool.tool.id().to_owned() });
         }
+        self.told_tool = self.session.tool.tool;
         if let Some(text) = self.session.message.take() {
             requests.push(ToolRequest::Status { text });
         }
@@ -333,6 +335,8 @@ impl KitTools for DesignDocument {
         if before != tool {
             self.session.set_tool(tool);
         }
+        // The editor chose it: a switch to tell only if the engine took another.
+        self.told_tool = tool;
         Ok(self.respond(tool, zoom))
     }
 

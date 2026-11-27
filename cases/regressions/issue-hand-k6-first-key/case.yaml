@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-hand-k6-first-key
+feature: design.editor.keyboard
+intent: >-
+  The keyboard works as soon as the editor opens, before anything is clicked: the development host
+  never gave its frame the focus and the editor never took it, so R, Shift+1 and Cmd+A did nothing
+  until a click on the canvas. web/tests/hand/keys.mjs presses R right after the document opens and
+  reads the tool back.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings K6
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

@@ -15,6 +15,7 @@ import { BoundChip, StyleChip, clipboardState, useContextMenu, useListDrag, open
 import { StrokeSettings } from './StrokeSettings'
 import { closePicker, openPicker, paintState, updatePicker, usePaintState } from './store'
 import { PaintSwatch } from './Swatch'
+import { releaseField } from '../kit/focus'
 
 /** An inline text that turns into an editor on click (`text_field_inline`): Enter or blur commits, Escape cancels. */
 export function InlineText({ value, onCommit, ariaLabel, testId }: { value: string; onCommit: (text: string) => void; ariaLabel: string; testId?: string }) {
@@ -44,10 +45,10 @@ export function InlineText({ value, onCommit, ariaLabel, testId }: { value: stri
         setEditing(null)
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur()
+        if (event.key === 'Enter') releaseField(event.currentTarget)
         else if (event.key === 'Escape') {
           cancelled.current = true
-          event.currentTarget.blur()
+          releaseField(event.currentTarget)
         } else return
         event.stopPropagation()
       }}

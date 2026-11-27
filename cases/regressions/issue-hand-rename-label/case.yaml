@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-hand-rename-label
+feature: design.editor.keyboard
+intent: >-
+  A double-click on a frame's name label on the canvas renames it there: the engine asked for the
+  field (`canvas.renameLabel`) and nothing in the editor listened, so the double-click did nothing.
+  web/tests/hand/keys.mjs double-clicks a top-level frame's label, types a name and presses Enter
+  (one rename), then opens it again and presses Escape (the name stays), and presses R after it.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, gap analysis section 3 (canvas.renameLabel)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]

@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../ui'
+import { useKeyboardReturn } from '../kit/focus'
 import '../menus/menus.css'
 import './dialogs.css'
 
@@ -41,6 +42,7 @@ export function Dialog({ title, width, placement = { kind: 'center' }, onClose, 
   const [at, setAt] = useState<{ left: number; top: number } | null>(null)
   const latest = useRef(onClose)
   latest.current = onClose
+  useKeyboardReturn()
 
   useLayoutEffect(() => {
     const el = ref.current

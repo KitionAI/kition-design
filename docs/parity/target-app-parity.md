@@ -1,6 +1,6 @@
 # Target-app parity
 
-> **Last updated:** 2026-11-17 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
+> **Last updated:** 2026-11-26 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
 
 Each feature in `features.yaml` records its status against what the feature promises and, where it
 has one, the target application it is compared with (Figma desktop 126.10.7 (macOS)).
@@ -14,6 +14,7 @@ The difference column is the feature's recorded gap.
 | `design.agent.observe` An agent reads the layers and edits the right one by its numeric id | P0 | has | — | — |
 | `design.agent.preview` The agent's preview is a pure function of the design and an explicit view | P0 | has | — | — |
 | `design.agent.recover` An agent fixes what the check reports | P0 | has | — | — |
+| `design.editor.keyboard` The editor's keyboard works wherever the person last clicked or typed (fields, popups, palette, comments, layer rows, toolbar); second keys, number keys for opacity, arrow panning, N / Shift+N, label rename, the toolbar following the engine's tool | P0 | has | — | Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered. |
 | `design.component.button-instances` Make a component and place renamed instances of it | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.layout.auto-row` Add auto layout to a frame and hug its contents | P0 | has | Figma desktop 126.10.7 (macOS) | — |
 | `design.object.frames-shapes-text` Frames holding rectangles, ellipses and text, renamed and moved | P0 | has | Figma desktop 126.10.7 (macOS) | — |
@@ -56,6 +57,6 @@ The difference column is the feature's recorded gap.
 
 | Priority | has | partial | missing |
 | --- | ---: | ---: | ---: |
-| P0 | 11 | 1 | 0 |
+| P0 | 12 | 1 | 0 |
 | P1 | 2 | 29 | 0 |
 | P2 | 0 | 3 | 0 |

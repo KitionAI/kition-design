@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-h2-focus
+feature: design.editor.keyboard
+intent: >-
+  Enter or Escape in a panel field (X, a size, a colour) gives the keyboard back to the canvas: the
+  field blurred to the page's body, and then R, Cmd+Z, Delete and every other editor key did nothing
+  until the canvas was clicked (walkthrough H2; six of the nine stops in the login page task). The
+  same held after the Actions palette closed with Escape. web/tests/hand/keys.mjs types a value in X
+  and presses Enter (or Escape), then R, Cmd+Z, Delete and Cmd+F with real keys, and closes the
+  palette with Escape and presses R; a key that still finds the body holding the keyboard is given
+  to the editor's frame once.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings H2 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 600
+requires: [chromium]
