@@ -32,15 +32,15 @@ kition-design-docpath = { path = "crates/support/docpath" }
 kition-design-kit = { path = "bindings/wasm" }
 
 # kition-sdk, pinned by commit (one revision for every crate of it)
-kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
-kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
+kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
+kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
 # The collaboration budgets (kition-convergence performance mode), for the SDK crate's tests.
-kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
-kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
+kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
+kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
 # A host of kit processes (`HeadlessKit`), for the `document.identity` tests.
-kition-kit-host = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
+kition-kit-host = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
 # The kits' MCP server's tools (kition-kits-mcp), for the headless kit's end-to-end tests.
-kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "d2b39aaf423d4082382781dd75a0e2a454a8d332" }
+kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "ba2264b2e7e309db35f7cb58e7c77c12eb24a5e5" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }
