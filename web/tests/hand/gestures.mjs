@@ -4,8 +4,10 @@
 // canvas clears; a drag moves the layer as one undo step; each of the eight handles resizes from
 // its side; dragging just outside a corner rotates; a drag that comes near another layer's edge
 // snaps to it and shows the red guide; the arrows nudge by 1 and Shift by 10; Alt+drag leaves the
-// original and drags a copy, Cmd+D duplicates again; Delete removes and Cmd+Z brings it back. The
-// results are read back from the engine (`inspect`, `query`). Prints PASS or FAIL per step.
+// original and drags a copy, Cmd+D duplicates again; Delete removes and Cmd+Z brings it back. S3:
+// with Alt held over the other layer the distance shows, and once the pointer leaves the canvas
+// the hover outline and the distance go (A16; kit-editor's `pointerLeft`). The results are read
+// back from the engine (`inspect`, `query`). Prints PASS or FAIL per step.
 import { openHand } from './harness.mjs'
 
 const which = process.argv[2] ?? 'chromium'
@@ -139,6 +141,42 @@ try {
     step('snap the layer snaps to the other one\'s top', near(b.y, 100, 0.01) && near(b.x, 260, 1), show(b))
     step('snap the red guide shows during the drag', guides > 0, `${guides} guide lines`)
     await undo()
+  })
+
+  await part('leave', async () => {
+    // The engine's overlays now (the hover outline is a path; Alt's distances have number labels).
+    const overlays = async () => {
+      const zoom = (await designKit(() => window.designKit.canvas.current.view())).zoom
+      const state = await designKit((zoom) => window.designKit.editor.session.tool('toolState', [0, 0, '{}', zoom]), zoom)
+      return state?.overlays ?? []
+    }
+    const count = async (kind) => (await overlays()).filter((o) => o.kind === kind).length
+    // Off the canvas in one move (no canvas move on the way), over the editor's top bar.
+    const { surface } = hand
+    const away = { x: surface.x + surface.width / 2, y: surface.y - 12 }
+    const over = await toPage(350, 140)
+    // Nothing selected: the hovered layer's outline is the only path.
+    await click(600, 400)
+    await page.mouse.move(over.x - 20, over.y)
+    await page.mouse.move(over.x, over.y, { steps: 4 })
+    await settle(250)
+    const outlined = await count('path')
+    await page.mouse.move(away.x, away.y)
+    await settle(300)
+    const left = await count('path')
+    step('leave the hover outline goes when the pointer leaves the canvas', outlined > 0 && left === 0, `${outlined} paths over the layer, ${left} off the canvas`)
+    // A selected, Alt held over the other layer: the distance to it.
+    await click(150, 140)
+    await page.mouse.move(over.x - 20, over.y)
+    await page.keyboard.down('Alt')
+    await page.mouse.move(over.x, over.y, { steps: 4 })
+    await settle(250)
+    const measured = await count('measure')
+    await page.mouse.move(away.x, away.y)
+    await settle(300)
+    const after = await count('measure')
+    await page.keyboard.up('Alt')
+    step('leave the Alt distance goes when the pointer leaves the canvas', measured > 0 && after === 0, `${measured} measurements over the layer, ${after} off the canvas`)
   })
 
   await part('nudge', async () => {

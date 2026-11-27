@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-hand-a16-pointer-left
+feature: design.editor.gesture-cost
+intent: >-
+  When the pointer leaves the canvas, what hovering there showed goes: the hovered layer's
+  outline, and the red distance lines and numbers Alt measured to another layer. They stayed on
+  the canvas after the pointer had moved to a panel or the top bar, because the canvas never told
+  the engine the pointer left (walkthrough A16, gap R1). kit-editor now calls the kit's
+  `pointerLeft` on the canvas's pointerleave, and the binding answers it with the hover and the
+  measurement cleared (a hover a Layers row set since stays; a gesture keeps all of it).
+  web/tests/hand/gestures.mjs hovers a layer and then holds Alt over it with a real mouse, moves
+  off the canvas, and reads the engine's overlays back; bindings/wasm/tests/pointer_left.rs checks
+  the binding's answer.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding A16 and root cause R1 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/gestures.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

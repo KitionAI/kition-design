@@ -162,6 +162,29 @@ impl DesignDocument {
         self.session.ds().is_ok_and(|ds| ds.text_edit.is_some())
     }
 
+    /// `pointerLeft(zoom)`: the pointer left the canvas with no button held. What hovering there
+    /// showed goes: the distances Alt (or Dev Mode) measured, a vector region's highlight, and the
+    /// hovered layer's outline, unless something else (a Layers row) has set the hover since the
+    /// canvas last told it. A gesture keeps all of it.
+    pub fn pointer_left(&mut self, zoom: f64) -> ToolResponse {
+        self.set_zoom(zoom);
+        let zoom = self.zoom;
+        let before = self.session.tool.tool;
+        if !self.session.tool.busy() {
+            self.session.pointer_left();
+            let told = self.told_hover;
+            if let Ok(ds) = self.session.ds_mut()
+                && ds.hover.is_some()
+                && ds.hover == told
+            {
+                ds.hover = None;
+            }
+        }
+        // Only the overlays change: nothing of the document is painted again.
+        self.damage = None;
+        self.respond(before, zoom)
+    }
+
     /// The answer after an event: what the host must do, the overlays, the cursor.
     pub(crate) fn respond(&mut self, tool_before: ToolId, zoom: f64) -> ToolResponse {
         // What the event changed goes to the document's replica now (engine contract 2).

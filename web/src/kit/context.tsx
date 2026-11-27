@@ -91,7 +91,10 @@ export type DesignKit = {
 const DesignKitContext = createContext<DesignKit | null>(null)
 const ViewContext = createContext<KitCanvasView | null>(null)
 
-/** The newest tools from kit-editor (a new object with every engine answer), for `useTools`. */
+/**
+ * The newest tools from kit-editor, for `useTools`: a new object whenever a part of them changes,
+ * and the overlays change with every drag sample, so the context holds them through this store.
+ */
 type ToolsStore = { current: KitTools; listeners: Set<() => void> }
 const ToolsContext = createContext<ToolsStore | null>(null)
 

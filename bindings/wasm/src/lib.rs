@@ -723,6 +723,15 @@ pub mod web {
             self.0.set_hover(id.as_deref()).map_err(error)
         }
 
+        /// The pointer left the canvas with no button held: the hover's outline and measurements
+        /// go (kit-editor calls it on the canvas's `pointerleave`). Answers like the other tool
+        /// events.
+        #[wasm_bindgen(js_name = pointerLeft)]
+        pub fn pointer_left(&mut self, zoom: f64) -> Result<String, JsError> {
+            let response = self.0.pointer_left(zoom);
+            serde_json::to_string(&response).map_err(|problem| error(problem.to_string()))
+        }
+
         /// Turns Dev Mode's tool state on or off (measure on hover, no handles, no editing of
         /// text or vectors); `true` when it changed.
         #[wasm_bindgen(js_name = setDevMode)]
