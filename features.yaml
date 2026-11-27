@@ -90,8 +90,8 @@ features:
     dimension: [function]
     priority: P0
     status: has
-    commands: [edit.selectAll, edit.copy, edit.cut, edit.paste, text.edit.selectLine, layout.add]
-    paths: [crates/engine/engine/src/cmd/edit/clipboard.rs, crates/engine/engine/src/cmd/edit/select.rs, crates/engine/engine/src/canvas/textedit.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/cmd/structure.rs, web/src/canvas/input.ts, web/src/canvas/DesignCanvas.tsx, web/src/kit/focus.ts, web/tests/hand/text.mjs, web/tests/hand/view.mjs]
+    commands: [text.edit.key, text.edit.selection, text.edit.insert, text.edit.selectLine, layout.add]
+    paths: [web/src/kit/textEditing.ts, web/src/App.tsx, crates/engine/engine/src/canvas/textedit.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/cmd/structure.rs, web/src/canvas/input.ts, web/src/canvas/DesignCanvas.tsx, web/src/kit/focus.ts, web/tests/hand/text.mjs, web/tests/hand/view.mjs]
     gap: "Copy and paste while editing use the editor's own text clipboard, not the system clipboard. Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events)."
     cases: [regressions/issue-hand-b15-view-jump, regressions/issue-hand-d6-select-all-in-text, regressions/issue-hand-d8-text-clipboard, regressions/issue-hand-d10-empty-text-undo, regressions/issue-hand-f11-auto-layout-size, regressions/issue-hand-text-keys-after-editing]
     since: "2026-11-26"

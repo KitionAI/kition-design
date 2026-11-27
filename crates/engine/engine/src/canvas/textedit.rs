@@ -210,9 +210,11 @@ fn edit_if(s: &mut Session, f: impl FnOnce(&mut TextData, &mut TextEdit) -> bool
     let len = t.char_count();
     // A layer nobody named keeps the name its characters give it (their first line), so the
     // Layers panel reads what the canvas shows; a name the author chose stays, and so does the
-    // name of a layer inside an instance (its main component names it).
-    if n.source.is_none() && name_follows_text(&n.name, derived_before.as_deref()) {
-        n.name = text_layer_name(&t.characters).unwrap_or_default();
+    // name of a layer inside an instance (its main component names it). An edit that leaves the
+    // first line as it was (a list indent, a style) leaves the name alone.
+    let derived_after = text_layer_name(&t.characters);
+    if derived_after != derived_before && n.source.is_none() && name_follows_text(&n.name, derived_before.as_deref()) {
+        n.name = derived_after.unwrap_or_default();
     }
     te.caret = te.caret.min(len);
     te.anchor = te.anchor.min(len);

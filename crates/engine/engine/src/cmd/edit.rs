@@ -15,7 +15,7 @@ mod props;
 mod select;
 
 pub use clipboard::{CLIP_CLOSE, CLIP_OPEN, copy_to_clipboard, design_clipboard_buffer, paste_into};
-use clipboard::{copy, copy_props, copy_props_of, cut, paste_design_layers, paste_or_type, paste_over, paste_props, paste_replace};
+use clipboard::{copy, copy_props, copy_props_of, cut, paste, paste_design_layers, paste_over, paste_props, paste_replace};
 use props::{
     batch_rename, effect_add, effect_copy, effect_paste, find_replace, paint_copy, paint_list, paint_paste, paint_set, pattern_fill, reparent, set,
     stroke_brush, width_profile,
@@ -44,14 +44,14 @@ pub fn specs() -> Vec<CommandSpec> {
             true,
             duplicate
         ),
-        spec!("edit.copy", "Copy", "{ids?}  while a text is being edited: its selected characters, as plain text", false, copy),
+        spec!("edit.copy", "Copy", "{ids?}", false, copy),
         spec!("edit.cut", "Cut", "{ids?}", true, cut),
         spec!(
             "edit.paste",
             "Paste",
-            "{parent?, x?, y? (page coordinates of the pasted top-left)}  a copied main component pastes as an instance of it within its file (cut ones, and pastes into other files, keep the component)  while a text is being edited: types the copied text (copy and cut there take the selected characters)",
+            "{parent?, x?, y? (page coordinates of the pasted top-left)}  a copied main component pastes as an instance of it within its file (cut ones, and pastes into other files, keep the component)",
             true,
-            paste_or_type
+            paste
         ),
         spec!(
             "edit.pasteDesignLayers",
@@ -108,7 +108,7 @@ pub fn specs() -> Vec<CommandSpec> {
             false,
             layers_at
         ),
-        spec!("edit.selectAll", "Select all", "{}  while a text is being edited: all its characters", false, select_all),
+        spec!("edit.selectAll", "Select all", "{}", false, select_all),
         spec!("edit.deselectAll", "Select none", "{}", false, |s, _| {
             s.set_selection(vec![]);
             if let Ok(ds) = s.ds_mut() {

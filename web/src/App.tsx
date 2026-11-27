@@ -31,6 +31,7 @@ import { NOT_OFFERED, keymapKeyDown, useKeymap } from './menus/keymap'
 import { useMenuTabs } from './menus/model'
 import type { DesignStrings } from './strings'
 import { showToast } from './ui/Toast'
+import { runInText } from './kit/textEditing'
 
 /** The hand is the host's (kit-editor's pan); every other tool runs in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL }
@@ -44,12 +45,18 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
   const report = useCallback((_title: string, error: unknown) => showToast(message(error)), [])
   const base = useKitEditorState(session, host, strings.t, 'design', strings.phrase, undefined, { report })
   // Commands only ask for UI (dialogs, panels): their answers' requests go to whoever shows it.
+  // Whether a text is being edited on the canvas (the Edit commands then act on its characters).
+  const editingText = useRef(false)
   const editor = useMemo(
     () => ({
       ...base,
       run: async (id: string, params?: Record<string, unknown>) => {
         // Commands the editor shows a dialog for, or runs itself (the menus package).
         if (interceptCommand(id, params)) return null
+        if (editingText.current) {
+          const inText = await runInText(id, params, base.run)
+          if (inText !== undefined) return inText
+        }
         const answer = await base.run(id, params)
         dispatchFromAnswer(answer)
         return answer
@@ -65,6 +72,7 @@ export function App({ host, strings }: { host: HostConnection; strings: DesignSt
     overlayStyle: DESIGN_OVERLAY_STYLE,
     drawOverlay: drawDesignOverlay,
   })
+  editingText.current = session.state?.editing === 'text' || tools.wantsText
   const canvas = useRef<KitCanvasHandle>(null)
   const [view, setView] = useState<KitCanvasView | null>(null)
   const [rightTab, setRightTab] = useState<RightTab>('design')

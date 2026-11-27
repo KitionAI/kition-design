@@ -3,11 +3,10 @@ id: regressions/issue-hand-d6-select-all-in-text
 feature: design.editor.text-and-view
 intent: >-
   Cmd+A while typing a new text selects its characters: it selected every layer on the page, and
-  Cmd+B then bolded them all and a drag moved the whole page (walkthrough D6). Select all
-  (edit.selectAll) selects the characters of the text being edited, from the keys, the menu or an
-  agent. web/tests/hand/text.mjs makes a text with T, a click and typing, presses Cmd+A and Cmd+B,
-  and checks the text's selection, the layer selection and the bold; the engine's
-  text_edit_hand_tests check the command.
+  Cmd+B then bolded them all and a drag moved the whole page (walkthrough D6). While a text is
+  being edited, the editor runs Select all (from the keys or the menu) as the text's own select
+  all (text.edit.key SelectAll). web/tests/hand/text.mjs makes a text with T, a click and typing,
+  presses Cmd+A and Cmd+B, and checks the text's selection, the layer selection and the bold.
 layer: gate
 dimension: function
 source:

@@ -1,6 +1,6 @@
-//! Typing a new text by hand (the hand walkthrough's D6, D8, D10 and D12): a text made with the
-//! Text tool and typed into is one undo step with the layer, Select all, Copy, Cut and Paste act on
-//! the characters while it is being edited, and an unnamed text takes its name from its first line.
+//! Typing a new text by hand (the hand walkthrough's D10 and D12): a text made with the Text tool
+//! and typed into is one undo step with the layer, and an unnamed text takes its name from its
+//! first line.
 
 use serde_json::json;
 
@@ -23,10 +23,6 @@ fn chars(s: &Session, t: NodeId) -> String {
 
 fn layers(s: &Session) -> usize {
     s.doc().unwrap().nodes().count()
-}
-
-fn rect(s: &mut Session, x: f64) -> NodeId {
-    crate::params::id_of(&s.execute("shape.rectangle", &json!({"x": x, "y": 400, "width": 40, "height": 40})).unwrap()["id"]).unwrap()
 }
 
 #[test]
@@ -56,83 +52,6 @@ fn undoing_a_new_text_takes_the_layer_away() {
 }
 
 #[test]
-fn select_all_while_typing_a_new_text_selects_its_characters() {
-    // D6 (case regressions/issue-hand-d6-select-all-in-text): Cmd+A while typing a new text
-    // selected every layer on the page, and Cmd+B then bolded them all.
-    let mut s = Session::new();
-    rect(&mut s, 0.0);
-    rect(&mut s, 100.0);
-    let t = type_new_text(&mut s, 100.0, 100.0, "Hello world");
-    s.execute("edit.selectAll", &json!({})).unwrap();
-    assert_eq!(s.selection(), vec![t], "the layer selection stays the text");
-    let te = s.ds().unwrap().text_edit.clone().unwrap();
-    assert_eq!((te.anchor.min(te.caret), te.anchor.max(te.caret)), (0, 11), "all the characters are selected");
-    s.execute("format.bold", &json!({})).unwrap();
-    assert_eq!(s.selection(), vec![t]);
-    // Not editing, Select all still selects the layers.
-    crate::textedit::key(&mut s, "Escape", false, false, false).unwrap();
-    s.execute("edit.selectAll", &json!({})).unwrap();
-    assert_eq!(s.selection().len(), 3);
-}
-
-#[test]
-fn copy_and_paste_while_editing_act_on_the_characters() {
-    // D8 (case regressions/issue-hand-d8-text-clipboard): a word selected, Cmd+C, End, Cmd+V left
-    // the text as it was and pasted a second text layer over it.
-    let mut s = Session::new();
-    let t = type_new_text(&mut s, 100.0, 100.0, "Hello world");
-    crate::textedit::set_caret(&mut s, 6, false).unwrap();
-    crate::textedit::set_caret(&mut s, 11, true).unwrap();
-    let before = layers(&s);
-    let copied = s.execute("edit.copy", &json!({})).unwrap();
-    assert_eq!(copied["copiedText"], 5);
-    crate::textedit::key(&mut s, "End", false, false, false).unwrap();
-    s.execute("edit.paste", &json!({})).unwrap();
-    assert_eq!(chars(&s, t), "Hello worldworld", "the copied word is typed at the caret");
-    assert_eq!(layers(&s), before, "no layer is pasted");
-    // Cut takes the selected characters away; pasting types them back.
-    crate::textedit::set_caret(&mut s, 0, false).unwrap();
-    crate::textedit::set_caret(&mut s, 6, true).unwrap();
-    s.execute("edit.cut", &json!({})).unwrap();
-    assert_eq!(chars(&s, t), "worldworld");
-    assert_eq!(layers(&s), before, "cut deletes characters, not the layer");
-    crate::textedit::key(&mut s, "End", false, false, false).unwrap();
-    s.execute("edit.paste", &json!({})).unwrap();
-    assert_eq!(chars(&s, t), "worldworldHello ");
-    // With nothing selected, copy keeps what was copied.
-    crate::textedit::set_caret(&mut s, 2, false).unwrap();
-    s.execute("edit.copy", &json!({})).unwrap();
-    crate::textedit::key(&mut s, "End", false, false, false).unwrap();
-    s.execute("edit.paste", &json!({})).unwrap();
-    assert_eq!(chars(&s, t), "worldworldHello Hello ");
-    // The whole session is still one undo step, which takes the new layer away.
-    crate::textedit::key(&mut s, "Escape", false, false, false).unwrap();
-    assert!(s.undo().unwrap());
-    assert!(s.doc().unwrap().node(t).is_none());
-}
-
-#[test]
-fn copied_text_layers_paste_as_their_characters_while_editing() {
-    // Copying a text layer and pasting into another text being edited types its characters.
-    let mut s = Session::new();
-    let a = type_new_text(&mut s, 100.0, 100.0, "First");
-    crate::textedit::key(&mut s, "Escape", false, false, false).unwrap();
-    s.execute("edit.copy", &json!({"ids": [a]})).unwrap();
-    let b = type_new_text(&mut s, 100.0, 300.0, "Second ");
-    let before = layers(&s);
-    s.execute("edit.paste", &json!({})).unwrap();
-    assert_eq!(chars(&s, b), "Second First");
-    assert_eq!(layers(&s), before);
-    // Copied layers that are not all texts have no text to type: the paste changes nothing.
-    crate::textedit::key(&mut s, "Escape", false, false, false).unwrap();
-    let r = rect(&mut s, 0.0);
-    s.execute("edit.copy", &json!({"ids": [r, a]})).unwrap();
-    crate::textedit::begin(&mut s, b, Some(0), false).unwrap();
-    s.execute("edit.paste", &json!({})).unwrap();
-    assert_eq!(chars(&s, b), "Second First");
-}
-
-#[test]
 fn an_unnamed_text_takes_its_first_line_as_its_name() {
     // D12: a new text's layer was called "" and showed as "Text" whatever it said.
     let mut s = Session::new();
@@ -151,4 +70,10 @@ fn an_unnamed_text_takes_its_first_line_as_its_name() {
     crate::textedit::begin(&mut s, t, Some(0), false).unwrap();
     crate::textedit::insert(&mut s, "A").unwrap();
     assert_eq!(name(&s), "Title");
+    // An edit that leaves the first line as it was leaves a layer called `Text` alone.
+    let other = crate::params::id_of(&s.execute("node.add", &json!({"type": "text", "props": {"characters": "a"}})).unwrap()["id"]).unwrap();
+    let before = s.doc().unwrap().node(other).unwrap().name.clone();
+    crate::textedit::begin(&mut s, other, Some(1), false).unwrap();
+    crate::textedit::key(&mut s, "Enter", false, false, false).unwrap();
+    assert_eq!(s.doc().unwrap().node(other).unwrap().name, before);
 }

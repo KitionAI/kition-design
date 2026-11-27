@@ -4,10 +4,11 @@ feature: design.editor.text-and-view
 intent: >-
   Copy, cut and paste while editing a text act on its characters as plain text: a word selected,
   Cmd+C, End and Cmd+V left the text as it was and pasted a second text layer over it
-  (walkthrough D8). edit.copy and edit.cut take the selected characters (nothing when none are
-  selected), edit.paste types the copied text at the caret, and no layer is added or removed.
-  web/tests/hand/text.mjs does it with real keys and counts the layers; the engine's
-  text_edit_hand_tests check the commands. The system clipboard is not read or written here.
+  (walkthrough D8). While a text is being edited, the editor runs Copy and Cut as taking the
+  selected characters (nothing when none are selected; Cut then deletes them) and Paste as typing
+  the copied text at the caret (text.edit.selection, text.edit.key, text.edit.insert), so no layer
+  is added or removed. web/tests/hand/text.mjs does it with real keys and counts the layers. The
+  system clipboard is not read or written here.
 layer: gate
 dimension: function
 source:
