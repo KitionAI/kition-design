@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-hand-l5-paste-external
+feature: design.editor.system-clipboard
+intent: >-
+  Cmd+V pastes what is on the system clipboard: with SVG text copied in another app it pasted the
+  rectangle copied earlier in the editor (walkthrough L5), and nothing the editor copied reached
+  the system clipboard (D8, R7). The editor takes the page's paste event: an image another app
+  copied becomes an image layer in the middle of the view, SVG text an editable frame there, other
+  text a text layer; each is one undo step. A copy of layers puts the editor's own mark on the
+  clipboard (then the layers' SVG, or their characters when all are text), and its paste is the
+  engine's copy again, in place, or in the middle of the view when the original is out of it.
+  While a text is edited, Copy puts the selected characters on the clipboard and Paste types the
+  clipboard's text. web/tests/hand/clipboard.mjs sends the paste and copy events the browser sends
+  for Cmd+V and Cmd+C, and in Chromium presses the real keys with the clipboard allowed.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, findings L5 and D8 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/clipboard.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

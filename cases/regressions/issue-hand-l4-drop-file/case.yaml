@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-hand-l4-drop-file
+feature: design.editor.file-drop
+intent: >-
+  A PNG or SVG file dragged onto the canvas was not taken: the drag events were left to the browser
+  and the layer count did not change (walkthrough L4). While files are over the canvas a hint
+  covers it ("Drop to import"); an image dropped is a new image layer and an SVG an editable frame,
+  each with its top-left where it landed; a dropped document is not opened in this one (the editor
+  says to open it from Kition), and a file dropped beside the canvas is stopped so the browser does
+  not open it in place of the editor. web/tests/hand/clipboard.mjs sends the drag events with the
+  files and reads the layers back.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26, finding L4 (kition-plan kit-docs/design/walkthrough)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/clipboard.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]
