@@ -12,6 +12,14 @@ pnpm typecheck && pnpm build
 pnpm test:flow               # Chromium and WebKit, through the dev host
 ```
 
+`tests/hand/` drives the editor the way a person does, with real pointer and keys only (no command
+run in place of a gesture), and reads the result back from the engine: `test:hand-input` (keys,
+text, input methods, the clipboard), `test:hand-canvas` (gestures, the view, guides, auto layout
+handles, vectors) and `test:hand-accept` (what a pointer event costs, the thirty things of a
+designer's first ten minutes in `first-ten-minutes.mjs`, and a whole login screen in `login.mjs`).
+One file runs alone with `node tests/hand/<name>.mjs chromium` (or `webkit`); `DESIGN_ORIGIN`
+reuses a running dev server, `HAND_SHOTS=<folder>` keeps the acceptance tests' screenshots.
+
 ## How it fits kit-editor's frame
 
 The upstream editor has no menu bar: its main menu sits under the logo in the left rail. The kit
@@ -107,9 +115,6 @@ zh-CN). The editor follows the host's locale changes.
 - A node link scheme (`kition-design://node/<id>`) that `comment.open`-like commands accept;
   `comment.zoom` and `comment.open { view }` move the engine's view, which the kit's canvas does
   not follow (the editor zooms and pans itself).
-- `chrome` lists no page guides: `guides::segment` answers nothing for a page, so a guide on the
-  page (not in a top-level frame) is neither drawn nor right-clickable; upstream draws page guides
-  across the whole canvas.
 
 ## kit-editor and Tessera requests
 
@@ -122,3 +127,12 @@ zh-CN). The editor follows the host's locale changes.
 - Tessera has no dark menu tone; `src/ui/Menu.tsx` draws both tones until it does.
 - kit-editor has no API to toggle Focus (View > Show/Hide UI); the menus send the frame its own
   Mod+\\ key. The frame binds only a command's first shortcut: the editor dispatches the others.
+- kit-editor's `view()` and `onView` report the view before the canvas put its frame on whole
+  device pixels (up to half a device pixel off what is drawn); the editor reads the view it drew
+  (`placedView` in `src/canvas/view.ts`) until they report that one.
+- A key pressed while the engine answers is replayed without its key code, so the editor sends a
+  modifier pressed while hovering 120 ms later and not at all when it is part of a shortcut.
+- kit-editor's text field sends no composition updates and stays where it is: the editor shows the
+  composition and moves the field to the caret itself (`src/canvas/inputMethod.ts`).
+- Kits have no entry for keys in their own order before kit-editor's: the vector edit tool letters
+  go through the frame's `onKeyDown` (`src/shell/keys.ts`).

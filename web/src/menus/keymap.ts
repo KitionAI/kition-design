@@ -18,7 +18,7 @@ import { isMac, shortcutMatches } from '@kition/sdk/editor'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { DesignKit } from '../kit/context'
 import { composingKey } from '../canvas/inputMethod'
-import { useQuery } from '../kit/hooks'
+import { useInspect, useQuery } from '../kit/hooks'
 import { prettyShortcut } from '../ui/shortcuts'
 import { invoke, isKitCommand, runKit } from './invoke'
 
@@ -59,12 +59,15 @@ const OWN: Own[] = [
  */
 export const NOT_OFFERED: ReadonlySet<string> = new Set(['select.area'])
 
+/** The whiteboard's tools: their keys work on a board only, so a design file neither lists nor offers them. */
+export const BOARD_ONLY: ReadonlySet<string> = new Set(['tool.sticky', 'tool.shape', 'tool.connector', 'tool.marker', 'tool.highlighter', 'tool.eraser', 'tool.stamp', 'board.nextSticky'])
+
 /** The groups, in the shortcuts dialog's order. */
 export const GROUPS = ['Essential', 'Tools', 'View', 'Zoom', 'Text', 'Shape', 'Selection', 'Edit', 'Transform', 'Arrange', 'Components', 'Prototype']
 
-/** The engine's bindings with the editor's own merged in at their upstream places. */
-export function mergeKeymap(engine: Keymap | null, mac = isMac()): Keymap {
-  const bindings = (engine?.bindings ?? []).filter((binding) => !NOT_OFFERED.has(binding.id))
+/** The engine's bindings with the editor's own merged in at their upstream places (for a document of `kind`). */
+export function mergeKeymap(engine: Keymap | null, mac = isMac(), kind = 'design'): Keymap {
+  const bindings = (engine?.bindings ?? []).filter((binding) => !NOT_OFFERED.has(binding.id) && (kind === 'board' || !BOARD_ONLY.has(binding.id)))
   for (const own of OWN) {
     const keys = mac ? own.mac : (own.other ?? own.mac)
     const binding: Binding = { group: own.group, id: own.id, title: own.title, keys, shown: keys.map((key) => prettyShortcut(key, mac)), context: own.context ?? 'canvas' }
@@ -85,11 +88,12 @@ let knownKeymap: Keymap | null = null
 /** The keymap for this platform (engine and editor bindings). */
 export function useKeymap(): Keymap {
   const mac = isMac()
+  const kind = useInspect().kind
   const answered = useQuery<Keymap>('keymap', { platform: mac ? 'mac' : 'other' })
   // The keymap is static: kept once answered, so menus opened later show their keys at once.
   if (answered) knownKeymap = answered
   const engine = answered ?? knownKeymap
-  return useMemo(() => mergeKeymap(engine, mac), [engine, mac])
+  return useMemo(() => mergeKeymap(engine, mac, kind), [engine, mac, kind])
 }
 
 /** Each command's first shortcut, as the menus show it (upstream: the first binding's first key). */
@@ -143,6 +147,8 @@ const KEYS: Key[] = [
   { keys: ['F2'], context: 'canvas', run: command('object.rename') },
   { keys: ['Cmd+Shift+C'], context: 'canvas', run: own('edit.copyAsPng') },
   { keys: ['Cmd+Alt+Enter'], context: 'canvas', run: own('proto.present') },
+  // Before kit-editor's Space (the hand), which would take it.
+  { keys: ['Shift+Space'], context: 'canvas', run: command('proto.preview') },
 ]
 
 /** A field the person types in (not kit-editor's text sink, which carries the canvas's text editing). */
@@ -164,6 +170,8 @@ function matches(spec: string, event: KeyboardEvent, mac: boolean) {
     return (event.key === '?' || (event.code === 'Slash' && event.shiftKey)) && modifiers && event.altKey === want.alt
   }
   if (spec.endsWith('Backspace')) return shortcutMatches(spec.replace('Backspace', 'Delete'), event, mac)
+  // kit-editor compares a named key with `event.key`, which is " " for Space.
+  if (spec === 'Space' || spec.endsWith('+Space')) return shortcutMatches(`${spec.slice(0, -'Space'.length)} `, event, mac, true)
   return shortcutMatches(spec, event, mac, true)
 }
 

@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last updated:** 2026-11-27 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
+> **Last updated:** 2026-11-27 · **Source:** `features.yaml` (updated 2026-11-27), the engine's command list, and the editor checked by hand (`web/tests/hand/`, plan 2026-11-26)
 
 Every known shortfall of Kition Design, from the feature catalogue: features that are not yet `has`,
 then the differences recorded on features that work. Update the feature in `features.yaml` when you
@@ -10,6 +10,7 @@ land work, then this list. The comparison with the target application is in
 ## Features not done
 
 - `design.agent.ids` (P0, partial): Stable tool ids and typed command references for layers and resources. An independent reading covers all 372 write handlers; 368 commands are mechanically compared across 803 paths (four widget commands need an unavailable plugin). The gate permits zero held-less commands and twelve held-more commands: import name membership, page-window occupants, prototype mode-reference replay, painted-bound facts in five spatial commands and unconditional reflow inputs in three no-op text commands and unread current subtrees in Dev Mode resolution. Batch selection/dataflow, layout limits, text and group membership, variable defaults/aliases and consumed appearance are covered by independent-writer tests. The 300-cell constraint matrix has zero wrong writes and false refusals; other combinations remain unproven. The pinned SDK still accepts implicit-selection wrong writes, refuses unrelated address/membership changes, and cannot observe a linked library file changing by itself.
+- `design.editor.first-ten-minutes` (P0, partial): A designer's first ten minutes by hand in the editor: the thirty things of the acceptance list and six more, and a whole phone login screen. Checked in `web/dev.html` with real pointer and keys in Chromium and WebKit: 29 of the 30 and the 6 more pass; the login screen takes 101 actions and gets stuck no time (131 and 9 on 2026-11-26). A marquee from the canvas that touches part of a top-level frame selects nothing (the reference selects the frame): the engine's selection behaviour suite pins today's rule, and changing it needs a maintainer. The new file and the first save's file name are the host's (`dev.html` has no new file). A real mouse, trackpad and input method, and Kition Desktop's frame, are not checked.
 - `design.editor.input-method` (P0, partial): Chinese, Japanese and Korean input on the canvas: a composition shows at the caret, underlined, without changing the document; the candidate window opens at the caret; the keys of a composition are the input method's; the text keys move by word as the platform's do. Checked in `web/dev.html` with Chromium's DevTools input method and real typing; a real input method on a Mac or Windows, and Kition Desktop's frame, are not checked. The input method's cursor inside a composition shows at its end. kit-editor's text sink still gives the editor's commands a composition's keys and sends no composition updates; the editor stops the keys and sends the updates itself.
 - `design.editor.gesture-cost` (P0, partial): A drag sample and a hover cost one trip to the engine and repaint only what they changed: the panels hold their queries while a pointer gesture runs and ask once after it, the Design panel's X, Y, W, H and rotation and the canvas chrome follow the drag from the engine's answers, a hover tells the editor only when the hovered layer changes, and the hover's outline and the distances Alt measured go when the pointer leaves the canvas, nothing re-renders the whole editor for an engine answer, every tool event's answer names the area it changed so the canvas repaints that area of its frame, and a zoomed-out frame is drawn at its own scale. Measured on a loaded machine (1-minute load 24-105), 1x, 50 %: dragging a rectangle paints once per pointer event, 47 times a second, the next paint 7 ms after it (348 layers), 48 times and 19 ms (2784 layers); at 2x, 2784 layers, 17 times and 78 ms. A fast pan no longer waits for a new frame (2784 layers: 0 of 124 moves without a paint for 50 ms; at 2x, 63 paints a second). Outline mode repaints the whole view for every edit. A patched curved edge can differ by a few levels of anti-aliasing from a whole render until the next one.
 - `design.editor.system-clipboard` (P0, partial): Copy, Cut and Paste use the system clipboard: an image, SVG text or text another app copied pastes as an image layer, an editable frame or a text layer; the editor's own copy of layers pastes as layers; characters copied in a text reach other apps and text from them types into a text. Checked in `web/dev.html` with the browser's paste and copy events and, in Chromium, real Cmd+C and Cmd+V; Safari and Kition Desktop's frame are not checked. The SVG or text other apps get follows the editor's mark a moment after the copy, through the asynchronous clipboard. The menus' Paste reads the system clipboard only where the browser allows it without asking. An image pasted over one selected layer makes a new layer rather than that layer's fill; layers pasted into another document arrive as their SVG.
@@ -50,11 +51,58 @@ land work, then this list. The comparison with the target application is in
 - `design.app.preferences` (P2, partial): Preferences. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `design.devmode.handoff` (P2, partial): Dev Mode: changes, focus view, inspect, code, measurements, annotations, resources. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 
+## What the editor still lacks by hand
+
+The hand-use plan of 2026-11-26 (stages 1–11) made the editor usable with the mouse and keys; these
+are what it left, cut, or handed to the owner. Each is also on its feature above or below.
+
+Not done or cut:
+
+- A marquee from the canvas that touches part of a top-level frame selects nothing; the reference
+  selects the frame (the engine's selection suite pins today's rule; a maintainer decides).
+- The keyboard marquee (`select.area`, Alt+Space / F8) is not offered.
+- The zoom goes from 1 % to 6400 % (kit-editor's canvas); the reference goes from 2 % to 25,600 %.
+- Smart selection spacing has no handles in the gaps on the canvas (the Layout section's fields
+  only); grid tracks have no handles; padding and gap bands drag from anywhere on the band.
+- The Scale tool has no panel and no anchor; the pencil's brush has no toolbar entry; the
+  Variable width tool's point has no fields; fill rule and reverse path have no controls; several
+  selected vector points show their box's top-left, not Mixed, and cannot be aligned or
+  distributed.
+- No clickable constraints diagram; no undo history panel, component playground, nested instance
+  properties or glyph panel.
+- Alt while dragging a ruler guide does not measure; the mouse's side buttons do not pan; there is
+  no preference for the wheel to zoom; no coarse preview while zooming.
+- Copy and paste between two documents carries SVG, not the layers; an image pasted over one
+  selected layer is a new layer, not its fill; a document dropped on the canvas is not opened; an
+  image dropped on the colour picker does not replace its image.
+- Typing `1. ` or `- ` does not start a list; a code block does not exist in the text model; an
+  input method's own cursor inside a composition shows at its end.
+- Libraries are not updated item by item; variables are not reordered by dragging; style folders
+  are not deleted.
+- The Windows and Linux keys and Firefox are not checked by hand.
+
+Waiting for the owner:
+
+- Kition Desktop: whether the editor has the keyboard as soon as a design opens, whether its frame
+  may read the system clipboard and take dropped files, and where an input method's candidate window
+  opens there (only `web/dev.html` is checked).
+- By hand on real devices: an input method on a Mac and on Windows, a trackpad's pinch and inertia,
+  a real mouse wheel, Shift+wheel, copy and paste between apps, a file dragged from the desktop.
+- kit-editor reports the view before it put the frame on whole device pixels (`view()`,
+  `onView`); the editor corrects it (`placedView`) until kition-sdk is fixed, which needs an existing
+  kition-sdk test changed. The editor's `onDevicePixels` stays for the same reason (removing it
+  changes the steps of `regressions/issue-hand-m5-device-pixels`).
+- A key pressed while the engine answers is replayed by kit-editor without its key code (a
+  modifier pressed while hovering reaches the tool 120 ms later, not at all when part of a
+  shortcut).
+- A mixed stroke weight scrubbed in CI twice gave one layer about +1363 (`test:paint`, Chromium);
+  not reproduced here (`test:scrub-repeat` watches it).
+
 ## Differences on features that work
 
-- `design.editor.keyboard` (P0, has): measured in `web/dev.html` only; whether Kition Desktop gives the editor's frame the keyboard when a design opens is not checked here. The keyboard marquee (`select.area`, Alt+Space / F8) is not offered in the editor: its keys are not bound and the shortcuts dialog does not list it.
+- `design.editor.keyboard` (P0, has): measured in `web/dev.html` only; whether Kition Desktop gives the editor's frame the keyboard when a design opens is not checked here. The keyboard marquee (`select.area`, Alt+Space / F8) is not offered in the editor: its keys are not bound and the shortcuts dialog does not list it. In a design file the dialog lists no whiteboard tool (their keys work on boards only).
 - `design.editor.text-and-view` (P0, has): Measured in `web/dev.html` with synthetic wheel events: a real mouse wheel and a real trackpad are not checked. At zooms whose device scale is not a whole number (150 % on a 1x screen) the canvas can still copy its frame half a pixel off: kit-editor places the frame, the editor only moves the view.
 
 ## Catalogue
 
-The catalogue has 51 features: 14 `has`, 37 not yet.
+The catalogue has 59 features: 18 `has`, 41 not yet.

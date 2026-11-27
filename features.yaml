@@ -1,6 +1,6 @@
 format: 1
 kit: design
-updated: "2026-11-26"
+updated: "2026-11-27"
 gate_budget_s: 600
 protected: []
 features:
@@ -76,14 +76,14 @@ features:
     cases: [design.platform.display-modes/mode-smoke, design.platform.display-modes/show-hide-ui, regressions/issue-ctrl-shift-question]
     since: "2026-11-17"
   - id: design.editor.keyboard
-    title: "The editor's keyboard works wherever the person last clicked or typed: a field's Enter or Escape, a closed popup, menu, palette, window or comment composer, a layer row and a toolbar button give the keys back to the canvas; every binding's second keys, the number keys for opacity, the arrows that pan with nothing selected, N and Shift+N; the frame label renames on a double-click; the toolbar shows the tool a command chose"
+    title: "The editor's keyboard works wherever the person last clicked or typed: a field's Enter or Escape, a closed popup, menu, palette, window or comment composer, a layer row and a toolbar button give the keys back to the canvas; every binding's second keys, the number keys for opacity, the arrows that pan with nothing selected, N and Shift+N; the frame label renames on a double-click; the toolbar shows the tool a command chose; F6 and Shift+F6 move between the regions from the canvas; the shortcuts dialog lists only keys that work in the open file"
     dimension: [function]
     priority: P0
     status: has
     commands: [object.opacityKeys, object.rename, view.nextFrame, view.prevFrame, tool.frame]
     paths: [web/src/kit/focus.ts, web/src/menus/MenusHost.tsx, web/src/menus/keymap.ts, web/src/shell/keys.ts, web/src/kit/regions.tsx, web/src/canvas/DesignCanvas.tsx, web/src/comments/CommentsLayer.tsx, web/src/left/VariablesWindow.tsx, web/src/ui/NumberField.tsx, web/src/ui/TextField.tsx, web/src/devHost.ts, bindings/wasm/src/tools.rs, web/tests/hand/keys.mjs]
-    gap: "Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered."
-    cases: [regressions/issue-hand-h2-focus, regressions/issue-hand-c12-comment-tool, regressions/issue-hand-k6-first-key, regressions/issue-hand-a21-opacity-keys, regressions/issue-hand-rename-label]
+    gap: "Measured in dev.html only (Kition Desktop's frame focus on open is not checked here). The keyboard marquee (select.area, F8) is not offered. In a design file the shortcuts dialog lists no whiteboard tool (their keys work on boards only)."
+    cases: [regressions/issue-hand-h2-focus, regressions/issue-hand-c12-comment-tool, regressions/issue-hand-k6-first-key, regressions/issue-hand-a21-opacity-keys, regressions/issue-hand-rename-label, regressions/issue-hand-f6-regions, regressions/issue-hand-shortcuts-board-tools]
     since: "2026-11-26"
   - id: design.editor.text-and-view
     title: "Text typed on the canvas and the view behave as a person expects: Cmd+A, Copy, Cut and Paste act on the characters of the text being edited, a triple-click selects its paragraph, a new text and its typing are one undo step, an unnamed text is named after its first line, the tools' letters work again when editing ends; the first layer on a new page stays where it was drawn, a mouse wheel's notch with Cmd zooms 1.2 times around the pointer, a view at 100 % or 200 % sits on whole device pixels (smooth edges and whole thin lines on a 1x screen), and Shift+A keeps a stroked frame's size"
@@ -91,9 +91,9 @@ features:
     priority: P0
     status: has
     commands: [text.edit.key, text.edit.selection, text.edit.insert, text.edit.selectLine, layout.add]
-    paths: [web/src/kit/textEditing.ts, web/src/App.tsx, crates/engine/engine/src/canvas/textedit.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/cmd/structure.rs, web/src/canvas/input.ts, web/src/canvas/DesignCanvas.tsx, web/src/kit/focus.ts, web/src/canvas/view.ts, web/tests/hand/text.mjs, web/tests/hand/view.mjs]
+    paths: [web/src/kit/textEditing.ts, web/src/App.tsx, crates/engine/engine/src/canvas/textedit.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/cmd/structure.rs, web/src/canvas/input/wheel.ts, web/src/canvas/DesignCanvas.tsx, web/src/kit/focus.ts, web/src/canvas/view.ts, web/tests/hand/text.mjs, web/tests/hand/view.mjs]
     gap: "Measured in dev.html only; a real mouse wheel and a real trackpad are not checked (synthetic wheel events). At zooms whose device scale is not a whole number (150 % on a 1x screen) the canvas can still copy its frame half a pixel off: kit-editor places the frame, the editor only moves the view."
-    cases: [regressions/issue-hand-b15-view-jump, regressions/issue-hand-d6-select-all-in-text, regressions/issue-hand-d8-text-clipboard, regressions/issue-hand-d10-empty-text-undo, regressions/issue-hand-f11-auto-layout-size, regressions/issue-hand-text-keys-after-editing, regressions/issue-hand-m5-device-pixels]
+    cases: [regressions/issue-hand-b15-view-jump, regressions/issue-hand-d6-select-all-in-text, regressions/issue-hand-d8-text-clipboard, regressions/issue-hand-d10-empty-text-undo, regressions/issue-hand-f11-auto-layout-size, regressions/issue-hand-text-keys-after-editing, regressions/issue-hand-m5-device-pixels, regressions/issue-hand-login-label-and-instance-text]
     since: "2026-11-26"
   - id: design.editor.input-method
     title: "Chinese, Japanese and Korean input on the canvas: Chinese typed in a page shows in the editor's Chinese face, what an input method composes shows in the text being edited at the caret, underlined and laid out with it, without changing the document; the input method's candidate window opens at the caret; Escape, Enter, the arrows and Backspace pressed while composing are the input method's; the finished text is typed as one undo step with its editing; the text keys move by word as the platform's do (Alt on a Mac, Ctrl elsewhere)"
@@ -172,6 +172,15 @@ features:
     paths: [web/src/shell/keys.ts, web/src/shell/tools.ts, web/src/shell/Toolbar.tsx, web/src/design/VectorPanel.tsx, web/src/design/DesignPanel.tsx, web/src/App.tsx, bindings/wasm/src/tools.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/collab.rs, crates/engine/engine/src/canvas/tools/pen.rs, crates/engine/engine/src/canvas/tools/click.rs, crates/engine/engine/src/canvas/vectoredit.rs, crates/engine/engine/src/canvas/vectoredit/pointer.rs, crates/engine/engine/src/session/undo.rs, crates/engine/engine/src/pen_by_hand_tests.rs, web/tests/hand/vector.mjs]
     gap: "Checked in dev.html with real pointer and keys in Chromium and WebKit; a real mouse, a pen tablet and Kition Desktop's frame are not checked. Several selected points show the top-left of their box as X and Y (the reference shows each point's own value, or Mixed, and applies +10 to each); the panel cannot align or distribute points. The Variable width tool's width point has no fields. The pencil has no brush in the toolbar (tool.pencilBrush only) and its stroke is black on dark pages too. Fill rule and reverse path have no controls; the Scale tool has no panel or anchor. Behaviours of the reference not ported: handles made by a mirror mode on a sharp point, and loops closing through a bridge segment after a point between was deleted."
     cases: [regressions/issue-hand-c9-vector-edit-keys, regressions/issue-hand-pen-double-click, regressions/issue-hand-pencil-samples]
+    since: "2026-11-27"
+  - id: design.editor.first-ten-minutes
+    title: "A designer's first ten minutes work by hand in the editor, in the steps the reference takes: the thirty things of the acceptance list and six more (frames, shapes and text drawn and changed; select, marquee, deep select, move with snapping, resize, exact sizes with arithmetic and Tab to the next field, rotate, duplicate, nudge; fill, stroke, radius, shadow; align and distribute, group and frame; rename and reorder layers; auto layout, its handles, hug and fill; a component and an instance with an override; zoom and pan; undo and redo; copy and paste in place, export, save; measure, the pen, the Actions palette, a prototype link and the presenter, placing an image, hiding and locking), and a whole phone login screen in at most 110 actions without getting stuck"
+    dimension: [function]
+    priority: P0
+    status: partial
+    paths: [web/tests/hand/first-ten-minutes.mjs, web/tests/hand/login.mjs, web/src/design/fields.tsx]
+    gap: "Checked in dev.html with real pointer and keys in Chromium and WebKit: 29 of the 30 things and the 6 more pass; the login screen takes 101 actions and gets stuck no time. A marquee from the canvas that touches part of a top-level frame selects nothing (the reference selects the frame): the engine's selection behaviour suite pins today's rule, and changing it needs a maintainer. The new file and the first save's file name are the host's: dev.html has no new file (Cmd+N reaches the host; a new page is the blank canvas here). A real mouse, trackpad and input method, and Kition Desktop's frame, are not checked."
+    cases: [design.editor.first-ten-minutes/thirty-things, design.editor.first-ten-minutes/login-screen, regressions/issue-hand-n12-tab-to-height]
     since: "2026-11-27"
   - id: design.platform.document-identity
     title: "A host reads the document id a .kdesign carries and forks a copied design into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"

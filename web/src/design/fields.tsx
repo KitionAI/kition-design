@@ -85,7 +85,8 @@ export function BindableField({ ids, nodes, field, kind = 'number', ...props }: 
     <NumberField
       {...props}
       addon={
-        <button type="button" className="design-field-addon" data-tip={t('Apply variable')} aria-label={t('Apply variable')} onClick={pick}>
+        // Out of the Tab order: Tab in W goes on to H, not to this button shown while hovered.
+        <button type="button" className="design-field-addon" tabIndex={-1} data-tip={t('Apply variable')} aria-label={t('Apply variable')} onClick={pick}>
           <Icon name="Variable" size={12} />
         </button>
       }

@@ -9,6 +9,7 @@ import type { KeyboardEvent } from 'react'
 import { isMac } from '@kition/sdk/editor'
 import type { DesignKit } from '../kit/context'
 import { composingKey } from '../canvas/inputMethod'
+import { regionKeyDown } from '../kit/regions'
 
 /** Two digits typed this close together are one exact opacity (4 then 5: 45 %). */
 const DIGITS_MS = 600
@@ -88,6 +89,9 @@ export function shellKeyDown(designKit: DesignKit, event: KeyboardEvent): boolea
   const mod = isMac() ? event.metaKey : event.ctrlKey
   const { ui } = designKit
   const code = event.code
+  // F6 and Shift+F6 with the keyboard on the editor's root (after a click on the canvas or Enter in
+  // a field): the shell's own region handler sees only keys from inside the shell.
+  if (event.key === 'F6' && regionKeyDown(document.querySelector<HTMLElement>('.design-shell'), event)) return true
   if (vectorEditKey(designKit, event) || opacityKey(designKit, event) || panKey(designKit, event)) return true
   if (mod && !event.altKey && (code === 'Equal' || code === 'Minus' || code === 'NumpadAdd' || code === 'NumpadSubtract')) {
     void designKit.viewTo(code === 'Minus' || code === 'NumpadSubtract' ? 'view.zoomOut' : 'view.zoomIn')
