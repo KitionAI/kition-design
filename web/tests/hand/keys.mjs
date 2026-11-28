@@ -479,6 +479,24 @@ try {
     await until(async () => (await region()) === 'canvas', 20)
   })
 
+  /** The layers in `parent`, top row first, with the rows in `expanded` open (the engine's layer tree). */
+  const kidsOf = async (expanded, parent) => {
+    const find = (rows) => {
+      for (const r of rows ?? []) {
+        if (r.id === parent) return r.children ?? []
+        const inner = find(r.children)
+        if (inner) return inner
+      }
+      return null
+    }
+    return find((await designKit((expanded) => window.designKit.query('layers', { expanded }), expanded)).rows) ?? []
+  }
+  /** Opens a layer row by its disclosure triangle, unless it is open. */
+  const openRow = async (id) => {
+    const toggle = kit.getByTestId(`design-layer-toggle-${id}`)
+    if ((await toggle.getAttribute('aria-label')) !== 'Collapse') await toggle.click()
+    await until(async () => (await toggle.getAttribute('aria-label')) === 'Collapse', 20)
+  }
   /** The page's top-level layers that hold others, top row first. */
   const framesWithLayers = async () => (await designKit(() => window.designKit.query('layers', { expanded: [] }))).rows.filter((r) => r.hasChildren).map((r) => r.id)
 
@@ -498,18 +516,15 @@ try {
     // Another frame open, a layer two levels down selected in its row; Escape gives the keyboard to
     // the canvas.
     const [outer, other] = tops
-    await kit.getByTestId(`design-layer-toggle-${outer}`).click()
-    const child = await designKit((outer) => {
-      const rows = [...document.querySelectorAll('.design-layer-row')]
-      const at = rows.findIndex((r) => r.getAttribute('data-row-id') === String(outer))
-      return rows.slice(at + 1).find((r) => r.querySelector('[data-testid^="design-layer-toggle-"]'))?.getAttribute('data-row-id')
-    }, outer)
-    await kit.getByTestId(`design-layer-toggle-${child}`).click()
-    const deep = await designKit((child) => {
-      const rows = [...document.querySelectorAll('.design-layer-row')]
-      return rows[rows.findIndex((r) => r.getAttribute('data-row-id') === String(child)) + 1]?.getAttribute('data-row-id')
-    }, child)
-    await kit.getByTestId(`design-layer-toggle-${other}`).click()
+    // Which rows to open and click comes from the engine's layer tree, not from the rows drawn
+    // so far (they follow a moment after a toggle); each is clicked once it is listed.
+    const child = (await kidsOf([outer], outer)).find((r) => r.hasChildren).id
+    const deep = (await kidsOf([outer, child], child))[0].id
+    await openRow(outer)
+    await until(async () => (await kit.getByTestId(`design-layer-${child}`).count()) === 1, 40)
+    await openRow(child)
+    await until(async () => (await kit.getByTestId(`design-layer-${deep}`).count()) === 1, 40)
+    await openRow(other)
     await kit.getByTestId(`design-layer-${deep}`).click()
     await page.keyboard.press('Escape')
     await page.waitForTimeout(200)
@@ -554,12 +569,9 @@ try {
     const tops = await framesWithLayers()
     const outer = tops[0]
     await page.mouse.click(empty.x, empty.y)
-    if ((await kit.getByTestId(`design-layer-toggle-${outer}`).getAttribute('aria-label')) !== 'Collapse') await kit.getByTestId(`design-layer-toggle-${outer}`).click()
-    const kids = await designKit((outer) => {
-      const rows = [...document.querySelectorAll('.design-layer-row')]
-      const at = rows.findIndex((r) => r.getAttribute('data-row-id') === String(outer))
-      return rows.slice(at + 1, at + 4).map((r) => Number(r.getAttribute('data-row-id')))
-    }, outer)
+    const kids = (await kidsOf([outer], outer)).slice(0, 3).map((r) => r.id)
+    await openRow(outer)
+    await until(async () => (await kit.getByTestId(`design-layer-${kids[2]}`).count()) === 1, 40)
     const [first, , third] = kids
     const viewBefore = await view()
     await kit.getByTestId(`design-layer-${first}`).locator('.design-layer-icon').dblclick()

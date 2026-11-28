@@ -6,7 +6,7 @@
 // state (the weights set again, the selection made again so the field mounts anew), and asserts
 // the exact weights each time: both layers move by the same delta, the one the field shows, which
 // is more than 0 and no more than the drag's pixels. A failure prints every pointer event of that
-// scrub and every command the scrub ran.
+// scrub and every command the editor sent the engine's worker during it.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
 import { evidence } from './evidence.mjs'
@@ -56,11 +56,14 @@ try {
       document.addEventListener(type, (e) => window.__scrub.push(`${type} x${Math.round(e.clientX)} mx${e.movementX} lock${document.pointerLockElement ? 1 : 0}`), true)
     }
     document.addEventListener('pointerlockchange', () => window.__scrub.push(`lock ${document.pointerLockElement ? 'on' : 'off'}`))
-    const session = window.designKit.editor.session
-    const run = session.run.bind(session)
-    session.run = (command, params) => {
-      window.__scrub.push(`run ${command} ${JSON.stringify(params ?? {}).slice(0, 400)}`)
-      return run(command, params)
+    // Every command the editor sends the engine's worker, and the interaction's begin and end
+    // (queries, renders and tool state left out).
+    const post = Worker.prototype.postMessage
+    Worker.prototype.postMessage = function (data, transfer) {
+      const request = data?.request
+      const told = request?.method === 'execute' || (request?.method === 'invoke' && !['query', 'chrome'].includes(request.name))
+      if (told) window.__scrub.push(`run ${JSON.stringify(request).slice(0, 400)}`)
+      return post.call(this, data, transfer)
     }
   })
 
@@ -98,9 +101,21 @@ try {
         await page.mouse.move(x + i * PX, y)
         await page.waitForTimeout(30)
       }
-      // The field shows the drag's delta (its value from 0, as the selection is mixed).
+      // The field shows the drag's delta (its value from 0, as the selection is mixed), once the
+      // drag's last move reached it: WebKit hands the page a pointer move at its next rendering
+      // update, which on a loaded machine can come after the test's read (CI run 46088716071 read
+      // 21 with the eighth move still pending; the pointerup delivered it and both weights moved
+      // by 24). Two frames, then the same value twice.
+      const frames = () => designKit(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true)))))
       await until(async () => Number(await field.locator('input').inputValue()) > 0, 40)
-      const delta = Number(await field.locator('input').inputValue())
+      let delta = Number.NaN
+      await until(async () => {
+        await frames()
+        const now = Number(await field.locator('input').inputValue())
+        const same = now === delta
+        delta = now
+        return same
+      }, 40)
       await page.mouse.up()
       await idle()
       // The scrub's commit and its refresh land.
