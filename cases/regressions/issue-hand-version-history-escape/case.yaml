@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-version-history-escape
+feature: design.editor.keyboard
+intent: >-
+  Escape closes the version history panel, and the layers come back. The engine's own Escape
+  comes first (a drawing tool goes back to Move), and the panel's fields, a menu or a dialog over
+  it keep theirs. Before, Escape did nothing to the panel: only its close button closed it
+  (walkthrough 2026-11-27, new finding 3). web/tests/hand/keys.mjs opens the panel from the
+  Actions palette, presses R, Escape, Escape and R with real keys and reads the tool and the panel
+  back.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-27, new finding 3 (kition-plan kit-docs/design/walkthrough, probe22b)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

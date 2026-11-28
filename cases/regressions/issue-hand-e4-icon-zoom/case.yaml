@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-hand-e4-icon-zoom
+feature: design.editor.canvas-picking
+intent: >-
+  A double-click on a layer row's icon selects that layer and zooms the canvas to it, without
+  renaming it, and the row becomes the anchor of a Shift+click range; a double-click on the name
+  still renames. The icon's double-click renamed, like the rest of the row (walkthrough E4).
+  web/tests/hand/keys.mjs double-clicks a row's icon with the real mouse and reads the selection,
+  the view and the rename field back, then Shift+clicks two rows further down.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-27, finding E4 (kition-plan kit-docs/design/walkthrough, probe05b)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, chromium]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [chromium]

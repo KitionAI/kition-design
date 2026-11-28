@@ -478,6 +478,149 @@ try {
     await page.keyboard.press('Escape')
     await until(async () => (await region()) === 'canvas', 20)
   })
+
+  /** The page's top-level layers that hold others, top row first. */
+  const framesWithLayers = async () => (await designKit(() => window.designKit.query('layers', { expanded: [] }))).rows.filter((r) => r.hasChildren).map((r) => r.id)
+
+  // Alt+L from the canvas (R-E19): every layer row closes except those leading to the selection.
+  // Stage 11b took it for broken: after a deep selection the rows still open were that selection's
+  // ancestors, which the command keeps open on purpose.
+  await part('Alt+L', async () => {
+    const opened = async (id) => (await kit.getByTestId(`design-layer-toggle-${id}`).getAttribute('aria-label')) === 'Collapse'
+    const tops = await framesWithLayers()
+    await page.mouse.click(empty.x, empty.y)
+    for (const id of tops.slice(0, 2)) if (!(await opened(id))) await kit.getByTestId(`design-layer-toggle-${id}`).click()
+    await page.mouse.click(empty.x, empty.y)
+    await page.waitForTimeout(200)
+    await page.keyboard.press('Alt+l')
+    const closed = async () => !(await opened(tops[0])) && !(await opened(tops[1]))
+    step('Alt+L with the keyboard on the canvas closes every row', await until(closed, 40), `focus ${await focused()}`)
+    // Another frame open, a layer two levels down selected in its row; Escape gives the keyboard to
+    // the canvas.
+    const [outer, other] = tops
+    await kit.getByTestId(`design-layer-toggle-${outer}`).click()
+    const child = await designKit((outer) => {
+      const rows = [...document.querySelectorAll('.design-layer-row')]
+      const at = rows.findIndex((r) => r.getAttribute('data-row-id') === String(outer))
+      return rows.slice(at + 1).find((r) => r.querySelector('[data-testid^="design-layer-toggle-"]'))?.getAttribute('data-row-id')
+    }, outer)
+    await kit.getByTestId(`design-layer-toggle-${child}`).click()
+    const deep = await designKit((child) => {
+      const rows = [...document.querySelectorAll('.design-layer-row')]
+      return rows[rows.findIndex((r) => r.getAttribute('data-row-id') === String(child)) + 1]?.getAttribute('data-row-id')
+    }, child)
+    await kit.getByTestId(`design-layer-toggle-${other}`).click()
+    await kit.getByTestId(`design-layer-${deep}`).click()
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
+    const before = JSON.stringify((await inspect()).selection)
+    await page.keyboard.press('Alt+l')
+    step('Alt+L on a nested selection closes the other rows', await until(async () => !(await opened(other)), 40), `focus ${await focused()}, selection ${before}`)
+    step('and keeps the rows leading to the selection open', (await opened(outer)) && (await opened(Number(child))) && (await kit.getByTestId(`design-layer-${deep}`).count()) === 1 && JSON.stringify((await inspect()).selection) === `[${deep}]`, before)
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press('Alt+l')
+    await until(closed, 20)
+  })
+
+  // Stage 11b (regressions/issue-hand-version-history-escape): Escape closes the version history
+  // panel. The engine's own Escape comes first (a drawing tool goes back to Move), the panel's
+  // fields and menus keep theirs; closed, the layers are back and the keyboard is the canvas's.
+  await part('version history', async () => {
+    const panel = kit.getByTestId('design-version-history')
+    await page.mouse.click(empty.x, empty.y)
+    await page.keyboard.press(`${mod}+k`)
+    await until(async () => (await kit.getByTestId('design-actions-palette').count()) === 1)
+    await page.keyboard.type('Show version history')
+    await page.waitForTimeout(400)
+    await page.keyboard.press('Enter')
+    step('Show version history opens its panel', await until(async () => (await panel.count()) === 1, 40))
+    await page.keyboard.press('r')
+    await until(() => toolIs('rectangle'), 40)
+    await page.keyboard.press('Escape')
+    step('Escape with the Rectangle tool goes back to Move and keeps the panel', (await until(() => toolIs('move'), 40)) && (await panel.count()) === 1, `${JSON.stringify(await tool())}, ${await panel.count()} panels`)
+    await page.keyboard.press('Escape')
+    step('the next Escape closes the version history', await until(async () => (await panel.count()) === 0, 40), `${await panel.count()} panels, focus ${await focused()}`)
+    step('and the layers are back', await until(async () => (await kit.locator('.design-layer-row').count()) > 0, 20))
+    await page.keyboard.press('r')
+    step('the keyboard is the canvas\'s after it (R)', await until(() => toolIs('rectangle'), 40), `${JSON.stringify(await tool())}, focus ${await focused()}`)
+    await page.keyboard.press('Escape')
+    await until(() => toolIs('move'), 40)
+  })
+
+  // E4 (R-E20, regressions/issue-hand-e4-icon-zoom): a double-click on a layer row's icon selects
+  // that layer and zooms to it, without renaming; it becomes the Shift+click range's anchor. A
+  // double-click on the name still renames.
+  await part('E4 icon', async () => {
+    const tops = await framesWithLayers()
+    const outer = tops[0]
+    await page.mouse.click(empty.x, empty.y)
+    if ((await kit.getByTestId(`design-layer-toggle-${outer}`).getAttribute('aria-label')) !== 'Collapse') await kit.getByTestId(`design-layer-toggle-${outer}`).click()
+    const kids = await designKit((outer) => {
+      const rows = [...document.querySelectorAll('.design-layer-row')]
+      const at = rows.findIndex((r) => r.getAttribute('data-row-id') === String(outer))
+      return rows.slice(at + 1, at + 4).map((r) => Number(r.getAttribute('data-row-id')))
+    }, outer)
+    const [first, , third] = kids
+    const viewBefore = await view()
+    await kit.getByTestId(`design-layer-${first}`).locator('.design-layer-icon').dblclick()
+    await page.waitForTimeout(300)
+    step('a double-click on a row\'s icon selects its layer', await until(async () => JSON.stringify((await inspect()).selection) === `[${first}]`, 40), JSON.stringify((await inspect()).selection))
+    step('and opens no name field', (await kit.getByTestId('design-layer-rename').count()) === 0)
+    const centred = async () => {
+      const b = (await node(first)).absoluteBounds
+      const at = await toPage(b.x + b.width / 2, b.y + b.height / 2)
+      return Math.abs(at.x - (surface.x + surface.width / 2)) < 24 && Math.abs(at.y - (surface.y + surface.height / 2)) < 24
+    }
+    step('and zooms to it (its centre in the canvas\'s centre)', await until(centred, 40), `${JSON.stringify(viewBefore)} -> ${JSON.stringify(await view())}`)
+    await kit.getByTestId(`design-layer-${third}`).click({ modifiers: ['Shift'] })
+    step('Shift+click after it selects the range from that row', await until(async () => (await inspect()).selection.length === 3, 40), JSON.stringify((await inspect()).selection))
+    await kit.getByTestId(`design-layer-${first}`).locator('.design-layer-name').dblclick()
+    step('a double-click on the name still renames', await until(async () => (await kit.getByTestId('design-layer-rename').count()) === 1, 40))
+    await page.keyboard.press('Escape')
+    await until(async () => (await kit.getByTestId('design-layer-rename').count()) === 0, 20)
+    await page.mouse.click(empty.x, empty.y)
+  })
+
+  // K2 (R-K4, regressions/issue-hand-k2-menu-bar-keys): the top bar's menus write shortcuts as the
+  // main menu and the shortcuts dialog do: ⌃⌥⇧⌘ on a Mac, Ctrl+Shift+… elsewhere, never "Cmd+".
+  // Checked here and on a page that reports the other platform.
+  const menuKeys = async (target) => {
+    const k = target.frameLocator('#kit')
+    const out = []
+    for (const [bar, main] of [['Edit', 'edit'], ['Object', 'object'], ['Arrange', 'arrange']]) {
+      await k.getByTestId(`design-menu-${bar}`).click()
+      await target.waitForTimeout(400)
+      const shown = await k.locator('[role="menu"]').last().evaluate((m) => Object.fromEntries([...m.querySelectorAll('[data-testid^="design-cmd-"]')].map((r) => [r.getAttribute('data-testid').slice('design-cmd-'.length), r.querySelector('kbd')?.textContent ?? ''])))
+      await target.keyboard.press('Escape')
+      await target.waitForTimeout(200)
+      await k.getByTestId('design-main-menu-button').click()
+      await k.getByTestId(`design-main-menu-${main}`).hover()
+      await target.waitForTimeout(400)
+      const wanted = await k.getByTestId(`design-main-menu-${main}-menu`).evaluate((m) => Object.fromEntries([...m.querySelectorAll('[data-testid^="design-menu-"]')].map((r) => [r.getAttribute('data-testid').slice('design-menu-'.length), r.querySelector('.design-menu-keys')?.textContent ?? ''])))
+      await target.keyboard.press('Escape')
+      await target.waitForTimeout(200)
+      for (const [id, keys] of Object.entries(shown)) if (id in wanted && wanted[id] !== keys) out.push(`${id}: ${keys} vs ${wanted[id]}`)
+      for (const keys of Object.values(shown)) if (/Cmd/.test(keys)) out.push(`${bar}: ${keys}`)
+    }
+    return out
+  }
+  await part('K2', async () => {
+    const here = await menuKeys(page)
+    step('the top bar\'s shortcuts are written as the main menu\'s', here.length === 0, here.slice(0, 6).join('; '))
+    const mac = mod === 'Meta'
+    const otherContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const platform = mac ? 'Linux x86_64' : 'MacIntel'
+    await otherContext.addInitScript(`Object.defineProperty(Navigator.prototype, 'platform', { get: () => ${JSON.stringify(platform)} })`)
+    const other = await otherContext.newPage()
+    await other.goto(`${origin}/dev.html?locale=en-US`)
+    await other.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
+    await other.frameLocator('#kit').getByTestId('design-menu-Edit').waitFor({ timeout: 60000 })
+    await other.waitForTimeout(1500)
+    const there = await menuKeys(other)
+    const sample = await other.frameLocator('#kit').getByTestId('design-main-menu-button').count()
+    step(`and so on a page that reports ${platform}`, there.length === 0 && sample === 1, there.slice(0, 6).join('; '))
+    await otherContext.close()
+  })
 } catch (error) {
   failures += 1
   shots.failed('error')

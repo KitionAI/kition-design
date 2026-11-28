@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-hand-k2-menu-bar-keys
+feature: design.editor.keyboard
+intent: >-
+  The top bar's menus write a shortcut as the main menu and the Keyboard shortcuts dialog do:
+  symbols on a Mac (⌥⌘G, ⇧⌘Z), Ctrl+Alt+G and Ctrl+Shift+Z on Windows and Linux. They showed the
+  kit notation instead, "Cmd+Alt+G" on every platform (walkthrough K2).
+  web/tests/hand/keys.mjs opens the top bar's Edit, Object and Arrange menus and compares each
+  row's shortcut with the main menu's, on the machine's platform and on a page that reports the
+  other one.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Design hand walkthrough 2026-11-26 and 2026-11-27, finding K2 (kition-plan kit-docs/design/walkthrough, probe10)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/hand/keys.mjs, webkit]
+expected:
+  - { actual: "out:exec", compare: exit, value: 0 }
+since: "2026-11-27"
+timeout_s: 600
+requires: [webkit]
