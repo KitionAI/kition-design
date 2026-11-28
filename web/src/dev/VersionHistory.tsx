@@ -7,7 +7,8 @@
  * Restore). A version the host's history no longer reaches is listed and can't be shown; without
  * the capability the panel says why it can't save versions.
  */
-import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { focusEditor, keyboardLost } from '../kit/focus'
 import { useDesignKit, useQuery } from '../kit/hooks'
 import { Button, IconButton, Menu, Note, Separator, tip, type MenuEntry } from '../ui'
 import { deleteVersion, ownCheckpoint, previewVersion, refusal, renameVersion, restoreVersion, saveVersion, useCheckpoints, type KitCheckpoint } from './checkpoints'
@@ -66,6 +67,46 @@ export function VersionHistory() {
     setDev((now) => ({ versions: { ...now.versions, open: false, saving: false } }))
     void run('version.exitPreview', {})
   }
+  // Escape closes the panel when nothing else takes it: the engine's own Escape comes first (a
+  // drawing tool back to Move, the end of a text or vector edit, a drag cancelled), and so do a
+  // field's (the save and rename forms cancel) and a menu's or dialog's over it.
+  const latest = useRef({ designKit, close })
+  latest.current = { designKit, close }
+  useEffect(() => {
+    // A button held: a drag may run on the canvas, and its Escape cancels it.
+    let held = 0
+    const down = (event: PointerEvent) => {
+      held = event.buttons
+    }
+    const up = () => {
+      held = 0
+    }
+    const key = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+      const target = event.target
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (document.querySelector('.design-layer, .kui-dialog, [role="dialog"]')) return
+      const { inspect } = latest.current.designKit
+      if (held || inspect.gesture === true || inspect.editing !== 'none' || inspect.tool !== 'move') return
+      event.preventDefault()
+      event.stopPropagation()
+      const inside = target instanceof Element && target.closest('[data-testid="design-version-history"]') != null
+      latest.current.close()
+      // The panel had the keyboard: the editor has it next, not the page.
+      if (inside) window.setTimeout(() => keyboardLost() && focusEditor(), 0)
+    }
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
+    window.addEventListener('keydown', key, true)
+    return () => {
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
+      window.removeEventListener('keydown', key, true)
+    }
+  }, [])
   const saving = dev.versions.saving && versions.available
   const setSaving = (on: boolean) => setDev((now) => ({ versions: { ...now.versions, saving: on } }))
   /** Runs a host call, saying why when the host refuses it. */

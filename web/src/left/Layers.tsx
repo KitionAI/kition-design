@@ -515,6 +515,12 @@ export function Layers() {
                 }}
                 onDoubleClick={(event) => {
                   if (event.target instanceof HTMLInputElement || (event.target as Element).closest('button')) return
+                  // On the icon: select the layer and zoom to it, the Shift+click range's anchor (R-E20).
+                  if ((event.target as Element).closest('.design-layer-icon')) {
+                    setLeft({ anchor: row.id, seenSelection: String(row.id), pagesFocus: false })
+                    void run('select.set', { ids: [row.id] }).then(() => designKit.viewTo('view.zoomSelection'))
+                    return
+                  }
                   if (!devRefuses(designKit, 'object.rename')) setLeft({ rename: { id: row.id, start: true } })
                 }}
                 onContextMenu={(event) => {
